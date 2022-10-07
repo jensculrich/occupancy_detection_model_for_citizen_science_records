@@ -11,8 +11,7 @@ nsp=20
 nsite=18 ## number of sites
 ninterval=10 ## number of occupancy intervals
 nvisit=6 ## number of samples per year
-# Interval values: numeric vector (will act as covariate data for psi.interval)
-intervals <- seq(1, ninterval, by=1)
+
 
 ## detection
 mu.p.0 = 0
@@ -62,9 +61,7 @@ p.sp  <- rnorm(n=nsp, mean = 0, sd=sigma.p.sp)
 # species specific variation defined by sigma.p.sp
 
 ## effect of site and interval on detection (site,interval-specific random slopes)
-p.site <- matrix(rnorm(n=nsite*ninterval, mean=0, sd=sigma.p.site),
-                       nrow=nsite,
-                       ncol=ninterval)
+p.site <- rnorm(n=nsite, mean=0, sd=sigma.p.site)
 
 # spatiotemporal variability in detection probability (changing across sites and 
 # occupancy intervals), and helps account for the variation that is inherent in 
@@ -94,7 +91,7 @@ for(site in 1:nsite) { # for each site
         p.mat[sp,site,interval,visit] <- expit( # detection is equal to 
                                            mu.p.0 + # a baseline intercept
                                            p.sp[sp] + # a species specific intercept
-                                           p.site[site,interval] + # a spatiotemporally specific intercept
+                                           p.site[site] + # a spatiotemporally specific intercept
                                            p.interval*(interval)) # an overall effect of time on detection
       } # for each visit
     } # for each species
@@ -157,20 +154,35 @@ V <- V # detection data
 nsp <- nsp # number of species
 nsite <- nsite # number of sites
 ninterval <- ninterval # number of surveys 
-intervals <- intervals
+nvisit <- nvisit
+# Interval values: numeric vector (will act as covariate data for psi.interval)
+intervals <- seq(1, ninterval, by=1)
+sites <- seq(1, nsite, by=1)
+species <- seq(1, nsp, by=1)
 
-stan_data <- c("V", "nsp", "nsite", "ninterval", "intervals")
+stan_data <- c("V", "nsp", "nsite", "ninterval", "nvisit", 
+               "species", "sites", "intervals")
 
 # Parameters monitored
-params <- c(
-  
+params <- c("mu_psi_0",
+            "psi_sp",
+            "sigma_psi_species",
+            "psi_interval",
+            "mu_psi_interval",
+            "sigma_psi_interval",
+            "mu_p_0",
+            "p_sp",
+            "sigma_p_species",
+            "p_site",
+            "sigma_p_site",
+            "p_interval"
 )
 
 
 # MCMC settings
-n_iterations <- 800
+n_iterations <- 400
 n_thin <- 1
-n_burnin <- 400
+n_burnin <- 200
 n_chains <- 3
 n_cores <- 3
 
@@ -178,7 +190,19 @@ n_cores <- 3
 # given the number of parameters, the chains need some decent initial values
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
-  list(
+  list(mu_psi_0 = runif(1, -1, 1),
+       psi_sp = runif(1, -1, 1),
+       sigma_psi_species = runif(1, -1, 1),
+       psi_interval = runif(1, -1, 1),
+       mu_psi_interval = runif(1, -1, 1),
+       sigma_psi_interval = runif(1, -1, 1),
+       mu_p_0 = runif(1, -1, 1),
+       p_sp = runif(1, -1, 1),
+       sigma_p_species = runif(1, -1, 1),
+       p_site = runif(1, -1, 1),
+       sigma_p_site = runif(1, -1, 1),
+       p_interval = runif(1, -1, 1)
+       
   )
 )
 
@@ -186,7 +210,8 @@ inits <- lapply(1:n_chains, function(i)
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- stan_model("./.stan")
+library(rstan)
+stan_model <- "./simulation/model_simple.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
