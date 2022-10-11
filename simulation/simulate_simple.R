@@ -10,15 +10,14 @@
 # I'm having a more difficult time keeping track of all of the random effects in the array form
 # and this format has worked for me before. Are there any drawbacks to having the data in a series of
 # vectors? Is it more computationally intensive?
-library(tidyverse)
 
 ## --------------------------------------------------
 ### Variable values for data simulation
 
 ## study dimensions
-n_species=10 ## number of species (number of species included in the studies taxonomic scope)
-n_sites=10 ## number of sites (number of cities included in the study)
-n_intervals=10 ## number of occupancy intervals (i.e. number of sets of years within which we are estimating occupancy rates)
+n_species=12 ## number of species (number of species included in the studies taxonomic scope)
+n_sites=12 ## number of sites (number of cities included in the study)
+n_intervals=5 ## number of occupancy intervals (i.e. number of sets of years within which we are estimating occupancy rates)
 n_visits=3 ## number of repeat 'surveys' per interval (i.e. number of years within an interval in which data is collected)
 
 # number of unique data observation points 
@@ -187,20 +186,20 @@ n_visits <- n_visits
 interval <- interval
 site <- site
 species <- species
-visit <- visit
 
-stan_data <- c("R", "V", "n_intervals", "n_sites", "n_species", "n_visits", 
-               "species", "site", "interval", "visit")
+stan_data <- c("R", "V", 
+               "n_intervals", "n_sites", "n_species", "n_visits", 
+               "species", "site", "interval")
 
 # Parameters monitored
 params <- c("mu_psi_0",
-            "psi_sp",
+            "psi_species",
             "sigma_psi_species",
             "psi_interval",
             "mu_psi_interval",
             "sigma_psi_interval",
             "mu_p_0",
-            "p_sp",
+            "p_species",
             "sigma_p_species",
             "p_site",
             "sigma_p_site",
@@ -209,9 +208,9 @@ params <- c("mu_psi_0",
 
 
 # MCMC settings
-n_iterations <- 400
+n_iterations <- 500
 n_thin <- 1
-n_burnin <- 200
+n_burnin <- 250
 n_chains <- 3
 n_cores <- 3
 
@@ -220,16 +219,12 @@ n_cores <- 3
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
   list(mu_psi_0 = runif(1, -1, 1),
-       psi_sp = runif(1, -1, 1),
-       sigma_psi_species = runif(1, -1, 1),
-       psi_interval = runif(1, -1, 1),
+       sigma_psi_species = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
-       sigma_psi_interval = runif(1, -1, 1),
+       sigma_psi_interval = runif(1, 0, 1),
        mu_p_0 = runif(1, -1, 1),
-       p_sp = runif(1, -1, 1),
-       sigma_p_species = runif(1, -1, 1),
-       p_site = runif(1, -1, 1),
-       sigma_p_site = runif(1, -1, 1),
+       sigma_p_species = runif(1, 0, 1),
+       sigma_p_site = runif(1, 0, 1),
        p_interval = runif(1, -1, 1)
        
   )
@@ -240,7 +235,7 @@ inits <- lapply(1:n_chains, function(i)
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./simulation/model_simple.stan"
+stan_model <- "./simulation/model_simple_for_vectorized_data.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -255,8 +250,8 @@ stan_out_sim <- stan(stan_model,
 
 print(stan_out_sim, digits = 3)
 
-saveRDS(stan_out_sim, ".//stan_out_sim.rds")
-stan_out_sim <- readRDS(".//stan_out_sim.rds")
+saveRDS(stan_out_sim, "./simulation/stan_out_sim.rds")
+stan_out_sim <- readRDS("./simulation/stan_out_sim.rds")
 
 ## --------------------------------------------------
 ### In Shirey et al. 2022 they use the data in an array format simulated as below ->
