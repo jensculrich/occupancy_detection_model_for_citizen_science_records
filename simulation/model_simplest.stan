@@ -16,10 +16,12 @@ data {
   
   real intervals[n_intervals]; // vector of intervals (used as covariate data for 
                                 // fixed effect of occupancy interval (time) on occupancy)
+                                // needs to begin with intervals[1] = 0, i.e., 
+                                // there is no temporal addition in the first interval
   
   int<lower=1> n_visits; // visits within intervals
   
-  int<lower=0> V[n_species, n_sites, n_intervals, n_visits];  // visits when species i was detected at site j on interval k
+  int<lower=0> V[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   
   
 } // end data
@@ -28,7 +30,7 @@ data {
 parameters {
   
   // OCCUPANCY
-  real mu_psi_0; // global interecept for occupancy
+  real mu_psi_0; // global intercept for occupancy
   
   // species specific intercept allows some species to occur at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
@@ -41,7 +43,7 @@ parameters {
   real<lower=0> sigma_psi_interval; // variance in species slopes
   
   // DETECTION
-  real mu_p_0;
+  real mu_p_0; // global intercept for detection
   
   // species specific intercept allows some species to be detected at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
@@ -59,37 +61,38 @@ parameters {
 
 transformed parameters {
   
-  real psi[n_species, n_sites, n_intervals];  // log odds  of occurrence
-  real p[n_species, n_sites, n_intervals, n_visits];  // log odds of detection
+  real psi[n_species, n_sites, n_intervals];  // odds of occurrence
+  real p[n_species, n_sites, n_intervals, n_visits];  // odds of detection
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
-      for(k in 1:n_intervals){
+      for(k in 1:n_intervals){ // loop across all intervals  
           
-          psi[i, j, k] = inv_logit( // log odds  of occurrence is equal to
+          psi[i,j,k] = inv_logit( // the inverse of the log odds of occurrence is equal to..
             mu_psi_0 + // a baseline intercept
             psi_species[species[i]] + // a species specific intercept
             psi_interval[species[i]]*intervals[k] // a species specific temporal effect
-            );
-      }
-    }
-  }
+            ); // end psi[i,j,k]
+      } // end loop across all intervals
+    } // end loop across all sites
+  }  // end loop across all species
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
-      for(k in 1:n_intervals){
-        for(l in 1:n_visits){
+      for(k in 1:n_intervals){ // loop across all intervals
+        for(l in 1:n_visits){ // loop across all visits
         
-          p[i, j, k, l] = inv_logit( // log odds of detection is equal to
+          p[i,j,k,l] = inv_logit( // the inverse of the log odds of detection is equal to..
             mu_p_0 + // a baseline intercept
             p_species[species[i]] + // a species specific intercept
             p_site[sites[j]] + // a spatially specific intercept
             p_interval*intervals[k] // an overall effect of time on detection
-           );
-        }
-      }
-    }
-  }
+           ); // end p[i,j,k,l]
+           
+        } // end loop across all visits
+      } // end loop across all intervals
+    } // end loop across all sites
+  } // end loop across all species
   
 } // end transformed parameters
 
@@ -122,12 +125,13 @@ model {
   // distribution (variance defined by sigma), centered at 0. 
   sigma_p_species ~ cauchy(0, 2.5);
   
+  // should redefine p_site so that it is spatially AND temporally heterogenous 
   p_site ~ normal(0, sigma_p_site);
-  // detection intercept for each site*interval drawn from the spatiotemporal
+  // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_site ~ cauchy(0, 2.5); // spatiotemporal variance
+  sigma_p_site ~ cauchy(0, 2.5); // spatial variance
   
-  p_interval ~ cauchy(0, 2.5);
+  p_interval ~ cauchy(0, 2.5); // temporal effect on detection probability
   
   // LIKELIHOOD
   
@@ -135,8 +139,8 @@ model {
   // parameter (marginalizing) across likelihood statements
   for(i in 1:n_species) { // loop across all species
     for(j in 1:n_sites) { // loop across all sites
-      for(k in 1:n_intervals){
-        for(l in 1:n_visits){
+      for(k in 1:n_intervals){ // loop across all intervals
+        for(l in 1:n_visits){ // loop across all visits
           
           // if species is detected at the specific site*interval at least once
           // lp_observed calculates the probability density that occurs given logit_psi plus
@@ -165,8 +169,9 @@ model {
             
           } // end if/else
           
-        }
-      }
-    }
-  }
+        } // end loop across all visits
+      } // end loop across all intervals
+    } // end loop across all sites
+  } // end loop across all species
+  
 } // end model

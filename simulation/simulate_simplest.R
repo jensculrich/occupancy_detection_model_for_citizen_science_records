@@ -36,8 +36,7 @@ sigma_p_species = 0.3
 # prop.visits.same = 1
 
 ## expit and logit functions
-expit <- function(x) 1/(1+exp(-x))
-illogit <- function(x) exp(x)/(1+exp(x))
+ilogit <- function(x) exp(x)/(1+exp(x))
 logit <- function(x) log(x/(1-x))
 
 # Interval values: numeric vector (will act as covariate data for psi.interval)
@@ -89,7 +88,7 @@ for(species in 1:n_species) { # for each site
   for(site in 1:n_sites) { # for each interval
     for(interval in 1:n_intervals) { # for each species
       
-      psi_matrix[species, site, interval] <- illogit( # occupancy is equal to
+      psi_matrix[species, site, interval] <- ilogit( # occupancy is equal to
         mu_psi_0 + # a baseline intercept
           psi_species[species] + # a species specific intercept
           psi_interval[species]*intervals[interval] # a species specific temporal change
@@ -97,7 +96,7 @@ for(species in 1:n_species) { # for each site
           
       for(visit in 1:n_visits) { # for each visit
         
-        p_matrix[species, site, interval, visit] <- illogit( # detection is equal to 
+        p_matrix[species, site, interval, visit] <- ilogit( # detection is equal to 
           mu_p_0 + # a baseline intercept
             p_species[species] + # a species specific intercept
             p_site[site] + # a spatiotemporally specific intercept
