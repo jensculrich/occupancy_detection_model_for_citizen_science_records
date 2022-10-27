@@ -1,5 +1,5 @@
 ### Data Collection for pollinator occurrence data
-# jcu; started oct 10, 2022
+# jcu; started oct 27, 2022
 
 # Collect data of pollinator occurrence from GBIF
 # data should be limited to a taxonomic group - Syrphidae
@@ -148,15 +148,15 @@ plotly::ggplotly(out)
 
 regular_contemporary_occurrences_df %>% select(issue) %>% head()
 
-write.csv(occurrences_df, "unfiltered_data.csv")
-write.csv(regular_contemporary_occurrences_df, "filtered_data.csv")
+# write.csv(occurrences_df, "data_unfiltered.csv")
+# write.csv(regular_contemporary_occurrences_df, "data_filtered.csv")
 
 ## --------------------------------------------------
 # 3) EXPLORATORY MAPPING
 ## --------------------------------------------------
 
 # setwd("..")
-df <- read.csv("./data/filtered_data.csv")
+df <- read.csv("./data/data_filtered.csv")
 
 # Rename Latitude and Longitude
 df <- dplyr::rename(df, lat = decimalLatitude, 
