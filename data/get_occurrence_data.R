@@ -148,10 +148,44 @@ plotly::ggplotly(out)
 
 regular_contemporary_occurrences_df %>% select(issue) %>% head()
 
-write.csv(occurrences_df, "./data/unfiltered_data.csv")
-write.csv(regular_contemporary_occurrences_df, "./data/filtered_data.csv")
+write.csv(occurrences_df, "unfiltered_data.csv")
+write.csv(regular_contemporary_occurrences_df, "filtered_data.csv")
 
 ## --------------------------------------------------
 # 3) EXPLORATORY MAPPING
 ## --------------------------------------------------
 
+# setwd("..")
+df <- read.csv("./data/filtered_data.csv")
+
+# Rename Latitude and Longitude
+df <- dplyr::rename(df, lat = decimalLatitude, 
+                                  long = decimalLongitude)
+
+# Let's just map one 'typical' species for now
+row_per_species <- df %>%
+  group_by(species) %>%
+  filter(row_number()==1)
+
+median_n <- median(row_per_species$n)
+
+df_median_species <- df %>%
+  filter(n == median_n)
+
+p <- leaflet::leaflet(df_median_species) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addMarkers(~long, ~lat, 
+             popup = paste("Species: ", df_median_species$species, "<br>",
+                           "Year: ", df_median_species$year))
+p 
+
+df_500 <- df %>%
+  sample_n(500)
+
+q <- leaflet::leaflet(df_500) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addMarkers(~long, ~lat, 
+             popup = paste("Species: ", df_500$species, "<br>",
+                           "Year: ", df_500$year, "<br>",
+                           "Obs. per species: ", df_500$n))
+q 
