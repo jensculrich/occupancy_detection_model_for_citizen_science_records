@@ -1,8 +1,13 @@
+### Data simulation for citizen science/museum records of pollinator occurrence
+# jcu; started oct 10, 2022
+
 ## Data simulation for simplest form of the data
 # single season, species considered across all sites (not just range)
 # and across all visits (not considering that sites without any detections 
 # for any species were probably not visited or that sites with only detections for
 # a few species only might be targeted and not fully community wide)
+
+# model fitting using 'model_simplest.stan' should return the parameter inputs
 
 ## --------------------------------------------------
 ### Variable values for data simulation
@@ -242,7 +247,9 @@ stan_out_sim <- stan(stan_model,
                      cores = n_cores)
 
 print(stan_out_sim, digits = 3)
+
 saveRDS(stan_out_sim, "./simulation/stan_out_sim.rds")
+stan_out_sim <- readRDS("./simulation/stan_out_sim.rds")
 
 library(shinystan)
 shinystan::launch_shinystan(stan_out_sim)

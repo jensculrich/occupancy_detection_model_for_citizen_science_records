@@ -73,6 +73,7 @@ transformed parameters {
             psi_species[species[i]] + // a species specific intercept
             psi_interval[species[i]]*intervals[k] // a species specific temporal effect
             ); // end psi[i,j,k]
+            
       } // end loop across all intervals
     } // end loop across all sites
   }  // end loop across all species
