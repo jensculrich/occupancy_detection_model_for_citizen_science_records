@@ -9,6 +9,10 @@
 # and also importantly we will plan to limit the grid cells to those 
 # that contain 'urban areas'.
 
+# THEN intersect the filtered pollinator occurrence data against the urban grid
+# to retain only occurrence data from our sites. This is the data that we will 
+# format and then feed to the model (data_urban_occurrences.csv)
+
 library(tidyverse)
 library(tigris) # get state shapefile
 library(sf) # spatial data processing
