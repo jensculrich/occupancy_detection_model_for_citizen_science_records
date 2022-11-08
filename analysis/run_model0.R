@@ -20,9 +20,14 @@ n_sites <- my_data$n_sites # number of sites
 n_intervals <- my_data$n_intervals # number of surveys 
 n_visits <- my_data$n_visits
 
-intervals <- my_data$intervals
-sites <- my_data$sites
-species <- my_data$species
+interval_names <- as.numeric(my_data$intervals)
+site_names <- my_data$sites
+species_names <- my_data$species
+
+intervals_raw <- seq(1, n_intervals, by=1)
+intervals <- intervals_raw - 1
+sites <- seq(1, n_sites, by=1)
+species <- seq(1, n_species, by=1)
 
 stan_data <- c("V", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
