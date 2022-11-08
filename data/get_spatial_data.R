@@ -155,4 +155,4 @@ ggplot() +
   theme(legend.position="none")
 
 # save data frame of urban occurrences as a .csv
-write.csv(df_id_urban_filtered, "./data/data_urban_occurrences.csv")
+# write.csv(df_id_urban_filtered, "./data/data_urban_occurrences.csv")
