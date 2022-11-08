@@ -63,7 +63,7 @@ occurrences_df <- occ_download_import(occurrences)
 
 # filter options
 era_start <- 2000 # filter to records AFTER this year
-min_records_per_species <- 5 # filter to species with at least this many records
+# min_records_per_species <- 5 # filter to species with at least this many records
 
 ## --------------------------------------------------
 # filter out specimens that weren't ID'd to species level
@@ -89,7 +89,7 @@ head(species_counts)
 # Filter occurrences to a time era/s of interest
 
 ## Let's filter the occurrences to a time range that we are interested in 
-# here we will use data from 2001 to present (21 years of data)
+# here we will use data from 2001 to present (22 years of data)
 contemporary_occurrences_df <- occurrences_df %>%
   filter(year > era_start)
 

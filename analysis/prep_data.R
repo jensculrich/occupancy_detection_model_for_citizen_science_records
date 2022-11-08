@@ -14,7 +14,7 @@
 
 library(tidyverse)
 
-prep_data <- function(era_start, era_end, n_intervals, n_visits) {
+prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per_species) {
   
   # spatially explicit occurrence data
   df <- read.csv("./data/data_urban_occurrences.csv")
@@ -22,9 +22,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits) {
   ## --------------------------------------------------
   # assign study dimensions
   
-  total_years <- era_end - era_start
+  total_years <- era_end - era_start + 1
   remainder <- total_years %% n_intervals
   n_visits <- n_visits
+  min_records_per_species <- min_records_per_species
   
   ## --------------------------------------------------
   # assign occupancy visits and intervals and reduce to one
@@ -32,8 +33,12 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits) {
   
   df_filtered <- df %>%
     
+    # remove species with total observations (n) < min_records_per_species 
+    filter(n >= min_records_per_species) %>%
+    
     # assign year as - year after era_start
-    mutate(occ_year = (year - era_start)) %>%
+    mutate(occ_year = (year - era_start)) %>% # need to -1 so the start year is year 0
+ 
     
     # remove data from years that are in the remainder
     # occupancy intervals have to be equal in length for the model to process
@@ -123,7 +128,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits) {
         # spread sites by species, and fill with 0 if species never captured this interval*visit
         spread(grid_id, row, fill = 0) %>%
         # replace number of unique site captures of the species (if > 1) with 1.
-        mutate_at(5:(n_sites + 5), ~replace(., . > 1, 1)) %>%
+        mutate_at(5:(ncol(.)), ~replace(., . > 1, 1)) %>%
         # if more columns are added these indices above^ might need to change
         # 5:(n_species+5) represent the columns of each site in the matrix
         # just need the matrix of 0's and 1's

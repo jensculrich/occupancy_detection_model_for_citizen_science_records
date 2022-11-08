@@ -5,12 +5,13 @@ library(rstan)
 
 source("./analysis/prep_data.R")
 
-my_data <- prep_data(era_start = 2007, # must define start date of the GBIF dataset
+my_data <- prep_data(era_start = 2017, # must define start date of the GBIF dataset
                         era_end = 2022, # must define start date of the GBIF dataset
-                        n_intervals = 5, # must define number of intervals to break up the era into
-                        n_visits = 3 # must define the number of repeat obs years within each interval
+                        n_intervals = 2, # must define number of intervals to break up the era into
+                        n_visits = 3, # must define the number of repeat obs years within each interval
                         # note, should introduce throw error if..
-                        # (era_end - era_start) / n_intervals has a remainder > 0
+                        # (era_end - era_start) / n_intervals has a remainder > 0,
+                        min_records_per_species = 50
                       )
 
 # data to feed to the model
@@ -20,11 +21,14 @@ n_sites <- my_data$n_sites # number of sites
 n_intervals <- my_data$n_intervals # number of surveys 
 n_visits <- my_data$n_visits
 
-interval_names <- as.numeric(my_data$intervals)
+interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-intervals_raw <- seq(1, n_intervals, by=1)
+# intervals will cause issues if you try to run on only 1 interval
+# since it's no longer sent in as a vector of intervals (can you force a single
+# integer to be a vector if you truly want to treat all as a single interval?)
+intervals_raw <- as.vector(seq(1, n_intervals, by=1)) 
 intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
@@ -92,5 +96,42 @@ stan_out_sim <- stan(stan_model,
 
 print(stan_out_sim, digits = 3)
 
-saveRDS(stan_out_sim, "./simulation/stan_out_sim.rds")
-stan_out_sim <- readRDS("./simulation/stan_out_sim.rds")
+saveRDS(stan_out_sim, "./simulation/stan_out_0.rds")
+stan_out <- readRDS("./simulation/stan_out_0.rds")
+
+## --------------------------------------------------
+### Simple diagnostic plots
+
+# traceplot
+traceplot(stan_out, pars = c(
+  "mu_psi_0",
+  #"psi_species",
+  "sigma_psi_species",
+  # "psi_interval",
+  "mu_psi_interval",
+  "sigma_psi_interval",
+  "mu_p_0",
+  # "p_species",
+  "sigma_p_species",
+  # "p_site",
+  "sigma_p_site",
+  "p_interval"
+))
+
+# pairs plot
+pairs(stan_out, pars = c(
+  "mu_psi_0",
+  #"psi_species",
+  "sigma_psi_species",
+  # "psi_interval",
+  "mu_psi_interval",
+  "sigma_psi_interval",
+  "mu_p_0",
+  # "p_species",
+  "sigma_p_species",
+  # "p_site",
+  "sigma_p_site",
+  "p_interval"
+))
+
+# should now also write a posterior predictive check into the model
