@@ -79,8 +79,8 @@ ggplot() +
   geom_sf(data=CA) + 
   geom_sf(data=urban_areas) +
   geom_sf(data = df_trans_100, 
-             aes(fill = species), 
-             size = 4, alpha = 0.5, shape = 23) +
+          aes(fill = species), 
+          size = 4, alpha = 0.5, shape = 23) +
   theme(legend.position="none")
 
 ## --------------------------------------------------
@@ -97,8 +97,8 @@ grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 ggplot() +
   geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = sample_n(df_trans, 500), 
-             aes(fill = species), 
-             size = 4, alpha = 0.5, shape = 23) +
+          aes(fill = species), 
+          size = 4, alpha = 0.5, shape = 23) +
   geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
   geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
   coord_sf(datum = NA)  +
@@ -120,7 +120,7 @@ urban_grid <- urban_grid %>%
   slice(which.max(pop2010)) %>%
   # filter out grid cells without significant urban centers
   filter(pop2010 > min_population_size)
-  
+
 # create labels for each grid_id
 urban_grid_lab <- st_centroid(urban_grid) %>% cbind(st_coordinates(.))
 
@@ -149,27 +149,28 @@ df_id_urban_filtered <- df_id_urban %>%
 
 (df_id_urban_filtered_sf <- st_as_sf(df_id_urban_filtered,
                                      sf_column_name = "geometry", 
-                   crs = crs))
+                                     crs = crs))
 
 (p <- ggplot() +
-  geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = sample_n(df_id_urban_filtered_sf, 1000), 
-          aes(fill = species), 
-          size = 4, alpha = 0.5, shape = 23) +
-  geom_sf(data = urban_grid, fill = 'transparent', lwd = 0.3) +
-  geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
-  coord_sf(datum = NA)  +
-  labs(x = "") +
-  labs(y = "") +
-  theme(legend.position="none"))
+    geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
+    geom_sf(data = sample_n(df_id_urban_filtered_sf, 1000), 
+            aes(fill = species), 
+            size = 4, alpha = 0.5, shape = 23) +
+    geom_sf(data = urban_grid, fill = 'transparent', lwd = 0.3) +
+    geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
+    coord_sf(datum = NA)  +
+    labs(x = "") +
+    labs(y = "") +
+    theme(legend.position="none"))
 
-# save data frame of urban occurrences as a .csv
+# could save data frame of urban occurrences as a .csv
+# don't need to keep this file if the prep_data function calls the get_spatial_data function
 # write.csv(df_id_urban_filtered, "./data/data_urban_occurrences.csv")
 
 get_spatial_data <- function(
   grid_size,
   min_population_size
-  ){
+){
   
   ## --------------------------------------------------
   # Read in the spatial data and occurrence data
@@ -240,5 +241,5 @@ get_spatial_data <- function(
   df_id_urban_filtered <- df_id_urban %>%
     filter(!is.na(grid_id))
   
-  return(df_id_urban_filtered)
+  return(list(df_id_urban_filtered))
 }

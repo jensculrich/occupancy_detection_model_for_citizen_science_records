@@ -6,13 +6,15 @@ library(rstan)
 source("./analysis/prep_data.R")
 
 my_data <- prep_data(era_start = 2017, # must define start date of the GBIF dataset
-                        era_end = 2022, # must define start date of the GBIF dataset
-                        n_intervals = 2, # must define number of intervals to break up the era into
-                        n_visits = 3, # must define the number of repeat obs years within each interval
-                        # note, should introduce throw error if..
-                        # (era_end - era_start) / n_intervals has a remainder > 0,
-                        min_records_per_species = 50
-                      )
+                     era_end = 2022, # must define start date of the GBIF dataset
+                     n_intervals = 2, # must define number of intervals to break up the era into
+                     n_visits = 3, # must define the number of repeat obs years within each interval
+                     # note, should introduce throw error if..
+                     # (era_end - era_start) / n_intervals has a remainder > 0,
+                     min_records_per_species = 50,
+                     grid_size = 25000, # 25km x 25 km 
+                     min_population_size = 25000 # min pop in the grid cell
+)
 
 # data to feed to the model
 V <- my_data$V # detection data
@@ -81,7 +83,7 @@ inits <- lapply(1:n_chains, function(i)
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./simulation/model_simplest.stan"
+stan_model <- "./models/model0.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,

@@ -159,15 +159,15 @@ out <- occurrences_df %>%
   # count for iNat vs Museum
   group_by(basisOfRecord) %>% 
   count(year) 
-  
-  # make a chrono plot
-  ggplot(aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+
+# make a chrono plot
+ggplot(aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
   xlim(1960, 2022) + # choose some years for the axes
   geom_line() +
   labs(y = "Total Number of Occurrence Records")  +
   scale_colour_manual(name = "Basis of Records", 
-                        labels = c("iNat Observations", "Preserved Specimens"),
-                        values=c("red","blue"))
+                      labels = c("iNat Observations", "Preserved Specimens"),
+                      values=c("red","blue"))
 
 plotly::ggplotly(out)
 
@@ -188,7 +188,7 @@ ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) +
         legend.text = element_text(colour="black", size=12),
         axis.text = element_text(size = 12),
         axis.title = element_text(size = 14)
-        )
+  )
 
 ## --------------------------------------------------
 # 3) EXPLORATORY SPATIAL MAPPING
@@ -199,7 +199,7 @@ df <- contemporary_occurrences_df
 
 # Rename Latitude and Longitude
 df <- dplyr::rename(df, lat = decimalLatitude, 
-                                  long = decimalLongitude) %>%
+                    long = decimalLongitude) %>%
   # add a count of records per species
   group_by(species) %>%
   add_tally()

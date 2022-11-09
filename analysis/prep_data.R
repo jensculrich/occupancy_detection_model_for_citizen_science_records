@@ -14,10 +14,16 @@
 
 library(tidyverse)
 
-prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per_species) {
+prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per_species,
+                      grid_size, min_population_size) {
   
   # spatially explicit occurrence data
-  df <- read.csv("./data/data_urban_occurrences.csv")
+  # df <- read.csv("./data/data_urban_occurrences.csv")
+  
+  source("./data/get_spatial_data.R")
+  
+  my_spatial_data <- get_spatial_data(grid_size, min_population_size)
+  df <- my_spatial_data$df_id_urban_filtered
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -35,13 +41,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     
     # remove records (if any) missing species level identification
     filter(species != "")
+  
+  # assign year as - year after era_start
+  mutate(occ_year = (year - era_start)) %>% # need to -1 so the start year is year 0
     
-    # remove species with total observations (n) < min_records_per_species 
-    filter(n >= min_records_per_species) %>%
-    
-    # assign year as - year after era_start
-    mutate(occ_year = (year - era_start)) %>% # need to -1 so the start year is year 0
- 
     
     # remove data from years that are in the remainder
     # occupancy intervals have to be equal in length for the model to process
@@ -57,6 +60,12 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
+    # remove species with total observations (n) < min_records_per_species 
+    group_by(species) %>%
+    add_tally() %>%
+    filter(n >= min_records_per_species) %>%
+    ungroup() %>%
+    
     # one unique row per visit*site*species combination
     group_by(visit, grid_id, species) %>% 
     slice(1) %>%
@@ -65,7 +74,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     # for now, reducing down to mandatory data columns
     select(species, grid_id, occ_interval, occ_year, visit) %>%
     arrange((occ_year))
-    # end pipe
+  # end pipe
   
   ## --------------------------------------------------
   # Extract stan data from df
@@ -90,7 +99,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     pull(species)
   
   site_vector <- as.character(site_list %>%
-    pull(grid_id))
+                                pull(grid_id))
   
   interval_vector <- as.vector(levels(as.factor(df_filtered$occ_interval)))
   
@@ -169,5 +178,5 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     species = species_vector
     
   ))
-
+  
 }
