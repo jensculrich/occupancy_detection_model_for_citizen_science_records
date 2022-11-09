@@ -33,6 +33,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
   
   df_filtered <- df %>%
     
+    # remove records (if any) missing species level identification
+    filter(species != "")
+    
     # remove species with total observations (n) < min_records_per_species 
     filter(n >= min_records_per_species) %>%
     
