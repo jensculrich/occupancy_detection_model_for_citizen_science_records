@@ -17,13 +17,11 @@ library(tidyverse)
 prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per_species,
                       grid_size, min_population_size) {
   
-  # spatially explicit occurrence data
-  # df <- read.csv("./data/data_urban_occurrences.csv")
-  
   source("./data/get_spatial_data.R")
   
-  my_spatial_data <- get_spatial_data(grid_size, min_population_size)
-  df <- my_spatial_data$df_id_urban_filtered
+  # retrieve the spatial occurrence record data
+  my_spatial_data <- get_spatial_data(
+      grid_size, min_population_size)$df_id_urban_filtered
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -37,13 +35,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
   # assign occupancy visits and intervals and reduce to one
   # sample per species per site per visit
   
-  df_filtered <- df %>%
+  df_filtered <- my_spatial_data %>%
     
     # remove records (if any) missing species level identification
-    filter(species != "")
+    filter(species != "") %>%
   
-  # assign year as - year after era_start
-  mutate(occ_year = (year - era_start)) %>% # need to -1 so the start year is year 0
+    # assign year as - year after era_start
+    mutate(occ_year = (year - era_start)) %>% # need to -1 so the start year is year 0
     
     
     # remove data from years that are in the remainder
@@ -148,7 +146,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
-        filter(species  %in% levels(as.factor(df$species)))
+        filter(species  %in% levels(as.factor(species_list$species)))
       
       
       # convert from dataframe to matrix

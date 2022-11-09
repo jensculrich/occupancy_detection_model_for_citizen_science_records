@@ -79,8 +79,6 @@ inits <- lapply(1:n_chains, function(i)
   )
 )
 
-#targets <- as.data.frame(cbind(param_names, parameters))
-
 ## --------------------------------------------------
 ### Run model
 stan_model <- "./models/model0.stan"
@@ -98,8 +96,8 @@ stan_out_sim <- stan(stan_model,
 
 print(stan_out_sim, digits = 3)
 
-saveRDS(stan_out_sim, "./simulation/stan_out_0.rds")
-stan_out <- readRDS("./simulation/stan_out_0.rds")
+saveRDS(stan_out_sim, "./simulation/simulate_model0.rds")
+stan_out <- readRDS("./simulation/simulate_model0.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
