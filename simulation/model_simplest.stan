@@ -141,16 +141,16 @@ model {
   for(i in 1:n_species) { // loop across all species
     for(j in 1:n_sites) { // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
-        for(l in 1:n_visits){ // loop across all visits
+        // for(l in 1:n_visits){ // loop across all visits
           
           // if species is detected at the specific site*interval at least once
           // lp_observed calculates the probability density that occurs given logit_psi plus
           // the probability density that we did/did not observe it on each visit l in 1:nvisit
-          if(sum(V[i, j, k,1:n_visits]) > 0) {
+          if(sum(V[i, j, k, 1:n_visits]) > 0) {
             
              // should wrap this in function lp_observed:
              target += log(psi[i,j,k]);
-             target += bernoulli_lpmf(V[i,j,k] | p[i,j,k]); //vectorized over repeat sampling events l
+             target += bernoulli_lpmf(V[i,j,k] | p[i,j,k]); // vectorized over repeat sampling visits l
           
           // else the species was never detected at the site*interval
           // lp_unobserved sums the probability density of:
@@ -170,7 +170,7 @@ model {
             
           } // end if/else
           
-        } // end loop across all visits
+        // } // end loop across all visits
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species
