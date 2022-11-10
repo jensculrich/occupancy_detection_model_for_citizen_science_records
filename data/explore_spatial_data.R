@@ -193,6 +193,17 @@ urban_grid_prepped <- urban_grid_w_cities %>%
          "total_pop_of_largest_intersecting_city" = "pop2010",
          "geometry" = "..x") 
 
+scaled_pop_density <- urban_grid_prepped %>%
+  pull(scaled_pop_den_km2)
+
+city_name <- urban_grid_prepped %>%
+  pull(city)
+
+grid_id_names <- as.character(urban_grid_prepped %>%
+  pull(grid_id))
+
+## --------------------------------------------------
+# plot the spatial data
 # create labels for each grid_id
 urban_grid_lab <- st_centroid(urban_grid_prepped) %>% cbind(st_coordinates(.))
 
@@ -243,6 +254,9 @@ ggplot() +
 # we would expect fewer species to occur in these smaller areas and therefore should
 # account for site area (extent of grid cell intersection w/ shapefile) in our analysis
 
+# THE VECTOR 'scaled_grid_area' is the output that lists scaled site area 
+# in order from lowest site number to highest.
+
 # intersect - note that sf is intelligent with attribute data!
 grid_intersect <- st_intersection(CA_trans, urban_grid_prepped)
 plot(CA_trans$geometry, axes = TRUE)
@@ -255,14 +269,14 @@ attArea <- grid_intersect %>%
   mutate(area = st_area(.) %>% as.numeric())
 
 # for each field, get area per soil type
-attArea %>% 
+scaled_grid_area <- attArea %>% 
   as_tibble() %>% 
   group_by(grid_id) %>% 
-  summarize(area = sum(area))
-
-grid_area <- extract(attArea$area)
+  summarize(area = sum(area)) %>%
+  mutate(scaled_site_area = center_scale(area)) %>%
+  pull(scaled_site_area)
 
 # could save data frame of urban occurrences as a .csv
 # don't need to keep this file if the prep_data function calls the get_spatial_data function
-# write.csv(df_id_urban_filtered, "./data/data_urban_occurrences.csv")
+# write.csv(df_w_dens_trans, "./data/data_urban_occurrences.csv")
 

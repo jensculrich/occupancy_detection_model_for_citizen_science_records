@@ -17,6 +17,8 @@ simulate_data <- function(n_species,
                           sigma_psi_species,
                           mu_psi_interval,
                           sigma_psi_interval,
+                          psi_pop_dens,
+                          psi_site_area,
                           mu_p_0,
                           p_interval, 
                           sigma_p_site,
@@ -44,6 +46,22 @@ simulate_data <- function(n_species,
   intervals <- intervals - 1
   sites <- seq(1, n_sites, by=1)
   species <- seq(1, n_species, by=1)
+  
+  ## --------------------------------------------------
+  ### Generate covariate data
+  
+  ## --------------------------------------------------
+  ### Population density
+  
+  # create a vector of site population density of length = number of sites
+  # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
+  pop_density <- rnorm(n_sites, mean = 0, sd = 1)
+  
+  # create a vector of site area of length = number of sites
+  # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
+  # this simulates the realism that some sites are e.g. partially on ocean or  
+  # partially outside the administrative area from which we are drawing collection data.
+  site_area <- rnorm(n_sites, mean = 0, sd = 1)
   
   ## --------------------------------------------------
   ### specify species-specific occupancy probabilities
@@ -91,7 +109,9 @@ simulate_data <- function(n_species,
         psi_matrix[species, site, interval] <- ilogit( # occupancy is equal to
           mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
-            psi_interval[species]*intervals[interval] # a species specific temporal change
+            psi_interval[species]*intervals[interval] + # a species specific temporal change
+            psi_pop_dens*pop_density[site] + # a fixed effect of population density 
+            psi_site_area*site_area[site] # a fixed effect of site area
         )
         
         for(visit in 1:n_visits) { # for each visit
@@ -164,7 +184,9 @@ simulate_data <- function(n_species,
     n_species = n_species, # number of species
     n_sites = n_sites, # number of sites
     n_intervals = n_intervals, # number of surveys 
-    n_visits = n_visits # number of visits
+    n_visits = n_visits, # number of visits
+    pop_density = pop_density, # vector of pop densities
+    site_area = site_area # vector of site areas
   ))
   
 } # end simulate_data function
@@ -183,6 +205,8 @@ mu_psi_0 = -0.5
 sigma_psi_species = 0.5
 mu_psi_interval = 0.5
 sigma_psi_interval = 0.2
+psi_pop_dens = -0.5 # fixed effect of population density on occupancy
+psi_site_area = 1 # fixed effect of site area on occupancy
 
 ## detection
 mu_p_0 = -0.5
@@ -201,10 +225,12 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_psi_species,
                                    mu_psi_interval,
                                    sigma_psi_interval,
-                                   mu_p_0 = mu_p_0,
-                                   p_interval = p_interval, 
-                                   sigma_p_site = sigma_p_site,
-                                   sigma_p_species = sigma_p_species)
+                                   psi_pop_dens,
+                                   psi_site_area,
+                                   mu_p_0,
+                                   p_interval, 
+                                   sigma_p_site,
+                                   sigma_p_species)
 
 ## --------------------------------------------------
 ### Prepare data for model
@@ -221,9 +247,13 @@ intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
 
+pop_densities <- my_simulated_data$pop_density
+site_areas <- my_simulated_data$site_area
+
 stan_data <- c("V", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
-               "intervals", "species", "sites") 
+               "intervals", "species", "sites",
+               "pop_densities", "site_areas") 
 
 # Parameters monitored
 params <- c("mu_psi_0",
@@ -232,6 +262,8 @@ params <- c("mu_psi_0",
             # "psi_interval",
             "mu_psi_interval",
             "sigma_psi_interval",
+            "psi_pop_density",
+            "psi_site_area",
             "mu_p_0",
             # "p_species",
             "sigma_p_species",
@@ -244,6 +276,8 @@ parameter_values <- c(mu_psi_0,
                       sigma_psi_species,
                       mu_psi_interval,
                       sigma_psi_interval,
+                      psi_pop_dens,
+                      psi_site_area,
                       mu_p_0,
                       sigma_p_species,
                       sigma_p_site,
