@@ -49,7 +49,8 @@ crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
-min_population_size <- 38 
+# let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
+min_population_size <- 100 
 
 # spatial data - California state shapefile
 CA <- tigris::states() %>%
@@ -204,44 +205,62 @@ ggplot() +
           aes(fill = species), 
           size = 4, alpha = 0.5, shape = 23) +
   geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
-  coord_sf(datum = NA)  +
-  labs(x = "") +
-  labs(y = "") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") +
+  ggtitle("Random sample of 500 NHC records from urban areas", 
+          subtitle = "(coloured by species)") +
   theme(legend.position = "none")
 
 # view sites only
 ggplot() +
   geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = urban_grid_prepped, aes(fill = pop_density_per_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = "Population density (pop/km^2)") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Population density (pop / km^2) in urbanized areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+  # coord_sf(datum = NA)
+
+# view sites only with scaled data
+ggplot() +
+  geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = urban_grid_prepped, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
-  scale_fill_gradient2() +
-  geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
-  coord_sf(datum = NA)
+  scale_fill_gradient2(name = "Scaled population density") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Population density (pop / km^2) in urbanized areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+# coord_sf(datum = NA)
 
-# Which grid square is each point in?
-# df_id_urban <- df_trans %>% st_join(urban_grid, join = st_intersects) %>% as.data.frame
+## --------------------------------------------------
+# Calculate land area of grid cells 
+# some cells might partially be outside of the area where we are getting records from
+# e.g. a cell half in California and half in Mexico or a cell that is along the
+# coastline and only overlaps slightly with land
+# we would expect fewer species to occur in these smaller areas and therefore should
+# account for site area (extent of grid cell intersection w/ shapefile) in our analysis
 
-# Now drop all specimens that DO NOT originate from urban or urban adjacent cells
-# i.e. grid_id is NA
-# df_id_urban_filtered <- df_id_urban %>%
-#  filter(!is.na(grid_id))
+# intersect - note that sf is intelligent with attribute data!
+grid_intersect <- st_intersection(CA_trans, urban_grid_prepped)
+plot(CA_trans$geometry, axes = TRUE)
+plot(urban_grid_prepped$geometry, add = TRUE)
+plot(grid_intersect$geometry, add = TRUE, col = 'red')
+title("Site x Land Area Intersection")
 
-# view sampled urban only occurrence transposed to the grid on the polygon
+# add in areas in m2
+attArea <- grid_intersect %>% 
+  mutate(area = st_area(.) %>% as.numeric())
 
-(df_id_urban_filtered_sf <- st_as_sf(df_id_urban_filtered,
-                                     sf_column_name = "geometry", 
-                                     crs = crs))
+# for each field, get area per soil type
+attArea %>% 
+  as_tibble() %>% 
+  group_by(grid_id) %>% 
+  summarize(area = sum(area))
 
-(p <- ggplot() +
-    geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
-    geom_sf(data = sample_n(df_id_urban_filtered_sf, 1000), 
-            aes(fill = species), 
-            size = 4, alpha = 0.5, shape = 23) +
-    geom_sf(data = urban_grid, fill = 'transparent', lwd = 0.3) +
-    geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
-    coord_sf(datum = NA)  +
-    labs(x = "") +
-    labs(y = "") +
-    theme(legend.position="none"))
+grid_area <- extract(attArea$area)
 
 # could save data frame of urban occurrences as a .csv
 # don't need to keep this file if the prep_data function calls the get_spatial_data function
