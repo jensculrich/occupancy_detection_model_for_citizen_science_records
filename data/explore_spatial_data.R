@@ -25,6 +25,7 @@
 library(tidyverse)
 library(tigris) # get state shapefile
 library(sf) # spatial data processing
+library(raster) # process pop dens raster
 
 ## --------------------------------------------------
 # Get Data
@@ -45,12 +46,29 @@ CA <- tigris::states() %>%
   filter(NAME == "California")
 str(CA)
 st_crs(CA)
+crs(CA)
 
 # spatial data - 'urban areas' - with population size in 2015
 # downloaded manually to the directory from:
 # https://maps.princeton.edu/catalog/stanford-zd071bk4213
 urban_areas <- st_read('./data/california_urban_areas/zd071bk4213.shp') %>%
   st_transform(crs)
+
+# pop density raster
+# https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
+# 2015 pop density at 1km resolution
+pop_raster=raster("./data/pden2010_block/pden2010_block/gpw_v4_population_density_rev11_2015_30_sec.tif")
+crs(pop_raster)
+
+r2 <- crop(pop_raster, CA)
+r3 <- mask(r2, CA)
+maxValue(r3)
+
+plot(log(r3+1),
+     col=terrain.colors(10),
+     alpha=1,
+     legend=T,
+     main="Log((Population Density/km^2) + 1)")
 
 # occurrence data
 df <- read.csv("./data/data_unfiltered.csv")
@@ -70,18 +88,25 @@ CA_trans <- st_transform(CA, 26910) # NAD83 / UTM Zone 10N
 # and then transform it to the crs
 df_trans <- st_transform(df_sf, crs = crs)
 
-
 # and let's just plot 100 points to get a picture of the data and shapefile
 df_trans_100 <- df_trans %>%
   sample_n(100)
 
 ggplot() +
   geom_sf(data=CA) + 
-  geom_sf(data=urban_areas) +
+  # geom_sf(data=urban_areas) +
   geom_sf(data = df_trans_100, 
           aes(fill = species), 
           size = 4, alpha = 0.5, shape = 23) +
   theme(legend.position="none")
+
+# this takes a long long time to plot
+r3_df <- as.data.frame(r3, xy = TRUE) %>%
+  rename("pop_dens" = "gpw_v4_population_density_rev11_2015_30_sec") %>%
+  mutate(logp1_pop_dens = log(pop_dens + 1))
+ggplot(r3_df) +
+  geom_tile(aes(x=x, y=y, fill=gpw_v4_population_density_rev11_2015_30_sec))
+plot(pop_raster)
 
 ## --------------------------------------------------
 # Overlay spatial polygon with grid 
@@ -109,17 +134,40 @@ ggplot() +
 # which grid square is each point in?
 df_id <- df_trans %>% st_join(grid, join = st_intersects) %>% as.data.frame
 
+# project to raster
+crs_raster <- sf::st_crs(raster::crs(r3))
+prj1 <- st_transform(grid, crs_raster)
+
+# Extract raster values to list object
+r.vals <- raster::extract(r3, prj1)
+
+# Use list apply to calculate mean for each polygon
+r.mean <- lapply(r.vals, FUN=mean)
+
+# Join mean values to polygon data
+unlist(r.mean)
+grid_pop_dens <- cbind(grid, unlist(r.mean))
+
+## Now let's join the pop dens back with the df
+df_id_dens <- left_join(df_id, grid_pop_dens) %>%
+  rename("pop_density" = "unlist.r.mean.")
+
+
+
 ## Let's try again with only the grid cells that overlap with urban areas
 urban_grid <- st_join(grid, urban_areas, join = st_intersects)
 
-urban_grid <- urban_grid %>% 
-  filter(!is.na(name)) %>% # remove grid cells that don't overlap with urban areas
+test <- st_join(df_id_dens, urban_grid, join = st_intersects)
+
+# not using this now
+# urban_grid <- urban_grid %>% 
+#  filter(!is.na(name)) %>% # remove grid cells that don't overlap with urban areas
   # we will select one row per grid cell (one city admin area)
   # keeping the city with the largest population size for now
-  group_by(grid_id) %>% 
-  slice(which.max(pop2010)) %>%
-  # filter out grid cells without significant urban centers
-  filter(pop2010 > min_population_size)
+#  group_by(grid_id) %>% 
+#  slice(which.max(pop2010)) %>%
+#  # filter out grid cells without significant urban centers
+#  filter(pop2010 > min_population_size)
 
 # create labels for each grid_id
 urban_grid_lab <- st_centroid(urban_grid) %>% cbind(st_coordinates(.))
