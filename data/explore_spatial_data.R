@@ -28,6 +28,13 @@ library(sf) # spatial data processing
 library(raster) # process pop dens raster
 
 ## --------------------------------------------------
+## Operation Functions
+## predictor center scaling function
+center_scale <- function(x) {
+  (x - mean(x)) / sd(x)
+}
+
+## --------------------------------------------------
 # Get Data
 
 ## global options
@@ -39,7 +46,10 @@ crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # a grid cell must intersect a city with min_population_size or more
 # people living there. This filters out grid cell sites that do not
 # have a an urban center above some minimum threshold
-min_population_size <- 25000 
+
+# min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
+# considering an area to be 'urban'
+min_population_size <- 38 
 
 # spatial data - California state shapefile
 CA <- tigris::states() %>%
@@ -134,64 +144,86 @@ ggplot() +
 # which grid square is each point in?
 df_id <- df_trans %>% st_join(grid, join = st_intersects) %>% as.data.frame
 
-# project to raster
+# project the grid to the raster
 crs_raster <- sf::st_crs(raster::crs(r3))
 prj1 <- st_transform(grid, crs_raster)
 
 # Extract raster values to list object
+# this takes a while since there are many raster cells with their own values
+# in each grid cell.
 r.vals <- raster::extract(r3, prj1)
 
-# Use list apply to calculate mean for each polygon
-r.mean <- lapply(r.vals, FUN=mean)
+# Use list apply to calculate mean raster value for each grid cell
+r.mean <- lapply(r.vals, FUN=mean, na.rm=TRUE)
 
 # Join mean values to polygon data
-unlist(r.mean)
-grid_pop_dens <- cbind(grid, unlist(r.mean))
+grid_pop_dens <- cbind(grid, unlist(r.mean)) %>% 
+  rename("pop_density_per_km2" = "unlist.r.mean.")
 
 ## Now let's join the pop dens back with the df
 df_id_dens <- left_join(df_id, grid_pop_dens) %>%
-  rename("pop_density" = "unlist.r.mean.")
+  left_join(., dplyr::select(df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") %>%
+  filter(pop_density_per_km2 > min_population_size) %>%
+  mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2))
 
+# and then transform it to the crs
+df_w_dens_sf <- st_as_sf(df_id_dens,
+                   coords = c("decimalLongitude", "decimalLatitude"), 
+                   crs = 4326)
 
+# and then transform it to the crs again
+df_w_dens_trans <- st_transform(df_w_dens_sf, crs = crs)
 
 ## Let's try again with only the grid cells that overlap with urban areas
-urban_grid <- st_join(grid, urban_areas, join = st_intersects)
+urban_grid <- st_join(grid, df_w_dens_trans, join = st_intersects)
 
-test <- st_join(df_id_dens, urban_grid, join = st_intersects)
+urban_grid_w_cities <- st_join(urban_grid, urban_areas, join = st_intersects)
 
-# not using this now
-# urban_grid <- urban_grid %>% 
-#  filter(!is.na(name)) %>% # remove grid cells that don't overlap with urban areas
+urban_grid_prepped <- urban_grid_w_cities %>% 
+  filter(!is.na(grid_id.y)) %>% # remove grid cells that don't overlap with urban areas
   # we will select one row per grid cell (one city admin area)
   # keeping the city with the largest population size for now
-#  group_by(grid_id) %>% 
-#  slice(which.max(pop2010)) %>%
-#  # filter out grid cells without significant urban centers
-#  filter(pop2010 > min_population_size)
+  group_by(grid_id.y) %>% 
+  slice(which.max(pop2010)) %>%
+  ungroup() %>%
+  dplyr::select(grid_id.y, pop_density_per_km2, scaled_pop_den_km2, name, pop2010, ..x) %>%
+  rename("grid_id" = "grid_id.y",
+         "city" = "name",
+         "total_pop_of_largest_intersecting_city" = "pop2010",
+         "geometry" = "..x") 
 
 # create labels for each grid_id
-urban_grid_lab <- st_centroid(urban_grid) %>% cbind(st_coordinates(.))
+urban_grid_lab <- st_centroid(urban_grid_prepped) %>% cbind(st_coordinates(.))
 
 # view sampled points transposed to the grid on the polygon
 ggplot() +
   geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = sample_n(df_trans, 500), 
+  geom_sf(data = urban_grid_prepped, lwd = 0.3) +
+  #scale_fill_gradient2() +
+  geom_sf(data = sample_n(df_w_dens_trans, 500), 
           aes(fill = species), 
           size = 4, alpha = 0.5, shape = 23) +
-  geom_sf(data = urban_grid, fill = 'transparent', lwd = 0.3) +
   geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
   coord_sf(datum = NA)  +
   labs(x = "") +
   labs(y = "") +
-  theme(legend.position="none")
+  theme(legend.position = "none")
+
+# view sites only
+ggplot() +
+  geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = urban_grid_prepped, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
+  scale_fill_gradient2() +
+  geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
+  coord_sf(datum = NA)
 
 # Which grid square is each point in?
-df_id_urban <- df_trans %>% st_join(urban_grid, join = st_intersects) %>% as.data.frame
+# df_id_urban <- df_trans %>% st_join(urban_grid, join = st_intersects) %>% as.data.frame
 
 # Now drop all specimens that DO NOT originate from urban or urban adjacent cells
 # i.e. grid_id is NA
-df_id_urban_filtered <- df_id_urban %>%
-  filter(!is.na(grid_id))
+# df_id_urban_filtered <- df_id_urban %>%
+#  filter(!is.na(grid_id))
 
 # view sampled urban only occurrence transposed to the grid on the polygon
 

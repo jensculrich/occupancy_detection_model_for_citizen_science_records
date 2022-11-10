@@ -13,7 +13,8 @@ my_data <- prep_data(era_start = 2017, # must define start date of the GBIF data
                      # (era_end - era_start) / n_intervals has a remainder > 0,
                      min_records_per_species = 50,
                      grid_size = 25000, # 25km x 25 km 
-                     min_population_size = 25000 # min pop in the grid cell
+                     min_population_size = 38 # min pop density in the grid cell (per km^2)
+                     # for reference, 38people/km^2 is ~100people/mile^2
 )
 
 # data to feed to the model
