@@ -15,7 +15,7 @@ data {
   int<lower=1> n_intervals;  // intervals during which sites are visited
   
   real intervals[n_intervals]; // vector of intervals (used as covariate data for 
-                                // fixed effect of occupancy interval (time) on occupancy)
+                                // species specific effect of occupancy interval (time) on occupancy)
                                 // needs to begin with intervals[1] = 0, i.e., 
                                 // there is no temporal addition in the first interval
   
