@@ -329,11 +329,10 @@ stan_out_sim <- stan(stan_model,
                      cores = n_cores)
 
 print(stan_out_sim, digits = 3)
+View(targets)
 
 saveRDS(stan_out_sim, "./simulation/stan_out_sim.rds")
 stan_out_sim <- readRDS("./simulation/stan_out_sim.rds")
 
 library(shinystan)
 shinystan::launch_shinystan(stan_out_sim)
-
-psi_species

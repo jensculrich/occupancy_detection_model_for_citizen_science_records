@@ -23,8 +23,8 @@ data {
   
   int<lower=0> V[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   
-  real pop_densities[n_sites]; // population density of each site
-  real site_areas[n_sites]; // spatial area extent of each site
+  vector[n_sites] pop_densities; // population density of each site
+  vector[n_sites] site_areas; // spatial area extent of each site
   
 } // end data
 
