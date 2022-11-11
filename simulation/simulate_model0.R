@@ -129,8 +129,8 @@ simulate_data <- function(n_species,
   } # for each site
   
   # preview the psi and p arrays
-  head(psi_matrix[1:n_species, 1:n_sites,1])
-  head(p_matrix[1:n_species, 1:n_sites,7,1])
+  # head(psi_matrix[1:n_species, 1:n_sites,1])
+  # head(p_matrix[1:n_species, 1:n_sites,7,1])
   
   # (p_matrix[1,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
   # (p_matrix[2,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
@@ -197,7 +197,7 @@ simulate_data <- function(n_species,
 ## study dimensions
 n_species = 20 ## number of species
 n_sites = 15 ## number of sites
-n_intervals = 8 ## number of occupancy intervals
+n_intervals = 4 ## number of occupancy intervals
 n_visits = 3 ## number of samples per year
 
 ## occupancy
@@ -272,7 +272,7 @@ params <- c("mu_psi_0",
             "p_interval"
 )
 
-parameter_values <- c(mu_psi_0,
+parameter_value <- c(mu_psi_0,
                       sigma_psi_species,
                       mu_psi_interval,
                       sigma_psi_interval,
@@ -300,6 +300,8 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_species = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
+       psi_pop_dens = runif(1, -1, 1),
+       psi_site_area = runif(1, -1, 1),
        mu_p_0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 0, 1),
        sigma_p_site = runif(1, 0, 1),
@@ -308,12 +310,12 @@ inits <- lapply(1:n_chains, function(i)
   )
 )
 
-targets <- as.data.frame(cbind(params, parameter_values))
+targets <- as.data.frame(cbind(params, parameter_value))
 
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./simulation/model_simplest.stan"
+stan_model <- "./models/model0.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,

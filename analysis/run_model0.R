@@ -29,6 +29,9 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
+pop_densities <- my_data$pop_densities
+site_areas <- my_data$site_areas
+
 # intervals will cause issues if you try to run on only 1 interval
 # since it's no longer sent in as a vector of intervals (can you force a single
 # integer to be a vector if you truly want to treat all as a single interval?)
@@ -39,7 +42,8 @@ species <- seq(1, n_species, by=1)
 
 stan_data <- c("V", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
-               "intervals", "species", "sites")
+               "intervals", "species", "sites",
+               "pop_densities", "site_areas")
 
 # Parameters monitored
 params <- c("mu_psi_0",
@@ -48,6 +52,8 @@ params <- c("mu_psi_0",
             # "psi_interval",
             "mu_psi_interval",
             "sigma_psi_interval",
+            "psi_pop_density",
+            "psi_site_density",
             "mu_p_0",
             # "p_species",
             "sigma_p_species",
@@ -73,6 +79,8 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_species = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
+       psi_pop_dens = runif(1, -1, 1),
+       psi_site_area = runif(1, -1, 1),
        mu_p_0 = runif(1, -1, 1),
        sigma_p_species = runif(1, 0, 1),
        sigma_p_site = runif(1, 0, 1),
@@ -86,7 +94,7 @@ inits <- lapply(1:n_chains, function(i)
 stan_model <- "./models/model0.stan"
 
 ## Call Stan from R
-stan_out_sim <- stan(stan_model,
+stan_out <- stan(stan_model,
                      data = stan_data, 
                      init = inits, 
                      pars = params,
@@ -96,9 +104,9 @@ stan_out_sim <- stan(stan_model,
                      open_progress = FALSE,
                      cores = n_cores)
 
-print(stan_out_sim, digits = 3)
+print(stan_out, digits = 3)
 
-saveRDS(stan_out_sim, "./simulation/simulate_model0.rds")
+saveRDS(stan_out, "./simulation/simulate_model0.rds")
 stan_out <- readRDS("./simulation/simulate_model0.rds")
 
 ## --------------------------------------------------

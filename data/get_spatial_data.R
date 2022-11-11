@@ -25,11 +25,19 @@
 library(tidyverse)
 library(tigris) # get state shapefile
 library(sf) # spatial data processing
+library(raster) # process pop dens raster
 
 get_spatial_data <- function(
   grid_size,
   min_population_size
 ){
+  
+  ## --------------------------------------------------
+  ## Operation Functions
+  ## predictor center scaling function
+  center_scale <- function(x) {
+    (x - mean(x)) / sd(x)
+  }
   
   ## --------------------------------------------------
   # Read in the spatial data and occurrence data
@@ -40,8 +48,9 @@ get_spatial_data <- function(
   # spatial data - California state shapefile
   CA <- tigris::states() %>%
     filter(NAME == "California")
-  str(CA)
-  st_crs(CA)
+  
+  CA_nad83 <- CA  %>% 
+    st_transform(., 26910) # NAD83 / UTM Zone 10N
   
   # spatial data - 'urban areas'
   # downloaded manually to the directory from:
@@ -49,57 +58,149 @@ get_spatial_data <- function(
   urban_areas <- st_read('./data/california_urban_areas/zd071bk4213.shp') %>%
     st_transform(crs)
   
+  # pop density raster
+  # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
+  # 2015 pop density at 1km resolution
+  pop_raster=raster("./data/pden2010_block/pden2010_block/gpw_v4_population_density_rev11_2015_30_sec.tif")
+  
   # occurrence data
-  df <- read.csv("./data/data_unfiltered.csv")
+  df <- read.csv("./data/data_unfiltered.csv") 
+  
+  df_nad83 <- df %>%
+    # spatial projection of the occurrence data
+    st_as_sf(.,
+             coords = c("decimalLongitude", "decimalLatitude"), 
+             crs = 4326) %>%
+    # transformed to projection of the CA shapefile
+    st_transform(., crs = crs)
   
   ## --------------------------------------------------
-  # Prep the data
-  
-  ## transform
-  # transform state shapefile to crs
-  CA_trans <- st_transform(CA, 26910) # NAD83 / UTM Zone 10N
-  
-  # make the df into a spatial file
-  (df_sf <- st_as_sf(df,
-                     coords = c("decimalLongitude", "decimalLatitude"), 
-                     crs = 4326))
-  
-  # and then transform it to the crs
-  df_trans <- st_transform(df_sf, crs = crs)
+  # Prep the population density raster
+  r2 <- crop(pop_raster, CA)
+  r3 <- mask(r2, CA)
   
   ## --------------------------------------------------
-  # Overlay spatial polygon with grid 
+  # Overlay the shapefile with a grid of sites of size == 'grid_size' 
   
   # create _km grid - here you can substitute by specifying grid_size above
-  grid <- st_make_grid(CA_trans, cellsize = c(grid_size, grid_size)) %>% 
+  grid <- st_make_grid(CA_nad83, cellsize = c(grid_size, grid_size)) %>% 
     st_sf(grid_id = 1:length(.))
   
-  # create labels for each grid_id
-  # grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
+  # Determine which grid cell (site) each occurrence record is from 
+  df_id <- df_nad83 %>% st_join(grid, join = st_intersects) %>% as.data.frame
   
-  # which grid square is each point in?
-  df_id <- df_trans %>% st_join(grid, join = st_intersects) %>% as.data.frame
+  ## --------------------------------------------------
+  # Extract mean population density in each grid cell
   
-  ## Let's try again with only the grid cells that overlap with urban areas
-  urban_grid <- st_join(grid, urban_areas, join = st_intersects)
+  # project the grid to the raster
+  crs_raster <- sf::st_crs(raster::crs(r3))
+  prj1 <- st_transform(grid, crs_raster)
   
-  urban_grid <- urban_grid %>% 
-    filter(!is.na(name)) %>% # remove grid cells that don't overlap with urban areas
+  # Extract raster values to list object
+  # this takes a while since there are many raster cells with their own values
+  # in each grid cell.
+  r.vals <- raster::extract(r3, prj1)
+  
+  # Use list apply to calculate mean raster value for each grid cell
+  # ignore na.s (values where the grid cell does not overlap with land area)
+  r.mean <- lapply(r.vals, FUN=mean, na.rm=TRUE)
+  
+  # Join mean values to the grid cell data
+  grid_pop_dens <- cbind(grid, unlist(r.mean)) %>% 
+    rename("pop_density_per_km2" = "unlist.r.mean.")
+  
+  ## --------------------------------------------------
+  # Add covariate data to the occurrence data
+  # and simultaneously filter the sites to the urban area sites
+  # so that we can make comparisons across urban areas
+  
+  # Join the pop dens data back with the df that now also has grid (site) names
+  # We also filter out non-urban sites 
+  # (and sites that are outside of the admin area and thus have NA population density)
+  # and add a scaled density variable
+  df_id_dens <- left_join(df_id, grid_pop_dens) %>%
+    left_join(., dplyr::select(df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") %>%
+    # Filter to the sites that are actually 'urban' 
+    filter(pop_density_per_km2 > min_population_size) %>%
+    # scale the population density
+    mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2))
+  
+  ## --------------------------------------------------
+  # Add city data (e.g. city name if that end up being of interest)
+  
+  # and then project it again
+  df_w_dens_sf <- st_as_sf(df_id_dens,
+                           coords = c("decimalLongitude", "decimalLatitude"), 
+                           crs = 4326) %>%
+      # and then transform it to the correct crs again
+      st_transform(df_w_dens_sf, crs = crs)
+  
+  # join with city data (e.g. city name if that's of interest)
+  urban_grid_w_cities <- st_join(df_w_dens_sf, urban_areas, join = st_intersects)
+  # urban_grid_w_cities <- st_drop_geometry(urban_grid_w_cities)
+  st_geometry(urban_grid_w_cities) <- NULL # remove geometry, coerce to data.frame
+  urban_grid_w_cities <- rename(urban_grid_w_cities, "geometry" = ".")
+  urban_grid_w_cities <- st_set_geometry(urban_grid_w_cities, urban_grid_w_cities$geometry) # set geometry, return sf
+  
+  urban_grid_prepped <- urban_grid_w_cities %>% 
     # we will select one row per grid cell (one city admin area)
     # keeping the city with the largest population size for now
     group_by(grid_id) %>% 
     slice(which.max(pop2010)) %>%
-    # filter out grid cells without significant urban centers
-    filter(pop2010 > min_population_size)
+    ungroup() %>%
+    # this will hold a geometry for both the grid AND an intersecting record
+    # but we specifically need the grid geometry for the site area calculation below
+    rename("city" = "name",
+           "total_pop_of_largest_intersecting_city" = "pop2010") %>%
+    dplyr::select(grid_id, pop_density_per_km2, scaled_pop_den_km2, 
+                  city, total_pop_of_largest_intersecting_city, geometry) 
   
-  # Which grid square is each point in?
-  df_id_urban <- df_trans %>% st_join(urban_grid, join = st_intersects) %>% as.data.frame
+  ## --------------------------------------------------
+  # Pull vector data from the urban grid cells
   
-  # Now drop all specimens that DO NOT originate from urban or urban adjacent cells
-  # i.e. grid_id is NA
-  df_id_urban_filtered <- df_id_urban %>%
-    filter(!is.na(grid_id))
+  scaled_pop_density <- urban_grid_prepped %>%
+    pull(scaled_pop_den_km2)
   
-  return(list(df_id_urban_filtered = df_id_urban_filtered))
+  city_names <- urban_grid_prepped %>%
+    pull(city)
+  
+  grid_id_names <- as.character(urban_grid_prepped %>%
+                                  pull(grid_id))
+  
+  ## --------------------------------------------------
+  # Calculate land area of grid cells 
+  # some cells might partially be outside of the area where we are getting records from
+  # e.g. a cell half in California and half in Mexico or a cell that is along the
+  # coastline and only overlaps slightly with land
+  # we would expect fewer species to occur in these smaller areas and therefore should
+  # account for site area (extent of grid cell intersection w/ shapefile) in our analysis
+  
+  # THE VECTOR 'scaled_grid_area' is the output that lists scaled site area 
+  # in order from lowest site number to highest.
+  
+  # intersect between administrative area and the grid
+  grid_intersect <- st_intersection(CA_nad83, urban_grid_prepped)
+  #plot(CA_nad83$geometry, axes = TRUE)
+  #plot(urban_grid_prepped$geometry, add = TRUE)
+  #plot(grid_intersect$geometry, add = TRUE, col = 'red')
+    
+  # for each field, get area overlapping with admin area
+  scaled_grid_area <- grid_intersect %>% 
+    # add in areas in m2
+    mutate(area = st_area(.) %>% as.numeric()) %>% 
+    # if you have multiple administrative areas, say we add another state
+    # we'd want to summarize the total area across these admin areas
+    as_tibble() %>% 
+    group_by(grid_id) %>% 
+    summarize(area = sum(area)) %>%
+    # create a scaled variable
+    mutate(scaled_site_area = center_scale(area)) %>%
+    pull(scaled_site_area)
+  
+  return(list(df_id_urban_filtered = df_id_dens,
+              scaled_pop_density = scaled_pop_density,
+              scaled_grid_area = scaled_grid_area,
+              city_names = city_names,
+              grid_id_names = grid_id_names))
   
 }

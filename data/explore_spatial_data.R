@@ -167,7 +167,7 @@ df_id_dens <- left_join(df_id, grid_pop_dens) %>%
   filter(pop_density_per_km2 > min_population_size) %>%
   mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2))
 
-# and then transform it to the crs
+# and then project it again
 df_w_dens_sf <- st_as_sf(df_id_dens,
                    coords = c("decimalLongitude", "decimalLatitude"), 
                    crs = 4326)
@@ -268,7 +268,7 @@ title("Site x Land Area Intersection")
 attArea <- grid_intersect %>% 
   mutate(area = st_area(.) %>% as.numeric())
 
-# for each field, get area per soil type
+# for each field, get area overlapping with admin area
 scaled_grid_area <- attArea %>% 
   as_tibble() %>% 
   group_by(grid_id) %>% 

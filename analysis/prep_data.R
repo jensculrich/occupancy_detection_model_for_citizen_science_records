@@ -21,7 +21,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
   
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
-      grid_size, min_population_size)$df_id_urban_filtered
+      grid_size, min_population_size)
+  
+  df_id_urban_filtered <- my_spatial_data$df_id_urban_filtered
+  grid_id_vector <- my_spatial_data$grid_id_names
+  city_name_vector <- my_spatial_data$city_names
+  pop_density_vector <- my_spatial_data$scaled_pop_density
+  site_area_vector <- my_spatial_data$scaled_grid_area
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -35,7 +41,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
   # assign occupancy visits and intervals and reduce to one
   # sample per species per site per visit
   
-  df_filtered <- my_spatial_data %>%
+  df_filtered <- df_id_urban_filtered %>%
     
     # remove records (if any) missing species level identification
     filter(species != "") %>%
@@ -70,7 +76,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     ungroup() %>%
     
     # for now, reducing down to mandatory data columns
-    select(species, grid_id, occ_interval, occ_year, visit) %>%
+    dplyr::select(species, grid_id, occ_interval, occ_year, visit) %>%
     arrange((occ_year))
   # end pipe
   
@@ -83,14 +89,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     group_by(species) %>%
     slice(1) %>% # take one row per species (the name of each species)
     ungroup() %>%
-    select(species) # extract species names column as vector
+    dplyr::select(species) # extract species names column as vector
   
   # create an alphabetized list of all sites
   site_list <- df_filtered %>%
     group_by(grid_id) %>%
-    slice(1) %>% # take one row per species (the name of each species)
+    slice(which.max(pop2010)) %>% # take one row per site (the name of each site)
     ungroup() %>%
-    select(grid_id) # extract species names column as vector
+    dplyr::select(grid_id) # extract species names column as vector
   
   # get vectors of species, sites, intervals, and visits 
   species_vector <- species_list %>%
@@ -142,7 +148,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
         # if more columns are added these indices above^ might need to change
         # 5:(n_species+5) represent the columns of each site in the matrix
         # just need the matrix of 0's and 1's
-        select(levels(as.factor(site_vector))) %>%
+        dplyr::select(levels(as.factor(site_vector))) %>%
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
@@ -173,7 +179,12 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     
     intervals = interval_vector,
     sites = site_vector,
-    species = species_vector
+    species = species_vector,
+    
+    grid_id_names = grid_id_vector,
+    city_names = city_name_vector,
+    pop_densities = pop_density_vector,
+    site_areas = site_area_vector
     
   ))
   
