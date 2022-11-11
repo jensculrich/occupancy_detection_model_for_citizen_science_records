@@ -24,7 +24,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
       grid_size, min_population_size)
   
   df_id_urban_filtered <- my_spatial_data$df_id_urban_filtered
-  grid_id_vector <- my_spatial_data$grid_id_names
+  
+  # spatial covariate data to pass to run model
   city_name_vector <- my_spatial_data$city_names
   pop_density_vector <- my_spatial_data$scaled_pop_density
   site_area_vector <- my_spatial_data$scaled_grid_area
@@ -70,8 +71,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     filter(n >= min_records_per_species) %>%
     ungroup() %>%
     
-    # one unique row per visit*site*species combination
-    group_by(visit, grid_id, species) %>% 
+    # one unique row per site*species*occ_interval*visit combination
+    group_by(grid_id, species, occ_interval, visit) %>% 
     slice(1) %>%
     ungroup() %>%
     
@@ -94,7 +95,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
   # create an alphabetized list of all sites
   site_list <- df_filtered %>%
     group_by(grid_id) %>%
-    slice(which.max(pop2010)) %>% # take one row per site (the name of each site)
+    slice(1) %>% # take one row per site (the name of each site)
     ungroup() %>%
     dplyr::select(grid_id) # extract species names column as vector
   
@@ -181,7 +182,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits, min_records_per
     sites = site_vector,
     species = species_vector,
     
-    grid_id_names = grid_id_vector,
     city_names = city_name_vector,
     pop_densities = pop_density_vector,
     site_areas = site_area_vector

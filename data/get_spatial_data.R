@@ -136,11 +136,12 @@ get_spatial_data <- function(
       st_transform(df_w_dens_sf, crs = crs)
   
   # join with city data (e.g. city name if that's of interest)
+  # first remove the geometry for the individual collection points
+  st_geometry(df_w_dens_sf) <- NULL # remove point geometry, coerce to data.frame
+  df_w_dens_sf <- rename(df_w_dens_sf, "geometry" = ".")
+  df_w_dens_sf <- st_set_geometry(df_w_dens_sf, df_w_dens_sf$geometry) # set geometry, return sf
+  
   urban_grid_w_cities <- st_join(df_w_dens_sf, urban_areas, join = st_intersects)
-  # urban_grid_w_cities <- st_drop_geometry(urban_grid_w_cities)
-  st_geometry(urban_grid_w_cities) <- NULL # remove geometry, coerce to data.frame
-  urban_grid_w_cities <- rename(urban_grid_w_cities, "geometry" = ".")
-  urban_grid_w_cities <- st_set_geometry(urban_grid_w_cities, urban_grid_w_cities$geometry) # set geometry, return sf
   
   urban_grid_prepped <- urban_grid_w_cities %>% 
     # we will select one row per grid cell (one city admin area)
@@ -163,9 +164,6 @@ get_spatial_data <- function(
   
   city_names <- urban_grid_prepped %>%
     pull(city)
-  
-  grid_id_names <- as.character(urban_grid_prepped %>%
-                                  pull(grid_id))
   
   ## --------------------------------------------------
   # Calculate land area of grid cells 
@@ -200,7 +198,6 @@ get_spatial_data <- function(
   return(list(df_id_urban_filtered = df_id_dens,
               scaled_pop_density = scaled_pop_density,
               scaled_grid_area = scaled_grid_area,
-              city_names = city_names,
-              grid_id_names = grid_id_names))
+              city_names = city_names))
   
 }
