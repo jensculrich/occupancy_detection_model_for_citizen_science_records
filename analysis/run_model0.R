@@ -108,8 +108,8 @@ stan_out <- stan(stan_model,
 
 print(stan_out, digits = 3)
 
-saveRDS(stan_out, "./simulation/simulate_model0.rds")
-stan_out <- readRDS("./simulation/simulate_model0.rds")
+saveRDS(stan_out, "./model_outputs/stan_out_model0.rds")
+stan_out <- readRDS("./model_outputs/stan_out_model0.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
@@ -120,6 +120,8 @@ traceplot(stan_out, pars = c(
   #"psi_species",
   "sigma_psi_species",
   # "psi_interval",
+  "psi_pop_density",
+  "psi_site_area",
   "mu_psi_interval",
   "sigma_psi_interval",
   "mu_p_0",
