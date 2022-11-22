@@ -22,14 +22,13 @@ data {
   
   int<lower=1> n_visits; // visits within intervals
   
-  // int<lower=0> V[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   int<lower=0> V_citsci[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   int<lower=0> V_museum[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   int<lower=0> V_museum_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
 
   
-  //vector[n_sites] pop_densities; // population density of each site
-  //vector[n_sites] site_areas; // spatial area extent of each site
+  vector[n_sites] pop_densities; // population density of each site
+  vector[n_sites] site_areas; // spatial area extent of each site
   
 } // end data
 
@@ -56,20 +55,36 @@ parameters {
   //real psi_site_area;
   
   // DETECTION
-  //real mu_p_0; // global intercept for detection
+  
+  // citizen science observation process
   real mu_p_citsci_0; // global detection intercept for citizen science records
-  real mu_p_museum_0; // global detection intercept for museum records
   
   // species specific intercept allows some species to be detected at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
-  //vector[n_species] p_species; // species specific intercept for detection
-  //real<lower=0> sigma_p_species; // variance in species intercepts
+  vector[n_species] p_citsci_species; // species specific intercept for detection
+  real<lower=0> sigma_p_citsci_species; // variance in species intercepts
   
   // random slope for site specific temporal effects on occupancy
-  //vector[n_sites] p_site; // vector of spatially specific slope estimates
-  //real<lower=0> sigma_p_site; // variance in site slopes
+  vector[n_sites] p_citsci_site; // vector of spatially specific slope estimates
+  real<lower=0> sigma_p_citsci_site; // variance in site slopes
   
-  //real p_interval; // fixed temporal effect on detection probability
+  real p_citsci_interval; // fixed temporal effect on detection probability
+  real p_citsci_pop_density; // fixed effect of population on detection probability
+  
+  // museum records observation process
+  real mu_p_museum_0; // global detection intercept for citizen science records
+  
+  // species specific intercept allows some species to be detected at higher rates than others, 
+  // but with overall estimates for occupancy partially informed by the data pooled across all species.
+  vector[n_species] p_museum_species; // species specific intercept for detection
+  real<lower=0> sigma_p_museum_species; // variance in species intercepts
+  
+  // random slope for site specific temporal effects on occupancy
+  vector[n_sites] p_museum_site; // vector of spatially specific slope estimates
+  real<lower=0> sigma_p_museum_site; // variance in site slopes
+  
+  real p_museum_interval; // fixed temporal effect on detection probability
+  real p_museum_pop_density; // fixed effect of population on detection probability
   
 } // end parameters
 
@@ -101,18 +116,20 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals
         
           p_citsci[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
-            mu_p_citsci_0 //+ // a baseline intercept
-            //p_species[species[i]] + // a species specific intercept
-            //p_site[sites[j]] + // a spatially specific intercept
-            //p_interval*intervals[k] // an overall effect of time on detection
-           ); // end p[i,j,k,l]
+            mu_p_citsci_0 + // a baseline intercept
+            p_citsci_species[species[i]] + // a species specific intercept
+            p_citsci_site[sites[j]] + // a spatially specific intercept
+            p_citsci_interval*intervals[k] + // an overall effect of time on detection
+            p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
+           ); // end p[i,j,k]
            
           p_museum[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
-            mu_p_museum_0 //+ // a baseline intercept
-            //p_species[species[i]] + // a species specific intercept
-            //p_site[sites[j]] + // a spatially specific intercept
-            //p_interval*intervals[k] // an overall effect of time on detection
-           ); // end p[i,j,k,l]
+            mu_p_museum_0 + // a baseline intercept
+            p_museum_species[species[i]] + // a species specific intercept
+            p_museum_site[sites[j]] + // a spatially specific intercept
+            p_museum_interval*intervals[k] + // an overall effect of time on detection
+            p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
+           ); // end p[i,j,k]
            
       } // end loop across all intervals
     } // end loop across all sites
@@ -146,21 +163,42 @@ model {
   //psi_site_area ~ cauchy(0, 2.5); // effect of site area on occupancy
   
   // Detection (Observation Process)
+  
+  // citizen science records
+  
   mu_p_citsci_0 ~ cauchy(0, 2.5); // global intercept for detection
-  mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for detection
 
-  //p_species ~ normal(0, sigma_p_species); 
+  p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  //sigma_p_species ~ cauchy(0, 2.5);
+  sigma_p_citsci_species ~ cauchy(0, 2.5);
   
   // should redefine p_site so that it is spatially AND temporally heterogenous 
-  //p_site ~ normal(0, sigma_p_site);
+  p_citsci_site ~ normal(0, sigma_p_citsci_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  //sigma_p_site ~ cauchy(0, 2.5); // spatial variance
+  sigma_p_citsci_site ~ cauchy(0, 2.5); // spatial variance
   
-  //p_interval ~ cauchy(0, 2.5); // temporal effect on detection probability
+  p_citsci_interval ~ cauchy(0, 2.5); // temporal effect on detection probability
+  
+  p_citsci_pop_density ~ cauchy(0, 2.5); // population effect on detection probability
+  
+  // museum records
+  
+  mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for detection
+  
+  p_museum_species ~ normal(0, sigma_p_museum_species); 
+  // detection intercept for each species drawn from the community
+  // distribution (variance defined by sigma), centered at 0. 
+  sigma_p_museum_species ~ cauchy(0, 2.5);
+  
+  // should redefine p_site so that it is spatially AND temporally heterogenous 
+  p_museum_site ~ normal(0, sigma_p_museum_site);
+  // detection intercept for each site drawn from the spatially heterogenous
+  // distribution (variance defined by sigma), centered at 0. 
+  sigma_p_museum_site ~ cauchy(0, 2.5); // spatial variance
+  
+  p_museum_interval ~ cauchy(0, 2.5); // temporal effect on detection probability
   
   // LIKELIHOOD
   
@@ -191,13 +229,10 @@ model {
           } else {
             
             // lp_unobserved
-            // currently written as log1m(p) for each visit in 1:n_visits (manually defined below as 1, 2, 3...)
-            // should be proper to wrap this up in a single statement that increments the log probability
-            // for each p in 1:n_visit, but simply putting log1m(p[i,j,k,l]) doesn't seem to work 
-            // for reasons that I don't understand. This way below works, it's just a bit too brute force
-            // and needs to be rewritten to accomodate the specific number of max visits
             target += log_sum_exp(log(psi[i,j,k]) +
                     binomial_lpmf(0 | n_visits, p_citsci[i,j,k]) +
+                    // sum(V_museum_NA[i,j,k,1:n_visits]) below tells us how many sampling 
+                    // events actually occurred for museum records
                     binomial_lpmf(0 | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]),
                     log1m(psi[i,j,k])); 
             
