@@ -40,19 +40,19 @@ parameters {
   
   // species specific intercept allows some species to occur at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
-  //vector[n_species] psi_species; // species specific intercept for occupancy
-  //real<lower=0> sigma_psi_species; // variance in species intercepts
+  vector[n_species] psi_species; // species specific intercept for occupancy
+  real<lower=0> sigma_psi_species; // variance in species intercepts
   
   // random slope for species specific temporal effects on occupancy
-  //vector[n_species] psi_interval; // vector of species specific slope estimates
-  //real mu_psi_interval; // community mean of species specific slopes
-  //real<lower=0> sigma_psi_interval; // variance in species slopes
+  vector[n_species] psi_interval; // vector of species specific slope estimates
+  real mu_psi_interval; // community mean of species specific slopes
+  real<lower=0> sigma_psi_interval; // variance in species slopes
   
   // effect of population density on occupancy
-  //real psi_pop_density;
+  real psi_pop_density;
   
   // effect of site are on occupancy
-  //real psi_site_area;
+  real psi_site_area;
   
   // DETECTION
   
@@ -100,11 +100,11 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals  
           
           psi[i,j,k] = inv_logit( // the inverse of the log odds of occurrence is equal to..
-            mu_psi_0 //+ // a baseline intercept
-            //psi_species[species[i]] + // a species specific intercept
-            //psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
-            //psi_pop_density*pop_densities[j] + // an effect of pop density on occurrence
-            //psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
+            mu_psi_0 + // a baseline intercept
+            psi_species[species[i]] + // a species specific intercept
+            psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
+            psi_pop_density*pop_densities[j] + // an effect of pop density on occurrence
+            psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ); // end psi[i,j,k]
             
       } // end loop across all intervals
@@ -121,7 +121,7 @@ transformed parameters {
             p_citsci_site[sites[j]] + // a spatially specific intercept
             p_citsci_interval*intervals[k] + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
-           ); // end p[i,j,k]
+           ); // end p_citsci[i,j,k]
            
           p_museum[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
             mu_p_museum_0 + // a baseline intercept
@@ -129,7 +129,7 @@ transformed parameters {
             p_museum_site[sites[j]] + // a spatially specific intercept
             p_museum_interval*intervals[k] + // an overall effect of time on detection
             p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
-           ); // end p[i,j,k]
+           ); // end p_museum[i,j,k]
            
       } // end loop across all intervals
     } // end loop across all sites
@@ -146,21 +146,21 @@ model {
   // Occupancy (Ecological Process)
   mu_psi_0 ~ cauchy(0, 2.5); // global intercept for occupancy rate
   
-  //psi_species ~ normal(0, sigma_psi_species); 
+  psi_species ~ normal(0, sigma_psi_species); 
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  //sigma_psi_species ~ cauchy(0, 2.5);
+  sigma_psi_species ~ cauchy(0, 2.5);
   
-  //psi_interval ~ normal(mu_psi_interval, sigma_psi_interval);
+  psi_interval ~ normal(mu_psi_interval, sigma_psi_interval);
   // occupancy slope (temporal effect on occupancy) for each species drawn from the 
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  //mu_psi_interval ~ cauchy(0, 2.5); // community mean
-  //sigma_psi_interval ~ cauchy(0, 2.5); // community variance
+  mu_psi_interval ~ cauchy(0, 2.5); // community mean
+  sigma_psi_interval ~ cauchy(0, 2.5); // community variance
   
-  //psi_pop_density ~ cauchy(0, 2.5); // effect of population density on occupancy
-  //psi_site_area ~ cauchy(0, 2.5); // effect of site area on occupancy
+  psi_pop_density ~ cauchy(0, 2.5); // effect of population density on occupancy
+  psi_site_area ~ cauchy(0, 2.5); // effect of site area on occupancy
   
   // Detection (Observation Process)
   

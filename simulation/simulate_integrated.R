@@ -15,6 +15,10 @@ simulate_data <- function(n_species,
                           
                           ## ecological process
                           mu_psi_0,
+                          mu_psi_interval,
+                          sigma_psi_interval,
+                          psi_pop_dens,
+                          psi_site_area,
                           
                           ## observation process
                           # citizen science observation process
@@ -72,12 +76,12 @@ simulate_data <- function(n_species,
   ### specify species-specific occupancy probabilities
   
   ## species-specific random intercepts
-  # psi_species <- rnorm(n=n_species, mean=0, sd=sigma_psi_species)
+  psi_species <- rnorm(n=n_species, mean=0, sd=sigma_psi_species)
   # species baseline occupancy is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma.psi.sp
   
   ## effect of interval on occupancy (species-specific random slopes)
-  # psi_interval <- rnorm(n=n_species, mean=mu_psi_interval, sd=sigma_psi_interval)
+  psi_interval <- rnorm(n=n_species, mean=mu_psi_interval, sd=sigma_psi_interval)
   # change in each species occupancy across time is drawn from a distribution defined
   # by a community mean (mu_psi_interval) with 
   # species specific variation defined by sigma_psi_interval
@@ -122,11 +126,11 @@ simulate_data <- function(n_species,
       for(interval in 1:n_intervals) { # for each species
         
         psi_matrix[species, site, interval] <- ilogit( # occupancy is equal to
-          mu_psi_0 # + # a baseline intercept
-            #psi_species[species] + # a species specific intercept
-            #psi_interval[species]*intervals[interval] + # a species specific temporal change
-            #psi_pop_dens*pop_density[site] + # a fixed effect of population density 
-            #psi_site_area*site_area[site] # a fixed effect of site area
+          mu_psi_0 + # a baseline intercept
+            psi_species[species] + # a species specific intercept
+            psi_interval[species]*intervals[interval] + # a species specific temporal change
+            psi_pop_dens*pop_density[site] + # a fixed effect of population density 
+            psi_site_area*site_area[site] # a fixed effect of site area
         )
         
         for(visit in 1:n_visits) { # for each visit
@@ -314,7 +318,12 @@ my_simulated_data <- simulate_data(n_species,
                                    n_intervals,
                                    n_visits,
                                    
+                                   # ecological process
                                    mu_psi_0,
+                                   mu_psi_interval,
+                                   sigma_psi_interval,
+                                   psi_pop_dens,
+                                   psi_site_area,
                                   
                                    # citizen science observation process
                                    mu_p_citsci_0,
@@ -372,6 +381,10 @@ stan_data <- c("V_citsci", "V_museum", "V_museum_NA",
 
 # Parameters monitored
 params <- c("mu_psi_0",
+            "mu_psi_interval",
+            "sigma_psi_interval",
+            "psi_pop_density",
+            "psi_site_area",
             
             "mu_p_citsci_0",
             "sigma_p_citsci_species",
@@ -387,6 +400,10 @@ params <- c("mu_psi_0",
 )
 
 parameter_value <- c(mu_psi_0,
+                     mu_psi_interval,
+                     sigma_psi_interval,
+                     psi_pop_dens,
+                     psi_site_area,
                      
                      mu_p_citsci_0,
                      sigma_p_citsci_species,
@@ -414,22 +431,10 @@ n_cores <- n_chains
 inits <- lapply(1:n_chains, function(i)
   
   list(mu_psi_0 = runif(1, -1, 1),
-       sigma_psi_species = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
-       psi_pop_dens = runif(1, -1, 1),
+       psi_pop_density = runif(1, -1, 1),
        psi_site_area = runif(1, -1, 1),
-       mu_p_0 = runif(1, -1, 1),
-       sigma_p_species = runif(1, 0, 1),
-       sigma_p_site = runif(1, 0, 1),
-       p_interval = runif(1, -1, 1)
-       
-  )
-)
-
-inits <- lapply(1:n_chains, function(i)
-  
-  list(mu_psi_0 = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
        sigma_p_citsci_species = runif(1, 0, 1),
