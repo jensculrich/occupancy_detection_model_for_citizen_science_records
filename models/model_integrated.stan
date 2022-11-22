@@ -4,10 +4,11 @@
 // citizen science data and gbif data may have their own observation processes
 // and also allows for missing (NA) data
 
+
 data {
   
   int<lower=1> n_species;  // observed species
-  int<lower=1> species[n_species];      // vector of species
+  int<lower=1> species[n_species]; // vector of species
   
   int<lower=1> n_sites;  // sites within region
   int<lower=1> sites[n_sites];      // vector of sites
@@ -24,6 +25,8 @@ data {
   // int<lower=0> V[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   int<lower=0> V_citsci[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   int<lower=0> V_museum[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
+  int<lower=0> V_museum_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
+
   
   //vector[n_sites] pop_densities; // population density of each site
   //vector[n_sites] site_areas; // spatial area extent of each site
@@ -74,8 +77,8 @@ parameters {
 transformed parameters {
   
   real psi[n_species, n_sites, n_intervals];  // odds of occurrence
-  real p_citsci[n_species, n_sites, n_intervals, n_visits]; // odds of detection by cit science
-  real p_museum[n_species, n_sites, n_intervals, n_visits]; // odds of detection by museum
+  real p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
+  real p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -96,23 +99,21 @@ transformed parameters {
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
-        for(l in 1:n_visits){ // loop across all visits
         
-          p_citsci[i,j,k,l] = inv_logit( // the inverse of the log odds of detection is equal to..
+          p_citsci[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
             mu_p_citsci_0 //+ // a baseline intercept
             //p_species[species[i]] + // a species specific intercept
             //p_site[sites[j]] + // a spatially specific intercept
             //p_interval*intervals[k] // an overall effect of time on detection
            ); // end p[i,j,k,l]
            
-          p_museum[i,j,k,l] = inv_logit( // the inverse of the log odds of detection is equal to..
+          p_museum[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
             mu_p_museum_0 //+ // a baseline intercept
             //p_species[species[i]] + // a species specific intercept
             //p_site[sites[j]] + // a spatially specific intercept
             //p_interval*intervals[k] // an overall effect of time on detection
            ); // end p[i,j,k,l]
            
-        } // end loop across all visits
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species
@@ -168,7 +169,6 @@ model {
   for(i in 1:n_species) { // loop across all species
     for(j in 1:n_sites) { // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
-        // for(l in 1:n_visits){ // loop across all visits
           
           // if species is detected at the specific site*interval at least once
           // by citizen science efforts OR museum records
@@ -178,10 +178,12 @@ model {
           if(sum(V_citsci[i, j, k, 1:n_visits]) > 0 || sum(V_museum[i, j, k, 1:n_visits]) > 0) {
             
              // lp_observed:
-             target += log(psi[i,j,k]);
-             target += bernoulli_lpmf(V_citsci[i,j,k] | p_citsci[i,j,k]); // vectorized over repeat sampling visits l
-             target += bernoulli_lpmf(V_museum[i,j,k] | p_museum[i,j,k]); // vectorized over repeat sampling visits l
-
+             target += log(psi[i,j,k]) +
+                      binomial_lpmf(sum(V_citsci[i,j,k,1:n_visits]) | n_visits, p_citsci[i,j,k]) + 
+                      // sum(V_museum_NA[i,j,k,1:n_visits]) below tells us how many sampling 
+                      // events actually occurred for museum records
+                      binomial_lpmf(sum(V_museum[i,j,k,1:n_visits]) | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]);
+                          
           // else the species was never detected at the site*interval
           // lp_unobserved sums the probability density of:
           // 1) species occupies the site*interval but was not detected on each visit, and
@@ -194,15 +196,14 @@ model {
             // for each p in 1:n_visit, but simply putting log1m(p[i,j,k,l]) doesn't seem to work 
             // for reasons that I don't understand. This way below works, it's just a bit too brute force
             // and needs to be rewritten to accomodate the specific number of max visits
-            target += log_sum_exp(log(psi[i,j,k]) + 
-                                 log1m(p_citsci[i,j,k,1]) + log1m(p_citsci[i,j,k,2]) + log1m(p_citsci[i,j,k,3]) +
-                                 log1m(p_museum[i,j,k,1]) + log1m(p_museum[i,j,k,2]) + log1m(p_museum[i,j,k,3]),
-                          log1m(psi[i,j,k]));
+            target += log_sum_exp(log(psi[i,j,k]) +
+                    binomial_lpmf(0 | n_visits, p_citsci[i,j,k]) +
+                    binomial_lpmf(0 | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]),
+                    log1m(psi[i,j,k])); 
             
           } // end if/else
           
           
-        // } // end loop across all visits
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species

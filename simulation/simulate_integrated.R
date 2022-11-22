@@ -14,7 +14,11 @@ simulate_data <- function(n_species,
                           n_visits,
                           mu_psi_0,
                           mu_p_citsci_0,
-                          mu_p_museum_0
+                          mu_p_museum_0,
+                          introduce_NAs,
+                          sites_missing,
+                          intervals_missing,
+                          visits_missing
 ){
   
   ## ilogit and logit functions
@@ -191,11 +195,41 @@ simulate_data <- function(n_species,
   sum(V_citsci == 0)
   sum(V_museum == 0)
   
+  # simulate NA data for the model to work around
+  # for our real data we will have sites that weren't sampled during some visits in some intervals
+  if(introduce_NAs == TRUE){
+    
+    # choose random sites that didn't get visited (for all species) by musuem collecting visits
+    site_missed = sample.int(n_sites, sites_missing)
+    interval_missed = sample.int(n_intervals, intervals_missing)
+    visit_missed = sample.int(n_visits, visits_missing)
+    
+    # we will make an array that holds values of 1 if sampling occurred
+    # or 0 if sampling did not occur at the site*interval*visit.
+    V_museum_NA <- V_museum 
+    V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
+    
+    # replace all other values with 1 (was sampled)
+    V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
+    # and now replace all NAs with 0, which will act as an indicator for the likelihood function
+    # to skip over this sample by contracting the total possible number of observations that could have occurred
+    V_museum_NA[is.na(V_museum_NA)] <- 0
+    
+    # now we want to replace the real data with 0's where sampling did not occur
+    # so that we are saying that a a species was not observed at the visit to the site in the interval
+    # but the model will remove this from contributing to the probability density by removing
+    # the max number of sightings that could have occurred for 
+    # each visit in the site*interval with a 0 in V_museum_NA
+    V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
+    
+  }
+  
   ## --------------------------------------------------
   # Return stuff
   return(list(
     V_citsci = V_citsci, # detection data from citizen science records
     V_museum = V_museum, # detection data from museum records
+    V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
     n_species = n_species, # number of species
     n_sites = n_sites, # number of sites
     n_intervals = n_intervals, # number of surveys 
@@ -210,10 +244,10 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 10 ## number of species
-n_sites = 10 ## number of sites
+n_species = 20 ## number of species
+n_sites = 20 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
-n_visits = 3 ## number of samples per year
+n_visits = 6 ## number of samples per year
 
 ## occupancy
 mu_psi_0 = -0.5
@@ -234,7 +268,7 @@ sigma_p_species = 0.3
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(12)
+set.seed(1)
 my_simulated_data <- simulate_data(n_species,
                                    n_sites,
                                    n_intervals,
@@ -243,7 +277,13 @@ my_simulated_data <- simulate_data(n_species,
                                    mu_psi_0,
                                   
                                    mu_p_citsci_0,
-                                   mu_p_museum_0)
+                                   mu_p_museum_0, 
+                                   
+                                   # introduce NAs (missed visits)?
+                                   introduce_NAs = TRUE,
+                                   sites_missing = 0.5*n_sites, 
+                                   intervals_missing = 2,
+                                   visits_missing = 2)
 
 ## --------------------------------------------------
 ### Prepare data for model
@@ -251,6 +291,7 @@ my_simulated_data <- simulate_data(n_species,
 # data to feed to the model
 V_citsci <- my_simulated_data$V_citsci # detection data
 V_museum <- my_simulated_data$V_museum # detection data
+V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
 n_species <- my_simulated_data$n_species # number of species
 n_sites <- my_simulated_data$n_sites # number of sites
 n_intervals <- my_simulated_data$n_intervals # number of surveys 
@@ -269,7 +310,7 @@ species <- seq(1, n_species, by=1)
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
 
-stan_data <- c("V_citsci", "V_museum",
+stan_data <- c("V_citsci", "V_museum", "V_museum_NA",
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites")
                #,
@@ -310,9 +351,9 @@ parameter_value <- c(mu_psi_0,
 )
 
 # MCMC settings
-n_iterations <- 600
+n_iterations <- 800
 n_thin <- 1
-n_burnin <- 300
+n_burnin <- 400
 n_chains <- 3
 n_cores <- n_chains
 
@@ -368,5 +409,23 @@ View(targets)
 saveRDS(stan_out_sim, "./simulation/stan_out_sim_integrated.rds")
 stan_out_sim <- readRDS("./simulation/stan_out_sim_integrated.rds")
 
+## --------------------------------------------------
+### Simple diagnostic plots
+
+# traceplot
+traceplot(stan_out_sim, pars = c(
+  "mu_psi_0",
+  "mu_p_citsci_0",
+  "mu_p_museum_0"
+))
+
+# pairs plot
+pairs(stan_out, pars = c(
+  "mu_psi_0",
+  "mu_p_citsci_0",
+  "mu_p_museum_0"
+))
+
+# should now also write a posterior predictive check into the model
 
 
