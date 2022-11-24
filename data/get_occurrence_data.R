@@ -86,7 +86,7 @@ is.na(occurrences_df$decimalLatitude) %>% head(100)
 occurrences_df %>% count(institutionCode, sort = TRUE)
 # most occurrences from iNaturalist
 # the Natural History Museum of Los Angeles County (LACM) is the only other big contributor to these data
-# Essig Museum of Entomology (EMEC) at UC Berkley is the next biggest contributor but my a wide difference
+# Essig Museum of Entomology (EMEC) at UC Berkley
 
 # the column basisOfRecord splits the records into either 
 # 'HUMAN_OBSERVATION' - iNaturalist data
@@ -142,12 +142,12 @@ head(contemporary_species_counts)
 occurrences_df %>% 
   # filter to after min year and count records since year
   filter(.$year > min_year) %>%
-  count(species, sort = TRUE) %>% 
+  count(species, sort = TRUE) %>%
   drop_na(species) %>% 
   filter(n > min_number_records) %>% 
   
   # draw plot
-  ggplot(aes(x = reorder(species, n), y = n, fill = species)) + 
+  ggplot(aes(x = reorder(species, n), y = n)) + 
   geom_bar(stat = "identity", show.legend = FALSE) + 
   labs(x = "Species with > 100 records since 2000", 
        y = "Number of occurrence records") + 

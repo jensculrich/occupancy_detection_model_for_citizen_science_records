@@ -472,7 +472,7 @@ stan_out_sim <- stan(stan_model,
 print(stan_out_sim, digits = 3)
 View(targets)
 
-saveRDS(stan_out_sim, "./simulation/stan_out_sim_integrated.rds")
+saveRDS(stan_out_sim, "./model_outputs/stan_out_sim_integrated.rds")
 stan_out_sim <- readRDS("./simulation/stan_out_sim_integrated.rds")
 
 ## --------------------------------------------------

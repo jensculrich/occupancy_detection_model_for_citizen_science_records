@@ -81,6 +81,10 @@ plot(log(r3+1),
      legend=T,
      main="Log((Population Density/km^2) + 1)")
 
+my_window <- extent(-125, -112, 32, 42)
+plot(my_window, col=NA)
+plot(log(r3+1), add=T)
+
 # occurrence data
 df <- read.csv("./data/data_unfiltered.csv")
 
