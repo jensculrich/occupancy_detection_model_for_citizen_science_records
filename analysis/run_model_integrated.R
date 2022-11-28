@@ -2,8 +2,6 @@
 ### Run occupancy model (model_integrated.stan) using real pollinator occurrence data from GBIF
 # jcu; started nov 24, 2022
 
-library(rstan)
-
 ## --------------------------------------------------
 # input data preparation choices
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
@@ -36,6 +34,9 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      # 100/km^2 is about 250/mile^sq
                      min_records_for_community_sampling_event = min_records_for_community_sampling_event
 )
+
+gc()
+library(rstan)
 
 # data to feed to the model
 V <- my_data$V # detection data

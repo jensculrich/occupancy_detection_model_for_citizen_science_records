@@ -27,6 +27,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size)
   
+  
+  
   df_id_urban_filtered <- my_spatial_data$df_id_urban_filtered
   
   # spatial covariate data to pass to run model
@@ -170,7 +172,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # within a site
     group_by(institutionCode, year, grid_id) %>%
     mutate(n_species_sampled = n_distinct(species)) %>%
-    filter(n_species_sampled > min_records_for_community_sampling_event) %>%
+    filter(n_species_sampled > min_species_for_community_sampling_event) %>%
     
     # one unique row per site*species*occ_interval*visit combination
     group_by(grid_id, species, occ_interval, visit) %>% 
@@ -197,10 +199,16 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     dplyr::select(species) # extract species names column as vector
   
   # get vectors of species, sites, intervals, and visits 
+  # these are all species that were observed at least min_records_per_species
   species_vector <- species_list %>%
     pull(species)
   
+  ## Get unique sites 
+  # create an alphabetized list of all sites
   site_vector <- site_name_vector
+  
+  site_list <- as.data.frame(site_vector) %>%
+    rename("grid_id" = "site_vector")
   
   interval_vector <- as.vector(levels(as.factor(df_filtered$occ_interval)))
   
@@ -235,6 +243,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         full_join(species_list, by="species") %>%
         # now join with all sites columns (so that we include sites where no species captured during 
         # this interval*visit but which might actually have some species that went undetected)
+        mutate(grid_id = as.character(grid_id)) %>%
         full_join(site_list, by="grid_id") %>%
         # separate_rows(grid_id, sep = ",") %>%
         # group by SPECIES
@@ -247,7 +256,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # if more columns are added these indices above^ might need to change
         # 5:(n_species+5) represent the columns of each site in the matrix
         # just need the matrix of 0's and 1's
-        dplyr::select(levels(as.factor(site_vector))) %>%
+        dplyr::select(5:(ncol(.))) %>%
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
@@ -284,6 +293,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         full_join(species_list, by="species") %>%
         # now join with all sites columns (so that we include sites where no species captured during 
         # this interval*visit but which might actually have some species that went undetected)
+        mutate(grid_id = as.character(grid_id)) %>%
         full_join(site_list, by="grid_id") %>%
         # separate_rows(grid_id, sep = ",") %>%
         # group by SPECIES
@@ -296,7 +306,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # if more columns are added these indices above^ might need to change
         # 5:(n_species+5) represent the columns of each site in the matrix
         # just need the matrix of 0's and 1's
-        dplyr::select(levels(as.factor(site_vector))) %>%
+        dplyr::select(5:(ncol(.))) %>%
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
@@ -320,17 +330,20 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # Generate an indicator array for whether or not a community-wide museum 
   # sampling event occurred at the site in a year
   
-  # first make a df of all possible site visits
-  all_site_visits <- as.data.frame(cbind(
-    as.integer(rep(site_vector, each=(n_intervals*n_visits))),
-    rep(interval_vector, each=n_visits, times=n_sites),
-    rep(0:(total_years-1)),
-    rep(visit_vector, times=(n_intervals*n_sites))
+  # first make a df of all possible site visits * species visits
+  all_species_site_visits <- as.data.frame(cbind(
+    rep(species_vector, times=(n_sites*n_intervals*n_visits)),
+    as.integer(rep(site_vector, each=n_species, times=n_intervals*n_visits)),
+    rep(interval_vector, each=n_species*n_sites, times=(n_visits)),
+    rep(visit_vector, each=n_species*n_sites*n_intervals)
+    #rep(0:(total_years-1),)
   )) %>%
-    rename("grid_id" = "V1",
-           "occ_interval" = "V2",
-           "occ_year" = "V3",
-           "visit" = "V4")  %>%
+    rename("species" = "V1",
+           "grid_id" = "V2",
+           "occ_interval" = "V3",
+           "visit" = "V4") %>%
+           #"occ_year" = "V5") 
+  
     mutate(grid_id = as.integer(grid_id))
   
   # remove species rows, just one per site per unique visit
@@ -346,24 +359,18 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
            occ_year = as.character(occ_year),
            visit = as.character(visit))
   
-  test <- left_join(all_site_visits, df_museum_visits, 
-                    by=c("grid_id", "occ_interval", "occ_year", "visit")) %>%
+  temp <- left_join(all_species_site_visits, df_museum_visits, 
+                    by=c("grid_id", "occ_interval", "visit")) %>%
     # create an indicator if the site visit was a sample or not
-    mutate(sampled = replace_na(sampled, 0))
-    
-  test2 <- simplify2array(by(test, test$grid_id, as.matrix))
+    mutate(sampled = replace_na(sampled, 0),
+           occ_interval = as.integer(occ_interval),
+           visit = as.integer(visit))
   
-  V_museum_NA <- array(data = NA, dim = c(n_sites, n_intervals, n_visits))
+  # still working on this
+  V_museum_NA <- array(data = temp$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
+  # test[1:n_species, 1:28, 1, 1]
+  # test[1:n_species, 50:60, 3, 2]
   
-  for(i in 1:n_sites){
-    for(j in 1:n_intervals){
-      for(k in 1:n_visits){
-        
-        V_museum_NA[i,j,k] <- test$sampled[i*j*k]
-        
-      }
-    }
-  }
   
   ## --------------------------------------------------
   # Return stuff

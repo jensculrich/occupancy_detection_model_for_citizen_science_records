@@ -75,11 +75,6 @@ get_spatial_data <- function(
     st_transform(., crs = crs)
   
   ## --------------------------------------------------
-  # Prep the population density raster
-  r2 <- crop(pop_raster, CA)
-  r3 <- mask(r2, CA)
-  
-  ## --------------------------------------------------
   # Overlay the shapefile with a grid of sites of size == 'grid_size' 
   
   # create _km grid - here you can substitute by specifying grid_size above
@@ -92,14 +87,19 @@ get_spatial_data <- function(
   ## --------------------------------------------------
   # Extract mean population density in each grid cell
   
+  ## --------------------------------------------------
+  # Prep the population density raster
+  r2_pop_dens <- crop(pop_raster, CA)
+  r3_pop_dens <- mask(r2_pop_dens, CA)
+  
   # project the grid to the raster
-  crs_raster <- sf::st_crs(raster::crs(r3))
+  crs_raster <- sf::st_crs(raster::crs(r3_pop_dens))
   prj1 <- st_transform(grid, crs_raster)
   
   # Extract raster values to list object
   # this takes a while since there are many raster cells with their own values
   # in each grid cell.
-  r.vals <- raster::extract(r3, prj1)
+  r.vals <- raster::extract(r3_pop_dens, prj1)
   
   # Use list apply to calculate mean raster value for each grid cell
   # ignore na.s (values where the grid cell does not overlap with land area)
@@ -109,9 +109,13 @@ get_spatial_data <- function(
   grid_pop_dens <- cbind(grid, unlist(r.mean)) %>% 
     rename("pop_density_per_km2" = "unlist.r.mean.")
   
+  # free unused space
+  rm(r3_pop_dens, r2_pop_dens, pop_raster)
+  gc(verbose = FALSE)
+  
   ## --------------------------------------------------
-  # Add covariate data to the occurrence data
-  # and simultaneously filter the sites to the urban area sites
+  # add pop density covariate data to the occurrence data
+  # AND simultaneously FILTER THE SITES TO ONLY THOSE THAT ARE CONSIDERED URBAN
   # so that we can make comparisons across urban areas
   
   # Join the pop dens data back with the df that now also has grid (site) names
@@ -128,14 +132,14 @@ get_spatial_data <- function(
   ## --------------------------------------------------
   # Add city data (e.g. city name if that end up being of interest)
   
-  # and then project it again
+  # first project the data again using the lat and long colums
   df_w_dens_sf <- st_as_sf(df_id_dens,
                            coords = c("decimalLongitude", "decimalLatitude"), 
                            crs = 4326) %>%
       # and then transform it to the correct crs again
       st_transform(df_w_dens_sf, crs = crs)
   
-  # join with city data (e.g. city name if that's of interest)
+  # join with city data
   # first remove the geometry for the individual collection points
   st_geometry(df_w_dens_sf) <- NULL # remove point geometry, coerce to data.frame
   df_w_dens_sf <- rename(df_w_dens_sf, "geometry" = ".")
