@@ -4,19 +4,37 @@
 
 library(rstan)
 
-source("./analysis/prep_data.R")
+## --------------------------------------------------
+# input data preparation choices
+# be careful that the (era_end - era_start) is evenly divisible by the n_intervals
+era_start = 2009 # must define start date of the GBIF dataset
+era_end = 2020 # must define start date of the GBIF dataset
+n_intervals = 3 # must define number of intervals to break up the era into
+n_visits = 4 # must define the number of repeat obs years within each interval
+# note, should introduce throw error if..
+# (era_end - era_start) / n_intervals has a remainder > 0,
+min_records_per_species = 100
+grid_size = 25000 # 25km x 25 km 
+min_population_size = 100 # min pop density in the grid cell (per km^2)
+# for reference, 38people/km^2 is ~100people/mile^2
+# 100/km^2 is about 250/mile^sq
+min_species_for_community_sampling_event = 3
+# min records_for_community_sampling_event sets a minimum threshold, if the number
+# of records for the taxonomic group within a site within a year is 
 
-my_data <- prep_data(era_start = 2017, # must define start date of the GBIF dataset
-                     era_end = 2022, # must define start date of the GBIF dataset
-                     n_intervals = 2, # must define number of intervals to break up the era into
-                     n_visits = 3, # must define the number of repeat obs years within each interval
+source("./analysis/prep_data_integrated.R")
+my_data <- prep_data(era_start = era_start, # must define start date of the GBIF dataset
+                     era_end = era_end, # must define start date of the GBIF dataset
+                     n_intervals = n_intervals, # must define number of intervals to break up the era into
+                     n_visits = n_visits, # must define the number of repeat obs years within each interval
                      # note, should introduce throw error if..
                      # (era_end - era_start) / n_intervals has a remainder > 0,
-                     min_records_per_species = 100,
-                     grid_size = 25000, # 25km x 25 km 
-                     min_population_size = 100 # min pop density in the grid cell (per km^2)
+                     min_records_per_species = min_records_per_species,
+                     grid_size = grid_size, # 25km x 25 km 
+                     min_population_size = min_population_size, # min pop density in the grid cell (per km^2)
                      # for reference, 38people/km^2 is ~100people/mile^2
                      # 100/km^2 is about 250/mile^sq
+                     min_records_for_community_sampling_event = min_records_for_community_sampling_event
 )
 
 # data to feed to the model

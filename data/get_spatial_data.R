@@ -165,6 +165,15 @@ get_spatial_data <- function(
   city_names <- urban_grid_prepped %>%
     pull(city)
   
+  site_name_vector <- as.character(
+    urban_grid_prepped %>%
+    group_by(grid_id) %>%
+    slice(1) %>% # take one row per site (the name of each site)
+    ungroup() %>%
+    dplyr::select(grid_id) %>% # extract species names column as vector
+    pull(grid_id)
+    )
+  
   ## --------------------------------------------------
   # Calculate land area of grid cells 
   # some cells might partially be outside of the area where we are getting records from
@@ -198,6 +207,7 @@ get_spatial_data <- function(
   return(list(df_id_urban_filtered = df_id_dens,
               scaled_pop_density = scaled_pop_density,
               scaled_grid_area = scaled_grid_area,
-              city_names = city_names))
+              city_names = city_names,
+              site_name_vector = site_name_vector))
   
 }
