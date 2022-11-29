@@ -74,9 +74,10 @@ crs(pop_raster)
 r2 <- crop(pop_raster, CA)
 r3 <- mask(r2, CA)
 maxValue(r3)
+r3
 
 plot(log(r3+1),
-     col=terrain.colors(10),
+     col=rev(terrain.colors(10)),
      alpha=1,
      legend=T,
      main="Log((Population Density/km^2) + 1)")
@@ -84,6 +85,36 @@ plot(log(r3+1),
 my_window <- extent(-125, -112, 32, 42)
 plot(my_window, col=NA)
 plot(log(r3+1), add=T)
+
+# NDVI raster
+# https://gis.data.ca.gov/datasets/CDFW::naip-2014-ndvi-california/about
+# 2014 NDVI raster at 1m resolution
+ndvi_raster1=raster::raster("./data/NDVI/NAIP_2014_NDVI_California.tiff", band = 1)
+ndvi_raster2=raster::raster("./data/NDVI/NAIP_2014_NDVI_California.tiff", band = 2)
+
+crs(ndvi_raster2) <- crs("+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83")
+ndvi_raster2
+test <- projectRaster(ndvi_raster2, crs = crs(CA))
+test <- resample(test, r3)
+test
+CA
+
+# need to figure out how to match the projections, might need to open arcgis 
+# and confirm that the actual crs that I entered in is correct
+# it's not documented on the website but might be included in the arc app
+r2_ndvi <- crop(test, CA)
+r3_ndvi <- mask(r2_ndvi, CA)
+maxValue(r3_ndvi)
+
+plot(r3_ndvi,
+     col=rev(terrain.colors(10)),
+     alpha=1,
+     legend=T,
+     main="NDVI")
+
+my_window <- extent(-125, -112, 32, 42)
+plot(my_window, col=NA)
+plot(r3_ndvi, add=T)
 
 # occurrence data
 df <- read.csv("./data/data_unfiltered.csv")
