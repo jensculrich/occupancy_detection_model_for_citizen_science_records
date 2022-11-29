@@ -11,9 +11,9 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 4 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 50
-grid_size = 25000 # 25km x 25 km 
-min_population_size = 100 # min pop density in the grid cell (per km^2)
+min_records_per_species = 25
+grid_size = 50000 # 25000 = 25km x 25 km 
+min_population_size = 200 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2
@@ -38,7 +38,7 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
 # save the data in case you want to make tweaks to the model run
 # without redoing the data prep
 # saveRDS(my_data, "./analysis/prepped_data_list.rds")
-my_data <- readRDS("./analysis/prepped_data_list.rds")
+# my_data <- readRDS("./analysis/prepped_data_list.rds")
 
 gc()
 library(rstan)
@@ -100,9 +100,9 @@ params <- c("mu_psi_0",
 
 
 # MCMC settings
-n_iterations <- 400
+n_iterations <- 800
 n_thin <- 1
-n_burnin <- 200
+n_burnin <- 400
 n_chains <- 3
 n_cores <- n_chains
 
@@ -149,7 +149,7 @@ stan_out <- stan(stan_model,
 
 print(stan_out, digits = 3)
 
-saveRDS(stan_out, "./model_outputs/stan_out_model_integrated.rds")
+saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_50km.rds")
 stan_out <- readRDS("./model_outputs/stan_out_model_integrated.rds")
 
 ## --------------------------------------------------
@@ -163,16 +163,16 @@ traceplot(stan_out, pars = c(
   "psi_pop_density",
   "psi_site_area",
   
-  "mu_p_citsci_0",
-  "sigma_p_citsci_species",
-  "sigma_p_citsci_site",
-  "p_citsci_interval",
-  "p_citsci_pop_density", 
+  #"mu_p_citsci_0",
+  #"sigma_p_citsci_species",
+  #"sigma_p_citsci_site",
+  #"p_citsci_interval",
+  #"p_citsci_pop_density", 
   
-  "mu_p_museum_0",
-  "sigma_p_museum_species",
-  "sigma_p_museum_site",
-  "p_museum_interval",
+  #"mu_p_museum_0",
+  #"sigma_p_museum_species",
+  #"sigma_p_museum_site",
+  #"p_museum_interval",
   "p_museum_pop_density"
 ))
 
@@ -184,16 +184,16 @@ pairs(stan_out, pars = c(
   "psi_pop_density",
   "psi_site_area",
   
-  "mu_p_citsci_0",
-  "sigma_p_citsci_species",
-  "sigma_p_citsci_site",
-  "p_citsci_interval",
-  "p_citsci_pop_density", 
+  #"mu_p_citsci_0",
+  #"sigma_p_citsci_species",
+  #"sigma_p_citsci_site",
+  #"p_citsci_interval",
+  #"p_citsci_pop_density", 
   
-  "mu_p_museum_0",
-  "sigma_p_museum_species",
-  "sigma_p_museum_site",
-  "p_museum_interval",
+  #"mu_p_museum_0",
+  #"sigma_p_museum_species",
+  #"sigma_p_museum_site",
+  #"p_museum_interval",
   "p_museum_pop_density"
 ))
 
