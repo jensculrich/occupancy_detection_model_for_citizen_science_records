@@ -27,9 +27,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size)
   
+  # save the data in case you want to make tweaks to the model run
+  # without redoing the data prep
+  # saveRDS(my_spatial_data, "./analysis/spatial_data_list.rds")
+  my_spatial_data <- readRDS("./analysis/spatial_data_list.rds")
+  gc()
   
-  
-  df_id_urban_filtered <- my_spatial_data$df_id_urban_filtered
+  df_id_urban_filtered <- as.data.frame(my_spatial_data$df_id_urban_filtered)
   
   # spatial covariate data to pass to run model
   city_name_vector <- my_spatial_data$city_names
@@ -113,7 +117,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
-    # remove species with total observations (n) < min_records_per_species 
+    # remove species with total observations (n) < min_records_per_species
+    # these are records across all citizen science AND preserved specimen records
     group_by(species) %>%
     add_tally() %>%
     filter(n >= min_records_per_species) %>%
@@ -156,7 +161,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
-    # remove species with total observations (n) < min_records_per_species 
+    # remove species with total observations (n) < min_records_per_species
+    # these are records across all citizen science AND preserved specimen records
     group_by(species) %>%
     add_tally() %>%
     filter(n >= min_records_per_species) %>%
@@ -245,7 +251,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # this interval*visit but which might actually have some species that went undetected)
         mutate(grid_id = as.character(grid_id)) %>%
         full_join(site_list, by="grid_id") %>%
-        # separate_rows(grid_id, sep = ",") %>%
+        # have to convert back to integer to get correct ordering from low to high
+        # MUST MATCH SITE NAMES VECTOR
+        mutate(grid_id = as.integer(grid_id)) %>%
         # group by SPECIES
         group_by(species) %>%
         mutate(row = row_number()) %>%
@@ -261,7 +269,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
         filter(species  %in% levels(as.factor(species_list$species)))
-      
       
       # convert from dataframe to matrix
       temp_matrix <- as.matrix(temp)
@@ -295,7 +302,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # this interval*visit but which might actually have some species that went undetected)
         mutate(grid_id = as.character(grid_id)) %>%
         full_join(site_list, by="grid_id") %>%
-        # separate_rows(grid_id, sep = ",") %>%
+        # have to convert back to integer to get correct ordering from low to high
+        # MUST MATCH SITE NAMES VECTOR
+        mutate(grid_id = as.integer(grid_id)) %>%
         # group by SPECIES
         group_by(species) %>%
         mutate(row = row_number()) %>%
@@ -364,12 +373,17 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # create an indicator if the site visit was a sample or not
     mutate(sampled = replace_na(sampled, 0),
            occ_interval = as.integer(occ_interval),
-           visit = as.integer(visit))
+           visit = as.integer(visit)) %>%
+    dplyr::select(-occ_year)
   
-  # still working on this
+  # now spread into 4 dimensions
   V_museum_NA <- array(data = temp$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
-  # test[1:n_species, 1:28, 1, 1]
-  # test[1:n_species, 50:60, 3, 2]
+  # check <- which(V_museum>V_museum_NA) # this will give you numerical value
+  # preview to make sure there's a match 
+  # (V_museum should only have 1's in columns where V_museum_NA = 1 = community sampled)
+  # View(V_museum[1:n_species, 1:n_sites,3,2])
+  # View(as.data.frame(V_museum[1:n_species, 56,3,2]))
+  # View(as.data.frame(V_museum_NA[1:n_species, 56,3,2]))
   
   
   ## --------------------------------------------------

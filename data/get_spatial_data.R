@@ -89,8 +89,8 @@ get_spatial_data <- function(
   
   ## --------------------------------------------------
   # Prep the population density raster
-  r2_pop_dens <- crop(pop_raster, CA)
-  r3_pop_dens <- mask(r2_pop_dens, CA)
+  r2_pop_dens <- raster::crop(pop_raster, CA)
+  r3_pop_dens <- raster::mask(r2_pop_dens, CA)
   
   # project the grid to the raster
   crs_raster <- sf::st_crs(raster::crs(r3_pop_dens))
@@ -110,8 +110,8 @@ get_spatial_data <- function(
     rename("pop_density_per_km2" = "unlist.r.mean.")
   
   # free unused space
-  rm(r3_pop_dens, r2_pop_dens, pop_raster)
-  gc(verbose = FALSE)
+  #rm(r3_pop_dens, r2_pop_dens, pop_raster)
+  #gc(verbose = FALSE)
   
   ## --------------------------------------------------
   # add pop density covariate data to the occurrence data
@@ -145,7 +145,10 @@ get_spatial_data <- function(
   df_w_dens_sf <- rename(df_w_dens_sf, "geometry" = ".")
   df_w_dens_sf <- st_set_geometry(df_w_dens_sf, df_w_dens_sf$geometry) # set geometry, return sf
   
-  urban_grid_w_cities <- st_join(df_w_dens_sf, urban_areas, join = st_intersects)
+  urban_grid_w_cities <- st_join(df_w_dens_sf, urban_areas, join = st_intersects) 
+  # need to replace pop2010 and city name if there was no incorporated city in the densely populated grid cell.
+  urban_grid_w_cities$pop2010 <- ifelse(is.na(urban_grid_w_cities$pop2010),1,urban_grid_w_cities$pop2010)
+  urban_grid_w_cities$name <- ifelse(is.na(urban_grid_w_cities$name),"no intersecting city",urban_grid_w_cities$name)
   
   urban_grid_prepped <- urban_grid_w_cities %>% 
     # we will select one row per grid cell (one city admin area)

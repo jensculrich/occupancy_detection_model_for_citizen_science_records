@@ -11,12 +11,12 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 4 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 100
+min_records_per_species = 50
 grid_size = 25000 # 25km x 25 km 
 min_population_size = 100 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
-min_species_for_community_sampling_event = 3
+min_species_for_community_sampling_event = 2
 # min records_for_community_sampling_event sets a minimum threshold, if the number
 # of records for the taxonomic group within a site within a year is 
 
@@ -35,11 +35,18 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      min_records_for_community_sampling_event = min_records_for_community_sampling_event
 )
 
+# save the data in case you want to make tweaks to the model run
+# without redoing the data prep
+# saveRDS(my_data, "./analysis/prepped_data_list.rds")
+my_data <- readRDS("./analysis/prepped_data_list.rds")
+
 gc()
 library(rstan)
 
 # data to feed to the model
-V <- my_data$V # detection data
+V_citsci <- my_data$V_citsci # citizen science detection data
+V_museum <- my_data$V_museum # museum detection data
+V_museum_NA <- my_data$V_museum_NA # museum data NA indicator array
 n_species <- my_data$n_species # number of species
 n_sites <- my_data$n_sites # number of sites
 n_intervals <- my_data$n_intervals # number of surveys 
@@ -62,26 +69,33 @@ intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
 
-stan_data <- c("V", 
+sum(V_museum_NA) # number of species sampling events by museums
+c <- which(V_museum>V_museum_NA) # this will give you numerical value
+
+stan_data <- c("V_citsci", "V_museum",
+               "V_museum_NA", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites",
                "pop_densities", "site_areas")
 
 # Parameters monitored
 params <- c("mu_psi_0",
-            #"psi_species",
-            "sigma_psi_species",
-            # "psi_interval",
             "mu_psi_interval",
             "sigma_psi_interval",
             "psi_pop_density",
             "psi_site_area",
-            "mu_p_0",
-            # "p_species",
-            "sigma_p_species",
-            # "p_site",
-            "sigma_p_site",
-            "p_interval"
+            
+            "mu_p_citsci_0",
+            "sigma_p_citsci_species",
+            "sigma_p_citsci_site",
+            "p_citsci_interval",
+            "p_citsci_pop_density", 
+            
+            "mu_p_museum_0",
+            "sigma_p_museum_species",
+            "sigma_p_museum_site",
+            "p_museum_interval",
+            "p_museum_pop_density"
 )
 
 
@@ -98,22 +112,29 @@ n_cores <- n_chains
 inits <- lapply(1:n_chains, function(i)
   
   list(mu_psi_0 = runif(1, -1, 1),
-       sigma_psi_species = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
-       psi_pop_dens = runif(1, -1, 1),
+       psi_pop_density = runif(1, -1, 1),
        psi_site_area = runif(1, -1, 1),
-       mu_p_0 = runif(1, -1, 1),
-       sigma_p_species = runif(1, 0, 1),
-       sigma_p_site = runif(1, 0, 1),
-       p_interval = runif(1, -1, 1)
+       
+       mu_p_citsci_0 = runif(1, -1, 1),
+       sigma_p_citsci_species = runif(1, 0, 1),
+       sigma_p_citsci_site = runif(1, 0, 1),
+       p_citsci_interval = runif(1, -1, 1),
+       p_citsci_pop_density = runif(1, -1, 1),
+       
+       mu_p_museum_0 = runif(1, -1, 1),
+       sigma_p_museum_species = runif(1, 0, 1),
+       sigma_p_museum_site = runif(1, 0, 1),
+       p_museum_interval = runif(1, -1, 1),
+       p_museum_pop_density = runif(1, -1, 1)
        
   )
 )
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./models/model0.stan"
+stan_model <- "./models/model_integrated.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -128,8 +149,8 @@ stan_out <- stan(stan_model,
 
 print(stan_out, digits = 3)
 
-saveRDS(stan_out, "./model_outputs/stan_out_model0.rds")
-stan_out <- readRDS("./model_outputs/stan_out_model0.rds")
+saveRDS(stan_out, "./model_outputs/stan_out_model_integrated.rds")
+stan_out <- readRDS("./model_outputs/stan_out_model_integrated.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
@@ -137,35 +158,43 @@ stan_out <- readRDS("./model_outputs/stan_out_model0.rds")
 # traceplot
 traceplot(stan_out, pars = c(
   "mu_psi_0",
-  #"psi_species",
-  "sigma_psi_species",
-  # "psi_interval",
-  "psi_pop_density",
-  "psi_site_area",
   "mu_psi_interval",
   "sigma_psi_interval",
-  "mu_p_0",
-  # "p_species",
-  "sigma_p_species",
-  # "p_site",
-  "sigma_p_site",
-  "p_interval"
+  "psi_pop_density",
+  "psi_site_area",
+  
+  "mu_p_citsci_0",
+  "sigma_p_citsci_species",
+  "sigma_p_citsci_site",
+  "p_citsci_interval",
+  "p_citsci_pop_density", 
+  
+  "mu_p_museum_0",
+  "sigma_p_museum_species",
+  "sigma_p_museum_site",
+  "p_museum_interval",
+  "p_museum_pop_density"
 ))
 
 # pairs plot
 pairs(stan_out, pars = c(
   "mu_psi_0",
-  #"psi_species",
-  "sigma_psi_species",
-  # "psi_interval",
   "mu_psi_interval",
   "sigma_psi_interval",
-  "mu_p_0",
-  # "p_species",
-  "sigma_p_species",
-  # "p_site",
-  "sigma_p_site",
-  "p_interval"
+  "psi_pop_density",
+  "psi_site_area",
+  
+  "mu_p_citsci_0",
+  "sigma_p_citsci_species",
+  "sigma_p_citsci_site",
+  "p_citsci_interval",
+  "p_citsci_pop_density", 
+  
+  "mu_p_museum_0",
+  "sigma_p_museum_species",
+  "sigma_p_museum_site",
+  "p_museum_interval",
+  "p_museum_pop_density"
 ))
 
 # should now also write a posterior predictive check into the model
