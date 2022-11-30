@@ -11,9 +11,9 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 4 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 100
-grid_size = 50000 # 25000 = 25km x 25 km 
-min_population_size = 200 # min pop density in the grid cell (per km^2)
+min_records_per_species = 5
+grid_size = 30000 # 25000 = 25km x 25 km 
+min_population_size = 150 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2

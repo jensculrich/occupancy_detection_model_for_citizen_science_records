@@ -110,8 +110,8 @@ get_spatial_data <- function(
     rename("pop_density_per_km2" = "unlist.r.mean.")
   
   # free unused space
-  #rm(r3_pop_dens, r2_pop_dens, pop_raster)
-  #gc(verbose = FALSE)
+  rm(prj1, r3_pop_dens, r2_pop_dens, pop_raster)
+  gc(verbose = FALSE)
   
   ## --------------------------------------------------
   # add pop density covariate data to the occurrence data
@@ -215,6 +215,7 @@ get_spatial_data <- function(
               scaled_pop_density = scaled_pop_density,
               scaled_grid_area = scaled_grid_area,
               city_names = city_names,
-              site_name_vector = site_name_vector))
+              site_name_vector = site_name_vector,
+              urban_grid = urban_grid_prepped))
   
 }

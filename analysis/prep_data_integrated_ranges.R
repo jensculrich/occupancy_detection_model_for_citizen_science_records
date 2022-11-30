@@ -40,6 +40,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   pop_density_vector <- my_spatial_data$scaled_pop_density
   site_area_vector <- my_spatial_data$scaled_grid_area
   site_name_vector <- my_spatial_data$site_name_vector
+  urban_grid <- my_spatial_data$urban_grid
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -337,8 +338,11 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # get species ranges
   source("./data/get_species_ranges.R")
-  species_ranges <- get_species_ranges(site_name_vector,
+  species_ranges <- get_species_ranges(urban_grid,
+                                       site_name_vector,
+                                       n_sites,
                                        species_vector,
+                                       n_species,
                                        min_year_for_species_ranges)
   
   ## --------------------------------------------------
