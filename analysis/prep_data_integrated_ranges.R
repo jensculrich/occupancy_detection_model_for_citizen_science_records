@@ -335,6 +335,12 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   class(V_museum) <- "numeric"
   
+  # get species ranges
+  source("./data/get_species_ranges.R")
+  species_ranges <- get_species_ranges(site_name_vector,
+                                       species_vector,
+                                       min_year_for_species_ranges)
+  
   ## --------------------------------------------------
   # Generate an indicator array for whether or not a community-wide museum 
   # sampling event occurred at the site in a year

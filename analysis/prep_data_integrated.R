@@ -29,8 +29,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # save the data in case you want to make tweaks to the model run
   # without redoing the data prep
-  # saveRDS(my_spatial_data, "./analysis/spatial_data_list.rds")
-  # my_spatial_data <- readRDS("./analysis/spatial_data_list.rds")
+  #saveRDS(my_spatial_data, "./analysis/spatial_data_list.rds")
+  #my_spatial_data <- readRDS("./analysis/spatial_data_list.rds")
   gc()
   
   df_id_urban_filtered <- as.data.frame(my_spatial_data$df_id_urban_filtered)
@@ -40,6 +40,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   pop_density_vector <- my_spatial_data$scaled_pop_density
   site_area_vector <- my_spatial_data$scaled_grid_area
   site_name_vector <- my_spatial_data$site_name_vector
+  
   
   ## --------------------------------------------------
   # assign study dimensions
