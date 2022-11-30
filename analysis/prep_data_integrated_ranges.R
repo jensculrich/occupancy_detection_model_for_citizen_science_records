@@ -19,7 +19,8 @@ library(tidyverse)
 prep_data <- function(era_start, era_end, n_intervals, n_visits, 
                       min_records_per_species,
                       grid_size, min_population_size, 
-                      min_records_for_community_sampling_event) {
+                      min_records_for_community_sampling_event,
+                      min_year_for_species_ranges) {
   
   source("./data/get_spatial_data.R")
   
@@ -336,15 +337,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   class(V_museum) <- "numeric"
   
-  # get species ranges
-  source("./data/get_species_ranges.R")
-  species_ranges <- get_species_ranges(urban_grid,
-                                       site_name_vector,
-                                       n_sites,
-                                       species_vector,
-                                       n_species,
-                                       min_year_for_species_ranges)
-  
   ## --------------------------------------------------
   # Generate an indicator array for whether or not a community-wide museum 
   # sampling event occurred at the site in a year
@@ -361,46 +353,96 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
            "grid_id" = "V2",
            "occ_interval" = "V3",
            "visit" = "V4") %>%
-           #"occ_year" = "V5") 
-  
+    #"occ_year" = "V5") %>%
     mutate(grid_id = as.integer(grid_id))
   
-  # remove species rows, just one per site per unique visit
+  ## --------------------------------------------------
+  # Get species ranges
+  source("./data/get_species_ranges.R")
+  species_ranges <- get_species_ranges(urban_grid,
+                                       site_name_vector,
+                                       n_sites,
+                                       species_vector,
+                                       n_species,
+                                       min_year_for_species_ranges)
+  
+  gc()
+  
+  ## --------------------------------------------------
+  # Infer citizen science missing data
+  # Particularly, whether the species can be sampled or not at a site given its range
+  # this is the only condition considered to effect whether a species could potentially
+  # be detected by a citizen science survey effort (compare with museum records)
+  
+   df_citsci_visits <- as.data.frame(cbind(rep(species_vector, each=n_sites),
+                rep(site_vector, times = n_species),
+                rep(1, times = n_species*n_sites),
+    unlist(species_ranges))) %>%
+    rename("species" = "V1",
+           "grid_id" = "V2",
+           "community_sample" = "V3",
+           "in_range" = "V4") %>%
+    mutate(sampled = as.numeric(community_sample)*
+             as.numeric(in_range),
+           grid_id = as.integer(grid_id)) %>%
+    left_join(all_species_site_visits, .) 
+  
+  V_citsci_NA <- array(data = df_citsci_visits$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
+  # check <- which(V_citsci>V_citsci_NA) # should NEVER have occurrences where the species can't be sampled,
+  # thus check should be empty
+  
+  ## --------------------------------------------------
+  # Infer museum record missing data
+  # Particularly, whether the species can be sampled or not at a site given its range
+  # AND 
+  # whether or not a community sampling event has occurred
+  # be detected by a citizen science survey effort (compare with museum records)
+  
+  # remove extra species rows, just one for each species per site per unique visit
   # keep in mind that we've already removed visits that did not pass our
   # minimum threshold for a community sample
+  # so all site visits here have min_species_for_community_sampling_event or more species in the visit
   df_museum_visits <- df_museum %>%
     group_by(grid_id, occ_year, visit) %>%
     slice(1) %>% # take one row per species (the name of each species)
     ungroup() %>%
     dplyr::select(-species) %>%
-    mutate(sampled = 1) %>%
+    mutate(community_sample = 1) %>%
     mutate(occ_interval = as.character(occ_interval),
            occ_year = as.character(occ_year),
            visit = as.character(visit))
   
-  temp <- left_join(all_species_site_visits, df_museum_visits, 
+  all_visits_museum_visits_joined <- left_join(all_species_site_visits, df_museum_visits, 
                     by=c("grid_id", "occ_interval", "visit")) %>%
     # create an indicator if the site visit was a sample or not
-    mutate(sampled = replace_na(sampled, 0),
+    mutate(community_sample = replace_na(community_sample, 0),
            occ_interval = as.integer(occ_interval),
            visit = as.integer(visit)) %>%
     dplyr::select(-occ_year)
   
-  # now spread into 4 dimensions
-  V_museum_NA <- array(data = temp$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
-  # check <- which(V_museum>V_museum_NA) # this will give you numerical value
-  # preview to make sure there's a match 
-  # (V_museum should only have 1's in columns where V_museum_NA = 1 = community sampled)
-  # View(V_museum[1:n_species, 1:n_sites,3,2])
-  # View(as.data.frame(V_museum[1:n_species, 56,3,2]))
-  # View(as.data.frame(V_museum_NA[1:n_species, 56,3,2]))
+  ranges <- as.data.frame(cbind(rep(species_vector, each=n_sites),
+                      rep(site_vector, times = n_species),
+                      unlist(species_ranges))) %>%
+    rename("species" = "V1",
+           "grid_id" = "V2",
+           "in_range" = "V3") %>%
+    mutate(grid_id = as.integer(grid_id))
   
+  all_visits_museum_visits_joined <- left_join(all_visits_museum_visits_joined, ranges) %>%
+    mutate(sampled = as.numeric(community_sample)*
+             as.numeric(in_range))
+  
+  # now spread into 4 dimensions
+  V_museum_NA <- array(data = all_visits_museum_visits_joined$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
+  # check <- which(V_museum>V_museum_NA) # this will give you numerical value
+  # thus check should be empty
   
   ## --------------------------------------------------
   # Return stuff
   return(list(
     V_citsci = V_citsci, # citizen science detection data
     V_museum = V_museum, # museum detection data
+    V_citsci_NA = V_citsci_NA, # array indicating whether sampling occurred in a site*interval*visit
     V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
     n_species = n_species, # number of species
     n_sites = n_sites, # number of sites
