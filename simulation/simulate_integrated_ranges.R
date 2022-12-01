@@ -15,6 +15,8 @@ simulate_data <- function(n_species,
                           
                           ## ecological process
                           mu_psi_0,
+                          sigma_psi_species,
+                          sigma_psi_site,
                           mu_psi_interval,
                           sigma_psi_interval,
                           psi_pop_dens,
@@ -82,6 +84,11 @@ simulate_data <- function(n_species,
   # species baseline occupancy is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma.psi.sp
   
+  ## site-specific random intercepts
+  psi_site <- rnorm(n=n_sites, mean=0, sd=sigma_psi_site)
+  # species baseline occupancy is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma.psi.sp
+  
   ## effect of interval on occupancy (species-specific random slopes)
   psi_interval <- rnorm(n=n_species, mean=mu_psi_interval, sd=sigma_psi_interval)
   # change in each species occupancy across time is drawn from a distribution defined
@@ -130,6 +137,7 @@ simulate_data <- function(n_species,
         psi_matrix[species, site, interval] <- ilogit( # occupancy is equal to
           mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
+            psi_site[site] + # a site specific intercept
             psi_interval[species]*intervals[interval] + # a species specific temporal change
             psi_pop_dens*pop_density[site] + # a fixed effect of population density 
             psi_site_area*site_area[site] # a fixed effect of site area
@@ -343,6 +351,7 @@ n_visits = 6 ## number of samples per year
 ## occupancy
 mu_psi_0 = -0.5
 sigma_psi_species = 0.5
+sigma_psi_site = 0.5
 mu_psi_interval = 0.5
 sigma_psi_interval = 0.2
 psi_pop_dens = -0.5 # fixed effect of population density on occupancy
@@ -350,7 +359,7 @@ psi_site_area = 1 # fixed effect of site area on occupancy
 
 ## detection
 # citizen science observation process
-mu_p_citsci_0 = -0.25
+mu_p_citsci_0 = -1
 p_citsci_species = 0
 sigma_p_citsci_species = 0.5
 p_citsci_site = 0
@@ -359,7 +368,7 @@ p_citsci_interval = 1
 p_citsci_pop_density = 1 
 
 # museum record observation process
-mu_p_museum_0 = -1
+mu_p_museum_0 = -0.5
 p_museum_species = 0
 sigma_p_museum_species = 0.5
 p_museum_site = 0
@@ -385,6 +394,8 @@ my_simulated_data <- simulate_data(n_species,
                                    
                                    # ecological process
                                    mu_psi_0,
+                                   sigma_psi_species,
+                                   sigma_psi_site,
                                    mu_psi_interval,
                                    sigma_psi_interval,
                                    psi_pop_dens,
@@ -453,6 +464,8 @@ stan_data <- c("V_citsci", "V_museum",
 
 # Parameters monitored
 params <- c("mu_psi_0",
+            "sigma_psi_species",
+            "sigma_psi_site",
             "mu_psi_interval",
             "sigma_psi_interval",
             "psi_pop_density",
@@ -472,6 +485,8 @@ params <- c("mu_psi_0",
 )
 
 parameter_value <- c(mu_psi_0,
+                     sigma_psi_species,
+                     sigma_psi_site,
                      mu_psi_interval,
                      sigma_psi_interval,
                      psi_pop_dens,
@@ -503,6 +518,8 @@ n_cores <- n_chains
 inits <- lapply(1:n_chains, function(i)
   
   list(mu_psi_0 = runif(1, -1, 1),
+       sigma_psi_species = runif(1, 0, 1),
+       sigma_psi_site = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
        psi_pop_density = runif(1, -1, 1),

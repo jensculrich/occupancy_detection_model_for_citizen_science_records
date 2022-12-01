@@ -11,7 +11,7 @@ data {
   int<lower=1> species[n_species]; // vector of species
   
   int<lower=1> n_sites;  // sites within region
-  int<lower=1> sites[n_sites];      // vector of sites
+  int<lower=1> sites[n_sites];  // vector of sites
   
   int<lower=1> n_intervals;  // intervals during which sites are visited
   
@@ -43,6 +43,11 @@ parameters {
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
   vector[n_species] psi_species; // species specific intercept for occupancy
   real<lower=0> sigma_psi_species; // variance in species intercepts
+  
+  // site specific intercept allows some sites to be occupied at higher rates than others, 
+  // but with overall estimates for occupancy partially informed by the data pooled across all sites.
+  vector[n_sites] psi_site; // site specific intercept for occupancy
+  real<lower=0> sigma_psi_site; // variance in site intercepts
   
   // random slope for species specific temporal effects on occupancy
   vector[n_species] psi_interval; // vector of species specific slope estimates
@@ -103,6 +108,7 @@ transformed parameters {
           psi[i,j,k] = inv_logit( // the inverse of the log odds of occurrence is equal to..
             mu_psi_0 + // a baseline intercept
             psi_species[species[i]] + // a species specific intercept
+            psi_site[sites[j]] + // a site specific intercept
             psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
             psi_pop_density*pop_densities[j] + // an effect of pop density on occurrence
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
@@ -151,6 +157,11 @@ model {
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
   sigma_psi_species ~ cauchy(0, 2.5);
+  
+  psi_site ~ normal(0, sigma_psi_site); 
+  // occupancy intercept for each site drawn from the community
+  // distribution (variance defined by sigma), centered at 0. 
+  sigma_psi_site ~ cauchy(0, 2.5);
   
   psi_interval ~ normal(mu_psi_interval, sigma_psi_interval);
   // occupancy slope (temporal effect on occupancy) for each species drawn from the 
