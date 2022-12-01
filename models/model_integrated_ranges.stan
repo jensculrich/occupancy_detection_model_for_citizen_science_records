@@ -54,8 +54,10 @@ parameters {
   real mu_psi_interval; // community mean of species specific slopes
   real<lower=0> sigma_psi_interval; // variance in species slopes
   
-  // effect of population density on occupancy
-  real psi_pop_density;
+  // random slope for species specific population density effects on occupancy
+  vector[n_species] psi_pop_density; // vector of species specific slope estimates
+  real mu_psi_pop_density; // community mean of species specific slopes
+  real<lower=0> sigma_psi_pop_density; // variance in species slopes
   
   // effect of site are on occupancy
   real psi_site_area;
@@ -110,7 +112,7 @@ transformed parameters {
             psi_species[species[i]] + // a species specific intercept
             psi_site[sites[j]] + // a site specific intercept
             psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
-            psi_pop_density*pop_densities[j] + // an effect of pop density on occurrence
+            psi_pop_density[species[i]]*pop_densities[j] + // an effect of pop density on occurrence
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ); // end psi[i,j,k]
             
@@ -171,7 +173,14 @@ model {
   mu_psi_interval ~ cauchy(0, 2.5); // community mean
   sigma_psi_interval ~ cauchy(0, 2.5); // community variance
   
-  psi_pop_density ~ cauchy(0, 2.5); // effect of population density on occupancy
+  psi_pop_density ~ normal(mu_psi_pop_density, sigma_psi_pop_density);
+  // occupancy slope (population density effect on occupancy) for each species drawn from the 
+  // community distribution (variance defined by sigma), centered at mu_psi_interval. 
+  // centering on mu (rather than 0) allows us to estimate the average effect of
+  // the management on abundance across all species.
+  mu_psi_pop_density ~ cauchy(0, 2.5); // community mean
+  mu_psi_pop_density ~ cauchy(0, 2.5); // community variance
+  
   psi_site_area ~ cauchy(0, 2.5); // effect of site area on occupancy
   
   // Detection (Observation Process)

@@ -19,7 +19,8 @@ simulate_data <- function(n_species,
                           sigma_psi_site,
                           mu_psi_interval,
                           sigma_psi_interval,
-                          psi_pop_dens,
+                          mu_psi_pop_dens,
+                          sigma_psi_pop_dens,
                           psi_site_area,
                           
                           ## observation process
@@ -95,6 +96,12 @@ simulate_data <- function(n_species,
   # by a community mean (mu_psi_interval) with 
   # species specific variation defined by sigma_psi_interval
   
+  ## effect of pop density on occupancy (species-specific random slopes)
+  psi_pop_dens <- rnorm(n=n_species, mean=mu_psi_pop_dens, sd=sigma_psi_pop_dens)
+  # change in each species occupancy across time is drawn from a distribution defined
+  # by a community mean (mu_psi_interval) with 
+  # species specific variation defined by sigma_psi_interval
+  
   ## --------------------------------------------------
   ### specify species-specific detection probabilities
   
@@ -139,7 +146,7 @@ simulate_data <- function(n_species,
             psi_species[species] + # a species specific intercept
             psi_site[site] + # a site specific intercept
             psi_interval[species]*intervals[interval] + # a species specific temporal change
-            psi_pop_dens*pop_density[site] + # a fixed effect of population density 
+            psi_pop_dens[species]*pop_density[site] + # a fixed effect of population density 
             psi_site_area*site_area[site] # a fixed effect of site area
         )
         
@@ -343,8 +350,8 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
-n_sites = 20 ## number of sites
+n_species = 30 ## number of species
+n_sites = 30 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 6 ## number of samples per year
 
@@ -354,7 +361,8 @@ sigma_psi_species = 0.5
 sigma_psi_site = 0.5
 mu_psi_interval = 0.5
 sigma_psi_interval = 0.2
-psi_pop_dens = -0.5 # fixed effect of population density on occupancy
+mu_psi_pop_dens = -0.5 # random effect of population density on occupancy
+sigma_psi_pop_dens = 0.2
 psi_site_area = 1 # fixed effect of site area on occupancy
 
 ## detection
@@ -398,7 +406,8 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_psi_site,
                                    mu_psi_interval,
                                    sigma_psi_interval,
-                                   psi_pop_dens,
+                                   mu_psi_pop_dens,
+                                   sigma_psi_pop_dens,
                                    psi_site_area,
                                   
                                    # citizen science observation process
@@ -468,7 +477,8 @@ params <- c("mu_psi_0",
             "sigma_psi_site",
             "mu_psi_interval",
             "sigma_psi_interval",
-            "psi_pop_density",
+            "mu_psi_pop_density",
+            "sigma_psi_pop_density",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -489,7 +499,8 @@ parameter_value <- c(mu_psi_0,
                      sigma_psi_site,
                      mu_psi_interval,
                      sigma_psi_interval,
-                     psi_pop_dens,
+                     mu_psi_pop_dens,
+                     sigma_psi_pop_dens,
                      psi_site_area,
                      
                      mu_p_citsci_0,
@@ -506,8 +517,8 @@ parameter_value <- c(mu_psi_0,
 )
 
 # MCMC settings
-n_iterations <- 600
-n_thin <- 1
+n_iterations <- 1000
+n_thin <- 3
 n_burnin <- 300
 n_chains <- 3
 n_cores <- n_chains
@@ -522,7 +533,8 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_site = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
-       psi_pop_density = runif(1, -1, 1),
+       mu_psi_pop_density = runif(1, -1, 1),
+       sigma_psi_pop_density = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
