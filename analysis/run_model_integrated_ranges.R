@@ -41,7 +41,7 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
 # save the data in case you want to make tweaks to the model run
 # without redoing the data prep
 # saveRDS(my_data, "./analysis/prepped_data_list.rds")
-# my_data <- readRDS("./analysis/prepped_data_list.rds")
+my_data <- readRDS("./analysis/prepped_data_list.rds")
 
 gc()
 library(rstan)
@@ -84,9 +84,12 @@ stan_data <- c("V_citsci", "V_museum",
 
 # Parameters monitored
 params <- c("mu_psi_0",
+            "psi_species",
             "mu_psi_interval",
             "sigma_psi_interval",
             "psi_pop_density",
+            "mu_psi_pop_density",
+            "sigma_psi_pop_density",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -104,9 +107,9 @@ params <- c("mu_psi_0",
 
 
 # MCMC settings
-n_iterations <- 800
-n_thin <- 1
-n_burnin <- 400
+n_iterations <- 1200
+n_thin <- 2
+n_burnin <- 600
 n_chains <- 3
 n_cores <- n_chains
 
@@ -116,9 +119,12 @@ n_cores <- n_chains
 inits <- lapply(1:n_chains, function(i)
   
   list(mu_psi_0 = runif(1, -1, 1),
+       sigma_psi_species = runif(1, 0, 1),
+       sigma_psi_site = runif(1, 0, 1),
        mu_psi_interval = runif(1, -1, 1),
        sigma_psi_interval = runif(1, 0, 1),
-       psi_pop_density = runif(1, -1, 1),
+       mu_psi_pop_density = runif(1, -1, 1),
+       sigma_psi_pop_density = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
@@ -153,7 +159,7 @@ stan_out <- stan(stan_model,
 
 print(stan_out, digits = 3)
 
-#saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_250_30km_10records.rds")
+saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_250_30km_10records.rds")
 # stan_out <- readRDS("./model_outputs/stan_out_model_integrated_ranges_250_30km_10records.rds")
 
 ## --------------------------------------------------
@@ -164,7 +170,7 @@ traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_interval",
   "sigma_psi_interval",
-  "psi_pop_density",
+  "mu_psi_pop_density",
   "psi_site_area",
   
   "mu_p_citsci_0",
