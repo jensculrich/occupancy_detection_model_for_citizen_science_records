@@ -39,7 +39,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 25000 # 25km x 25 km
+grid_size <- 30000 # 25km x 25 km
 # CRS for NAD83 / UTM Zone 10N
 crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # minimum population size
@@ -50,7 +50,7 @@ crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
-min_population_size <- 100 
+min_population_size <- 250 
 
 # spatial data - California state shapefile
 CA <- tigris::states() %>%
@@ -83,7 +83,7 @@ plot(log(r3+1),
      main="Log((Population Density/km^2) + 1)")
 
 my_window <- extent(-125, -112, 32, 42)
-plot(my_window, col=NA)
+plot(my_window, col=NA, xlab="longitude", ylab = "latitude")
 plot(log(r3+1), add=T)
 
 # NDVI raster
@@ -113,7 +113,7 @@ plot(r3_ndvi,
      main="NDVI")
 
 my_window <- extent(-125, -112, 32, 42)
-plot(my_window, col=NA)
+plot(my_window, col=NA, xlab="longitude", ylab = "latitude")
 plot(r3_ndvi, add=T)
 
 # occurrence data
@@ -136,7 +136,10 @@ df_trans <- st_transform(df_sf, crs = crs)
 
 # and let's just plot 100 points to get a picture of the data and shapefile
 df_trans_100 <- df_trans %>%
-  sample_n(100)
+  sample_n(1000)
+
+ggplot() +
+  geom_sf(data=CA)
 
 ggplot() +
   geom_sf(data=CA) + 
@@ -167,11 +170,11 @@ grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 # view sampled points transposed to the grid on the polygon
 ggplot() +
   geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = sample_n(df_trans, 500), 
-          aes(fill = species), 
-          size = 4, alpha = 0.5, shape = 23) +
+  #geom_sf(data = sample_n(df_trans, 500), 
+  #        aes(fill = species), 
+  #        size = 4, alpha = 0.5, shape = 23) +
   geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
-  geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
+  #geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
   coord_sf(datum = NA)  +
   labs(x = "") +
   labs(y = "") +
@@ -311,7 +314,30 @@ scaled_grid_area <- attArea %>%
   mutate(scaled_site_area = center_scale(area)) %>%
   pull(scaled_site_area)
 
+# view sites only with scaled data
+ggplot() +
+  geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = urban_grid_prepped, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled population density") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Population density (pop / km^2) in urbanized areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+# coord_sf(datum = NA)
+
 # could save data frame of urban occurrences as a .csv
 # don't need to keep this file if the prep_data function calls the get_spatial_data function
 # write.csv(df_w_dens_trans, "./data/data_urban_occurrences.csv")
+
+
+# spatial data - more states state shapefile
+states <- tigris::states() %>%
+  filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada", "Idaho"))
+str(states)
+st_crs(states)
+crs(states)
+
+ggplot() +
+  geom_sf(data=states)
 
