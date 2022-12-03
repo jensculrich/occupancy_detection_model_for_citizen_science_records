@@ -180,7 +180,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # within a site
     group_by(institutionCode, year, grid_id) %>%
     mutate(n_species_sampled = n_distinct(species)) %>%
-    filter(n_species_sampled > min_species_for_community_sampling_event) %>%
+    filter(n_species_sampled >= min_species_for_community_sampling_event) %>%
     
     # one unique row per site*species*occ_interval*visit combination
     group_by(grid_id, species, occ_interval, visit) %>% 
@@ -431,6 +431,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   all_visits_museum_visits_joined <- left_join(all_visits_museum_visits_joined, ranges) %>%
     mutate(sampled = as.numeric(community_sample)*
              as.numeric(in_range))
+  
+  # now would be appropriate to replace those records for the species collected at the museums 
+  # for < min_species_for_community_sampling_event with a sampled indicator
+  # i.e., keep the data for the singletons and doubletons, while not inferring abscense for the rest of the community
   
   # now spread into 4 dimensions
   V_museum_NA <- array(data = all_visits_museum_visits_joined$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))

@@ -517,9 +517,9 @@ parameter_value <- c(mu_psi_0,
 )
 
 # MCMC settings
-n_iterations <- 1000
-n_thin <- 3
-n_burnin <- 300
+n_iterations <- 800
+n_thin <- 2
+n_burnin <- 400
 n_chains <- 3
 n_cores <- n_chains
 

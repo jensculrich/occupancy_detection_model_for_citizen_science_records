@@ -158,20 +158,24 @@ model {
   psi_species ~ normal(0, sigma_psi_species); 
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_species ~ cauchy(0, 2.5);
+  sigma_psi_species ~ cauchy(0, 1); //informative prior
   
   psi_site ~ normal(0, sigma_psi_site); 
   // occupancy intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_site ~ cauchy(0, 2.5);
+  sigma_psi_site ~ cauchy(0, 0.5); // informative prior
   
+  // the change in time prior is set to be informative 
+  // I suspect more of the variation in time comes from detection rate changes 
+  // and so I'd like the model to assume that (given that I don't currently have 
+  // a huge amount of detection data to let the model make that inference itself)
   psi_interval ~ normal(mu_psi_interval, sigma_psi_interval);
   // occupancy slope (temporal effect on occupancy) for each species drawn from the 
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  mu_psi_interval ~ cauchy(0, 2.5); // community mean
-  sigma_psi_interval ~ cauchy(0, 2.5); // community variance
+  mu_psi_interval ~ cauchy(0, 0.25); // community mean
+  sigma_psi_interval ~ cauchy(0, 0.1); // community variance
   
   psi_pop_density ~ normal(mu_psi_pop_density, sigma_psi_pop_density);
   // occupancy slope (population density effect on occupancy) for each species drawn from the 
@@ -179,7 +183,7 @@ model {
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
   mu_psi_pop_density ~ cauchy(0, 2.5); // community mean
-  mu_psi_pop_density ~ cauchy(0, 2.5); // community variance
+  mu_psi_pop_density ~ cauchy(0, 1); // community variance
   
   psi_site_area ~ cauchy(0, 2.5); // effect of site area on occupancy
   
@@ -192,13 +196,13 @@ model {
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_species ~ cauchy(0, 2.5);
+  sigma_p_citsci_species ~ cauchy(0, 1);
   
   // should redefine p_site so that it is spatially AND temporally heterogenous 
   p_citsci_site ~ normal(0, sigma_p_citsci_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_site ~ cauchy(0, 2.5); // spatial variance
+  sigma_p_citsci_site ~ cauchy(0, 1); // spatial variance
   
   p_citsci_interval ~ cauchy(0, 2.5); // temporal effect on detection probability
   
@@ -211,15 +215,18 @@ model {
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ cauchy(0, 2.5);
+  sigma_p_museum_species ~ cauchy(0, 1);
   
   // should redefine p_site so that it is spatially AND temporally heterogenous 
   p_museum_site ~ normal(0, sigma_p_museum_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_site ~ cauchy(0, 2.5); // spatial variance
+  sigma_p_museum_site ~ cauchy(0, 1); // spatial variance
   
   p_museum_interval ~ cauchy(0, 2.5); // temporal effect on detection probability
+  
+  p_museum_pop_density ~ cauchy(0, 2.5); // population effect on detection probability
+
   
   // LIKELIHOOD
   
