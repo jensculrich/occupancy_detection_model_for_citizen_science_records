@@ -354,12 +354,7 @@ ggplot() +
 
 ## --------------------------------------------------
 # Calculate land TIN value of each grid cell
-
-# need to figure out how to match the projections, might need to open arcgis 
-# and confirm that the actual crs that I entered in is correct
-# it's not documented on the website but might be included in the arc app
 crs(tin)
-tin
 
 # project the grid to the raster
 crs_tin <- sf::st_crs(raster::crs(tin))
