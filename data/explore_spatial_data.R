@@ -119,6 +119,14 @@ plot(r3_ndvi, add=T)
 # occurrence data
 df <- read.csv("./data/data_unfiltered.csv")
 
+# TIN raster
+tin=raster::raster("./data/pheno_veg_rasters/tin_2014w/tin_2014w_ProjectRaster1.tif")
+
+plot(tin,
+     #col=rev(terrain.colors(10)),
+     legend=T,
+     main="TIN")
+
 ## --------------------------------------------------
 # Prep the data
 
@@ -136,7 +144,7 @@ df_trans <- st_transform(df_sf, crs = crs)
 
 # and let's just plot 100 points to get a picture of the data and shapefile
 df_trans_100 <- df_trans %>%
-  sample_n(1000)
+  sample_n(100)
 
 ggplot() +
   geom_sf(data=CA)
@@ -157,6 +165,9 @@ ggplot(r3_df) +
   geom_tile(aes(x=x, y=y, fill=gpw_v4_population_density_rev11_2015_30_sec))
 plot(pop_raster)
 
+
+
+
 ## --------------------------------------------------
 # Overlay spatial polygon with grid 
 
@@ -171,7 +182,7 @@ grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 ggplot() +
   geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
   #geom_sf(data = sample_n(df_trans, 500), 
-  #        aes(fill = species), 
+  #         aes(fill = species), 
   #        size = 4, alpha = 0.5, shape = 23) +
   geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
   #geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
@@ -341,3 +352,38 @@ crs(states)
 ggplot() +
   geom_sf(data=states)
 
+## --------------------------------------------------
+# Calculate land TIN value of each grid cell
+
+# need to figure out how to match the projections, might need to open arcgis 
+# and confirm that the actual crs that I entered in is correct
+# it's not documented on the website but might be included in the arc app
+crs(tin)
+tin
+
+# project the grid to the raster
+crs_tin <- sf::st_crs(raster::crs(tin))
+prj1 <- st_transform(grid, crs_tin)
+
+tin2 <- crop(tin, CA)
+tin3 <- mask(tin2, CA)
+maxValue(tin3)
+
+plot(tin3,
+     col=rev(terrain.colors(10)),
+     alpha=1,
+     legend=T,
+     main="NDVI")
+
+my_window <- extent(-125, -112, 32, 42)
+plot(my_window, col=NA, xlab="longitude", ylab = "latitude")
+plot(tin3, add=T)
+
+
+# this takes a long long time to plot
+tin_df <- as.data.frame(tin3, xy = TRUE) # %>%
+#mutate(logp1_pop_dens = log(pop_dens + 1))
+plot <- ggplot(tin_df) +
+  geom_sf(data=CA) 
+
+plot <- plot + geom_tile(aes(x=x, y=y, fill=tin_2014w_ProjectRaster1)) 
