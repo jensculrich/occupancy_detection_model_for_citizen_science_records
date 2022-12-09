@@ -173,12 +173,17 @@ plotly::ggplotly(out)
 
 # Chronological record counts split by basis of record
 ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
-  xlim(1960, 2022) + # choose some years for the axes
+  xlim(1990, 2022) + # choose some years for the axes
   geom_line() +
   labs(y = "Number of Records")  +
   scale_colour_manual(name = "Basis of Records", 
-                      labels = c("iNat Observations", "Preserved Specimens"),
+                      labels = c("Citizen science records", "Museum records"),
                       values=c("red","blue")) +
+  #geom_vline(xintercept=c(2008, 2013, 2018, 2022), size=3, alpha=0.5) +
+  #geom_vline(xintercept=c(2008, 2009, 2010, 2011, 2012, 
+  #                        2013, 2014, 2015, 2016, 2017,
+  #                        2018, 2019, 2020, 2021, 2022), 
+  #           size=1, alpha=0.7, linetype = 'dotted') +
   theme_bw() +
   xlab("Year") +
   ylab("Number of Records") +
@@ -186,8 +191,8 @@ ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) +
         legend.title = element_text(colour="black", size=14, 
                                     face="bold"),
         legend.text = element_text(colour="black", size=12),
-        axis.text = element_text(size = 12),
-        axis.title = element_text(size = 14)
+        axis.text = element_text(size = 16),
+        axis.title = element_text(size = 16)
   )
 
 ## --------------------------------------------------

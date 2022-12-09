@@ -1,591 +1,598 @@
-## ************************************************************
-## simulate data for single season model 
-## ************************************************************
+### Data simulation for citizen science/museum records of pollinator occurrence
+# jcu; started nov 21, 2022
 
-library(stringr)
-library(sf); library(rgeos);
-library(concaveman); library(tidyverse)
-library(reshape2); library(locfit)
+## Data simulation for integrated model form
+# single season, species considered across all sites (not just range)
+# and across all visits (not considering that sites without any detections 
+# for any species were probably not visited or that sites with only detections for
+# a few species only might be targeted and not fully community wide)
 
-# all code for simulation adapted from original developer: https://github.com/lmguzman/occ_historical/blob/main/analysis/simulation/src/simulate_ms.R
-# following their outline for using opportunistic data: https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.13896
-
-# ----------------------------------------------------
-# Function: GenPoly()
-# Generates a specified number of species
-# ranges with a given complexity which
-# specifies the mean number of vertices
-# for the set of polygons. Grid size is used to
-# generate an artificial landscape on which to place
-# randomly generated polygons. Grids must
-# be square. Additionally, the number of
-# polygons to generate are also specified.
-# ----------------------------------------------------
-GenPoly <- function(numpoly=100,
-                    complexity=50,
-                    gridsize=100){
+# model fitting using 'model_simplest.stan' should return the parameter inputs
+simulate_data <- function(n_species,
+                          n_sites,
+                          n_intervals,
+                          n_visits,
+                          
+                          ## ecological process
+                          mu_psi_0,
+                          sigma_psi_species,
+                          sigma_psi_site,
+                          mu_psi_interval,
+                          sigma_psi_interval,
+                          mu_psi_pop_dens,
+                          sigma_psi_pop_dens,
+                          psi_site_area,
+                          
+                          ## observation process
+                          # citizen science observation process
+                          mu_p_citsci_0,
+                          p_citsci_species,
+                          sigma_p_citsci_species,
+                          p_citsci_site,
+                          sigma_p_citsci_site,
+                          p_citsci_interval,
+                          p_citsci_pop_density, 
+                          
+                          # museum record observation process
+                          mu_p_museum_0,
+                          p_museum_species,
+                          sigma_p_museum_species,
+                          p_museum_site,
+                          sigma_p_museum_site,
+                          p_museum_interval,
+                          p_museum_pop_density, 
+                          
+                          sites_missing,
+                          intervals_missing,
+                          visits_missing,
+                          
+                          mu_sites_in_range,
+                          sigma_sites_in_range
+){
   
-  # make a placeholder polygon to create
-  # a grid.
-  sfc <- st_sfc(st_polygon(list(rbind(c(0,0),
-                                      c(1,0),
-                                      c(1,1),
-                                      c(0,0)))))
-  
-  # create the grid using the specified grid size.
-  grid <- st_make_grid(sfc, cellsize=1/gridsize, square=TRUE)
-  
-  # create a list to hold all of the generated polygons.
-  # iterate while generating the number of specified polygons.
-  poly_ls <- list()
-  i <- 1
-  while(i <= numpoly){
-    
-    # draw random number of vertices from normal distribution
-    n_vert <- round(rnorm(1, mean=complexity, sd=4))
-    if(n_vert >= 3){
-      verts <- st_sample(grid, size=n_vert)
-      verts <- st_as_sf(verts)
-      poly <- concaveman(verts) # generate the concave polygon for these vertices
-      
-      # randomly scale and translate the polygons to have different size ranges.
-      scale_flag <- 1-(0.1*rpois(1, 1))
-      # print(paste("Scaling by:", scale_flag))
-      
-      shift_flag_x <- 0.1*runif(1, -2, 2) # translate by x factor
-      shift_flag_y <- 0.1*runif(1, -2, 2) # translate by y factor
-      # print(paste("Translating by:", shift_flag_x, shift_flag_y))
-      
-      poly_geom <- st_geometry(poly)
-      poly_shift <- (poly_geom*scale_flag+matrix(data=c(shift_flag_x, shift_flag_y), ncol=2))
-      
-      # check to make sure that the polygon is intersecting something on the grid
-      if(length(st_intersects(grid,poly_shift)) <= 1){
-        poly_shift <- concaveman(verts)
-      }
-      
-      poly <- poly_shift %>% st_crop(grid)
-      poly_ls[[i]] <- poly
-      i <- i+1
-    }
-    else{
-      n_vert <- round(rnorm(1, mean=complexity, sd=4))
-    }
-  }
-  
-  return(list(poly_ls, grid))
-}
-
-test <- GenPoly()
-
-# ----------------------------------------------------
-# Function: PolyToMatrix()
-# Takes a list of polygons and converts them to a
-# binary matrix of grid intersections. 
-# A list of matrices is returned. Takes only a 
-# large list object from the function GenPoly.
-# ----------------------------------------------------
-PolyToMatrix <- function(polys){
-  matrix_ls <- list()
-  n_poly <- length(polys[[1]])
-  grid_size <- sqrt(length(polys[[2]]))
-  
-  for(i in 1:n_poly){
-    mtrx <- st_intersects(st_as_sf(polys[[2]]), 
-                          st_as_sf(polys[[1]][[i]]))
-    matrix_ls[[i]] <- matrix(as.matrix(mtrx), nrow=grid_size, ncol=grid_size)
-  }
-  
-  return(matrix_ls)
-}
-
-## expit and logit functions
-expit <- function(x) 1/(1+exp(-x))
-logit <- function(x) log(x/(1-x))
-
-make.ranges <- function(nsp, nsite, type.range) {
-  
-  if(type.range == 'all'){
-    nsite.by.sp <- rep(nsite, nsp)
-  }
-  if(type.range == 'equal') {
-    nsite.by.sp <- sample.int(n=nsite, size=nsp, replace=TRUE)
-  } else if(type.range == 'logn') {
-    prop.sites <- rbeta(nsp, shape1=1, shape2=3)
-    nsite.by.sp <- round(nsite * prop.sites)
-  } else if(type.range == 'polys'){
-    polys <- GenPoly(numpoly=nsp, gridsize=sqrt(nsite))
-    res <- do.call(rbind, lapply(PolyToMatrix(polys), as.vector))
-    return(res)
-  }
-  
-  get.sites.within.range <- function(ii) {
-    sites <- rep(0,nsite)
-    sites[sample(x=1:nsite, size=ii, replace=FALSE)] <- 1
-    sites
-  }
-  res <- t(sapply(nsite.by.sp, get.sites.within.range))
-  names(dim(res)) <- c('nsp','nsite')
-  res==1
-}
-
-
-visit.history <- function(nsp, nsite, nyr, nvisit, type.visit, mu.v.0, mu.v.yr, prop.visits.same){
-  
-  ## for later: add a spatial component that maybe visits cluster in space through time?
-  
-  if(type.visit == 'visit_all'){
-    
-    ## all of the visits for all of the species
-    
-    vis.arr <- array(1,
-                     dim=c(nsp=nsp, 
-                           nsite=nsite,
-                           nyr=nyr,
-                           nvisit=nvisit))
-    visit_collector <- array(1,
-                             dim=c(nsite=nsite,
-                                   nyr=nyr,
-                                   nvisit=nvisit))
-    
-  }else if(type.visit == 'visit_miss'){
-    
-    ## there are missing visits
-    
-    ## Here some of the visits are the same for all species or some of the visits are different for species
-    ## Depends on the proportion of visits that are the same
-    ## If prop.visits.same =0 then all of the species have separate visits and if prop.visits.same=1 all of the species have the same visits 
-    
-    ## visit_collector is like the "Collector ID" where we identify which visits were community visits = 1 and which visits were independent sampling visits = 0
-    
-    ## provide parameters for the change of visits through time
-    
-    sigma.v.0 <- 1
-    sigma.v.yr <- 1
-    
-    mu.v.0.sp <- rnorm(nsp, mu.v.0, sd = sigma.v.0)
-    mu.v.yr.sp <- rnorm(nsp, mu.v.yr, sd = sigma.v.yr)
-    
-    vis.arr <- array(NA,
-                     dim=c(nsp=nsp, 
-                           nsite=nsite,
-                           nyr=nyr,
-                           nvisit=nvisit))
-    
-    visit_collector <- array(NA,
-                             dim=c(nsite=nsite,
-                                   nyr=nyr,
-                                   nvisit=nvisit))
-    
-    for(site in 1:nsite) {
-      for(yr in 1:nyr) {
-        for(visit in 1:nvisit) {
-          
-          # for each visit sample whether its a community or individual visit
-          
-          same_vis <- rbinom(1, 1, prob = prop.visits.same)
-          
-          visit_collector[site,yr,visit] <- same_vis
-          
-          if(same_vis == 1){
-            
-            # if it is a community visit, then all of the species get the same
-            
-            vis.arr[,site,yr,visit] <- rbinom(1,1,expit(mu.v.0 + mu.v.yr*(yr)))
-            
-          }else(
-            for(sp in 1:nsp){
-              
-              # If it is an individual species visit then not all of the species get the same
-              
-              vis.arr[sp,site,yr,visit] <- rbinom(1,1, expit(mu.v.0.sp[sp] + mu.v.yr.sp[sp]*(yr)))
-              
-            }
-          )
-        }
-      }
-    }
-  }
-  
-  return(list(vis.arr = vis.arr, visit_collector = visit_collector))
-}
-
-
-make.data <- function(## data structure set up 
-  nsp=20,
-  nsite=18, ## number of sites
-  nyr=10, ## number of years
-  nvisit=6, ## number of samples per year
-  ## detection
-  mu.p.0 = 0,
-  p.yr = 0.5,
-  sigma.p.site = 0.3,
-  sigma.p.sp = 0.3,
-  ## occupancy
-  mu.psi.0 = 0,
-  sigma.psi.sp = 0.5,
-  mu.psi.yr = 0.5, 
-  sigma.psi.yr = 0.2,
-  ## visit
-  mu.v.0 = 0, 
-  mu.v.yr = -0.5,
-  ## type sym
-  type.range = "equal",
-  type.visit = 'visit_miss',
-  prop.visits.same = 1){
+  ## ilogit and logit functions
+  ilogit <- function(x) exp(x)/(1+exp(x))
+  logit <- function(x) log(x/(1-x))
   
   
-  ## ------------------------------------------------------------
-  ## Simulate species ranges them for the
-  ## specified number of species and sites.
-  
-  sp.range <- make.ranges(nsp, nsite, type.range)
-  
-  ## ------------------------------------------------------------
-  ## Get visit history
-  
-  vis.info <- visit.history(nsp=nsp, nsite=nsite, 
-                            nyr=nyr, nvisit=nvisit, type.visit=type.visit, mu.v.0, mu.v.yr,
-                            prop.visits.same=prop.visits.same)
-  vis.arr <- vis.info$vis.arr
+  # Interval values: numeric vector (will act as covariate data for psi.interval)
+  intervals <- seq(1, n_intervals, by=1)
+  intervals <- intervals - 1
+  sites <- seq(1, n_sites, by=1)
+  species <- seq(1, n_species, by=1)
   
   ## --------------------------------------------------
-  ## specify species-specific colonization and persistence probabilities
+  ### Generate covariate data
+  
+  ## --------------------------------------------------
+  ### Population density
+  
+  # create a vector of site population density of length = number of sites
+  # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
+  pop_density <- rnorm(n_sites, mean = 0, sd = 1)
+  
+  # create a vector of site area of length = number of sites
+  # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
+  # this simulates the realism that some sites are e.g. partially on ocean or  
+  # partially outside the administrative area from which we are drawing collection data.
+  site_area <- rnorm(n_sites, mean = 0, sd = 1)
+  
+  ## --------------------------------------------------
+  ### specify species-specific occupancy probabilities
   
   ## species-specific random intercepts
-  psi.sp <- rnorm(n=nsp, mean=0, sd=sigma.psi.sp)
+  psi_species <- rnorm(n=n_species, mean=0, sd=sigma_psi_species)
+  # species baseline occupancy is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma.psi.sp
   
-  ## effect of year on occupancy (species-specific random slopes)
-  psi.yr <- rnorm(n=nsp, mean=mu.psi.yr, sd=sigma.psi.yr)
+  ## site-specific random intercepts
+  psi_site <- rnorm(n=n_sites, mean=0, sd=sigma_psi_site)
+  # species baseline occupancy is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma.psi.sp
   
-  ### detection
+  ## effect of interval on occupancy (species-specific random slopes)
+  psi_interval <- rnorm(n=n_species, mean=mu_psi_interval, sd=sigma_psi_interval)
+  # change in each species occupancy across time is drawn from a distribution defined
+  # by a community mean (mu_psi_interval) with 
+  # species specific variation defined by sigma_psi_interval
   
-  ## effect of site on detection (year-specific)
-  p.site <- matrix(rnorm(n=nsite*nyr, mean=0, sd=sigma.p.site),
-                   nrow=nsite,
-                   ncol=nyr)
-  p.sp   <- rnorm(n=nsp, mean=0, sd=sigma.p.sp)
+  ## effect of pop density on occupancy (species-specific random slopes)
+  psi_pop_dens <- rnorm(n=n_species, mean=mu_psi_pop_dens, sd=sigma_psi_pop_dens)
+  # change in each species occupancy across time is drawn from a distribution defined
+  # by a community mean (mu_psi_interval) with 
+  # species specific variation defined by sigma_psi_interval
   
+  ## --------------------------------------------------
+  ### specify species-specific detection probabilities
   
-  ## Create matrices for psi and phi
+  ## species-specific random intercepts
+  p_citsci_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_citsci_species)
+  # species baseline detection probability is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma_p_species
   
-  psi.mat <- array(NA, dim =c(nsp, nsite, nyr))
+  ## species-specific random intercepts
+  p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
+  # species baseline detection probability is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma_p_species
   
-  p.mat <- array(NA, dim =c(nsp, nsite, nyr, nvisit))
+  ## effect of site and interval on detection (site,interval-specific random slopes)
+  p_citsci_site <- rnorm(n=n_sites, mean=0, sd=sigma_p_citsci_site)
   
-  for(site in 1:nsite) {
-    for(yr in 1:nyr) {
-      for(sp in 1:nsp) {
+  ## effect of site and interval on detection (site,interval-specific random slopes)
+  p_museum_site <- rnorm(n=n_sites, mean=0, sd=sigma_p_museum_site)
+  
+  # spatiotemporal variability in detection probability (changing across sites and 
+  # occupancy intervals), and helps account for the variation that is inherent in 
+  # sample effort across space and time in unstructured historical datasets. 
+  # spatiotemporal variability at each site*interval is drawn from a distribution defined
+  # by a mean of 0 and with site*interval specific variation of sigma.p.site
+  
+  ## --------------------------------------------------
+  ## Create arrays for psi and p
+  psi_matrix <- array(NA, dim =c(n_species, n_sites, n_intervals)) 
+  # a psi value for each species, at each site, in each interval 
+  
+  p_matrix_citsci <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
+  # a p value for each species, at each site, in each interval, AND in each visit
+  p_matrix_museum <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
+  # a p value for each species, at each site, in each interval, AND in each visit
+  
+  for(species in 1:n_species) { # for each site
+    for(site in 1:n_sites) { # for each interval
+      for(interval in 1:n_intervals) { # for each species
         
-        psi.mat[sp,site,yr] <- expit(mu.psi.0 +
-                                       psi.sp[sp] +
-                                       psi.yr[sp]*(yr))
+        psi_matrix[species, site, interval] <- ilogit( # occupancy is equal to
+          mu_psi_0 + # a baseline intercept
+            psi_species[species] + # a species specific intercept
+            psi_site[site] + # a site specific intercept
+            psi_interval[species]*intervals[interval] + # a species specific temporal change
+            psi_pop_dens[species]*pop_density[site] + # a fixed effect of population density 
+            psi_site_area*site_area[site] # a fixed effect of site area
+        )
         
-        for(visit in 1:nvisit) {
+        for(visit in 1:n_visits) { # for each visit
           
-          p.mat[sp,site,yr,visit] <- expit(mu.p.0 +
-                                             p.sp[sp] +
-                                             p.site[site,yr] +
-                                             p.yr*(yr))
-        }
-      }
-    }
-  }
+          p_matrix_citsci[species, site, interval, visit] <- ilogit( # detection is equal to 
+            mu_p_citsci_0 + # a baseline intercept
+              p_citsci_species[species] + # a species specific intercept
+              p_citsci_site[site] + # a spatiotemporally specific intercept
+              p_citsci_interval*intervals[interval] + # an overall effect of time on detection
+              p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
+          )
+          
+          p_matrix_museum[species, site, interval, visit] <- ilogit( # detection is equal to 
+            mu_p_museum_0 + # a baseline intercept
+            p_museum_species[species] + # a species specific intercept
+            p_museum_site[site] + # a spatiotemporally specific intercept
+            p_museum_interval*intervals[interval] + # an overall effect of time on detection
+            p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
+          )
+          
+        } # for each visit
+      } # for each species
+    } # for each interval
+  } # for each site
   
+  # preview the psi and p arrays
+  # head(psi_matrix[1:n_species, 1:n_sites,1])
+  # head(p_matrix[1:n_species, 1:n_sites,7,1])
+  
+  # (p_matrix[1,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
+  # (p_matrix[2,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
+  # (p_matrix[1,2,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
+  
+  # range intersection is the only thing considered to be affecting 
+  # whether or not a site has potential to be sampled by citizen science efforts
+  
+  ## --------------------------------------------------
+  # Generate species ranges
+  ranges <- array(dim = c(n_species, n_sites, n_intervals, n_visits), NA)
+  
+  sites_in_range_beta1 = 2
+  sites_in_range_beta2 = 2
+  prob_site_in_range <-  rbeta(n_species, sites_in_range_beta1, sites_in_range_beta2)
+  
+  for(i in 1:n_species){
+    
+    ranges[i,,1:n_intervals,1:n_visits] <- rbinom(1, n=n_sites, prob=prob_site_in_range)
+    
+  }
   
   ## --------------------------------------------------
   ## Generate presence and absence
   
-  Z <- array(NA, dim=c(nsp=nsp,
-                       nsite=nsite,
-                       nyr=nyr))
+  Z <- array(NA, dim=c(n_species=n_species,
+                       n_sites=n_sites,
+                       n_intervals=n_intervals))
   
-  for(yr in 1:nyr){
-    for(sp in 1:nsp){
-      
-      Z[sp, which(sp.range[sp,]) ,yr] <- rbinom(n = sum(sp.range[sp,]), size = 1, prob = psi.mat[sp,which(sp.range[sp,]),yr])
-      
+  for(interval in 1:n_intervals){
+    for(site in 1:n_sites){
+      for(species in 1:n_species){
+        
+        # if site is in the species's range, then determine occupancy with some prob psi
+        # else occupancy state is 0
+        if(ranges[species,site,1,1] == 1) {
+          
+          Z[species,site,interval] <- rbinom(n = 1, size = 1, 
+                                             prob = psi_matrix[species,site,interval])
+        } else{
+          
+          Z[species,site,interval] <- 0
+          
+        }
+        
+      }
     }
   }
-  
   
   ## --------------------------------------------------
   ## Generate detection non detection data 
   
-  V <- array(NA, dim=c(nsp=nsp,
-                       nsite=nsite,
-                       nyr=nyr,
-                       nvisit = nvisit))
+  V_citsci <- array(NA, dim=c(n_species=n_species,
+                       n_sites=n_sites,
+                       n_intervals=n_intervals,
+                       n_visits=n_visits))
   
-  for(sp in 1:nsp){
-    for(yr in 1:nyr){
-      for(v in 1:nvisit){
-        V[sp, which(sp.range[sp,]),yr,v] <- rbinom(n = sum(sp.range[sp,]), size = 1, prob = Z[sp, which(sp.range[sp,]),yr] * p.mat[sp,which(sp.range[sp,]),yr, v])
-      }
-    }
-  }
-  
-  ## --------------------------------------------------
-  ## Generate visit data 
-  
-  X <-V*vis.arr
-  
-  
-  ## add dimension names to arrays
-  
-  arr.names <- list(sp=paste('sp',str_pad(1:nsp,4,pad='0'),sep='_'),
-                    site=paste('site',str_pad(1:nsite,4,pad='0'),sep='_'),
-                    yr=paste('y',1:nyr,sep='_'),
-                    visit=paste('v',1:nvisit,sep='_'))
-  dimnames(sp.range) <- arr.names[1:2]
-  dimnames(Z)        <- arr.names[1:3]
-  dimnames(X)        <- arr.names[1:4]
-  
-  
-  return(list(sp.range=sp.range,
-              vis.arr=vis.arr,
-              vis.col=vis.info$visit_collector,
-              Z=Z,
-              X=X,
-              nsp=nsp,
-              nsite=nsite, ## number of sites
-              nyr=nyr, ## number of years
-              nvisit=nvisit, ## number of samples per year
-              ## detection
-              mu.p.0 = mu.p.0,
-              p.yr = p.yr,
-              sigma.p.site = sigma.p.site,
-              sigma.p.sp = sigma.p.sp,
-              ## occupancy
-              mu.psi.0 = mu.psi.0,
-              sigma.psi.sp = sigma.psi.sp,
-              mu.psi.yr = mu.psi.yr, 
-              sigma.psi.yr = sigma.psi.yr,
-              ## visit
-              mu.v.0 = mu.v.0, 
-              mu.v.yr = mu.v.yr,
-              ## species specific values
-              psi.sp = psi.sp,
-              psi.yr = psi.yr,
-              ## type sym
-              type.range = type.range,
-              type.visit = type.visit,
-              prop.visits.same = prop.visits.same))
-  
-}
-
-my.data <- make.data()
-
-#############################
-# prep data #################
-#############################
-prep.data <- function(dd, limit.to.visits, limit.to.range, time.interval.yr, time.interval.visit) {
-  
-  ## keep only detected species:
-  sp.keep <- which(apply(dd$X, 1, sum, na.rm=TRUE)>0)
-  
-  ## which sites to keep will depend on limit.to.visits
-  ## keep all sites, even those without any detections
-  if(limit.to.visits=='all') {
-    site.keep <- 1:dd$nsite
-  }
-  ## keep only sites that were visited
-  if(limit.to.visits=='visits') {
-    site.keep <- which(apply(dd$vis.arr, 2, sum, na.rm = TRUE)>0)
-  }
-  ## keep only sites that yielded a detection of at least one species
-  if(limit.to.visits=='detected') {
-    site.keep <- which(apply(dd$X, 'site', sum, na.rm = TRUE)>0)
-  }
-  
-  ## subset based on the above
-  dd$nsite.old  <- dim(dd$X)[2]
-  dd$Z        <- dd$Z[sp.keep,site.keep,,drop=FALSE]
-  dd$X        <- dd$X[sp.keep,site.keep,,,drop=FALSE]
-  dd$sp.range <- dd$sp.range[sp.keep,site.keep,drop=FALSE]
-  dd$vis.arr  <- dd$vis.arr[sp.keep,site.keep,,,drop=FALSE]
-  dd$nsp      <- length(sp.keep)
-  dd$nsite    <- length(site.keep)
-  dd$vis.col <- dd$vis.col[site.keep,,,drop=FALSE]
-  
-  
-  ####### time interval ###
-  
-  ## convert data into long format
-  
-  presence.only <- which(dd$X==1, arr.ind=TRUE) %>% data.frame()
-  
-  visits.only <- which(dd$vis.arr==1, arr.ind=TRUE) %>% data.frame()
-  
-  names(presence.only) <- c("spn", "siten", "yr", "visit")
-  
-  names(visits.only) <- c("spn", "siten", "yr", "visit")
-  
-  new_year <- expand.grid(yr = 1:dd$nyr, visit = 1:dd$nvisit) %>% 
-    arrange(yr) %>% 
-    mutate(syr = 1:n())
-  
-  presence.new.year <- presence.only %>% 
-    left_join(new_year)
-  
-  visits.new.year <- visits.only %>% 
-    left_join(new_year)
-  
-  #### use given time interval to bin ###
-  
-  # time.interval.yr <- 2
-  # time.interval.visit <- 3
-  
-  unique.syr <- unique(sort(presence.new.year$syr))
-  
-  time.cut.yr <- as.numeric(cut(unique.syr, time.interval.yr))
-  
-  time.cut.visit <- as.numeric(cut(unique.syr, time.interval.visit*time.interval.yr))
-  
-  time.cut.visit.2 <-  rep(rep(1:time.interval.visit, each = max(unique.syr)/(time.interval.yr*time.interval.visit)), 
-                           time.interval.yr)
-  
-  new.time.interval <-data.frame(syr = unique.syr, time.cut.yr, time.cut.visit, time.cut.visit.2)
-  
-  sp_names <- data.frame(spn = 1:length(dimnames(dd$X)$sp), sp = dimnames(dd$X)$sp)
-  site_names <-data.frame(siten = 1:length(dimnames(dd$X)$site), site = dimnames(dd$X)$site)
-  
-  presence.new.time.interval <- presence.new.year %>% 
-    left_join(new.time.interval) %>% 
-    group_by(spn, siten, time.cut.yr, time.cut.visit.2) %>% 
-    summarise(presence = 1) %>% 
-    left_join(sp_names) %>% left_join(site_names) %>% 
-    mutate(yr = paste('yr',time.cut.yr,sep='_'),
-           visit = paste('v',time.cut.visit.2,sep='_'))
-  
-  visits.new.time.interval <- visits.new.year %>% 
-    left_join(new.time.interval) %>% 
-    group_by(spn, siten, time.cut.yr, time.cut.visit.2) %>% 
-    summarise(presence = 1) %>% 
-    left_join(sp_names) %>% left_join(site_names) %>% 
-    mutate(yr = paste('yr',time.cut.yr,sep='_'),
-           visit = paste('v',time.cut.visit.2,sep='_'))
-  
-  
-  # presence.new.time.interval$time.cut.yr %>% table()
-  # presence.new.time.interval$time.cut.visit %>% table()
-  
-  occ.arr <- array(0, dim = c(dd$nsp, dd$nsite, time.interval.yr, time.interval.visit), 
-                   dimnames = list(sp=dimnames(dd$X)$sp,
-                                   site=dimnames(dd$X)$site,
-                                   year= paste0("yr_", 1:time.interval.yr),
-                                   visit=paste0("v_", 1:time.interval.visit)))
-  
-  occ.arr[cbind(match(presence.new.time.interval$sp, dimnames(dd$X)$sp), match(presence.new.time.interval$site, dimnames(dd$X)$site), 
-                match(presence.new.time.interval$yr, paste0("yr_", 1:time.interval.yr)), 
-                match(presence.new.time.interval$visit,paste0("v_", 1:time.interval.visit)))] <- 1 
-  
-  
-  vis.arr <- array(0, dim = c(dd$nsp, dd$nsite, time.interval.yr, time.interval.visit), 
-                   dimnames = list(sp=dimnames(dd$X)$sp,
-                                   site=dimnames(dd$X)$site,
-                                   year= paste0("yr_", 1:time.interval.yr),
-                                   visit=paste0("v_", 1:time.interval.visit)))
-  
-  names(dim(occ.arr)) <- c("nsp", "nsite", 'nyr', 'nvisit')
-  
-  vis.arr[cbind(match(visits.new.time.interval$sp, dimnames(dd$X)$sp), match(visits.new.time.interval$site, dimnames(dd$X)$site), 
-                match(visits.new.time.interval$yr, paste0("yr_", 1:time.interval.yr)), 
-                match(visits.new.time.interval$visit,paste0("v_", 1:time.interval.visit)))] <- 1 
-  
-  dd$X2 <- occ.arr
-  dd$vis.arr2 <- vis.arr
-  
-  
-  ## generate master index (to improve model efficiency (this prevents
-  ## unnecessary iterating through all irrelevant sites and visits)
-  get.indices <- function(sp) {
-    ## visited array
-    vis.arr <- dd$vis.arr2[sp,,,]
-    ## if modelling all visits, set visit array to 1 everywhere
-    if(limit.to.visits=='all') 
-      vis.arr[TRUE] <- 1
-    ## if modelling sites with detections only, create new visit array
-    if(limit.to.visits=='detected') {
-      nsp.detected <- apply(dd$X2, 2:4, sum, na.rm = TRUE)
-      vis.arr[TRUE] <- 1
-      vis.arr[nsp.detected==0] <- 0
-    }
-    
-    # either restrict or not restrict inference to inferred species ranges
-    if(limit.to.range=='yes'){ # restrict to within species' ranges
-      # infer species ranges from affirmative detections
-      # make a placeholder polygon to create
-      # a grid.
-      sfc <- st_sfc(st_polygon(list(rbind(c(0,0),
-                                          c(1,0),
-                                          c(1,1),
-                                          c(0,0)))))
-      
-      # create the grid using the specified number of simulated sites
-      grid <- st_make_grid(sfc, cellsize=1/sqrt(dd$nsite.old), square=TRUE) %>%
-        st_as_sf() %>%
-        dplyr::mutate(GID=row_number())
-      
-      # iteratively add points for each species based on the centroids of
-      # each grid cell in the matrix, then construct a convex polygon for each
-      # species and add to a list
-      
-      
-      sp_GID <- rowSums(dd$X2[sp,,,], c(2,3,4))
-      sp_centroids <- c()
-      for(j in 1:dd$nsite){
-        if(sp_GID[j] >= 1){
-          sp_centroids <- sp_centroids %>% base::append(st_centroid(grid[j,])$x)
+  for(interval in 1:n_intervals){
+    for(site in 1:n_sites){
+      for(species in 1:n_species){
+        for(visit in 1:n_visits){
+          
+          # eventually here we will need to specify which(site) to restrict to actual range
+          V_citsci[species,site,interval,visit] <- Z[species,site,interval] * # occupancy state * detection prob
+            rbinom(n = 1, size = 1, prob = p_matrix_citsci[species,site,interval,visit])
           
         }
       }
-      
-      sp_poly <- st_convex_hull(st_union(sp_centroids))
-      grid_size <- sqrt(dd$nsite.old)
-      mtrx <- st_intersects(st_as_sf(grid),
-                            st_as_sf(sp_poly))
-      matrix_ls <- matrix(as.matrix(mtrx), nrow=grid_size, ncol=grid_size)
-      
-      vector_range <- as.vector(matrix_ls)
-      vis.arr[!vector_range[site.keep],,] <- 0
-      tmp <- which(vis.arr==1, arr.ind=TRUE)
-      indices <- cbind(rep(sp,nrow(tmp)),tmp)
-      
     }
-    if(limit.to.range=='no'){ # unrestricted with respect to species' ranges
-      vis.arr[!dd$sp.range[sp,],,] <- 1
-      tmp <- which(vis.arr==1, arr.ind=TRUE)
-      indices <- cbind(rep(sp,nrow(tmp)), tmp)
+  } # end simulate detection data
+  
+  V_museum <- array(NA, dim=c(n_species=n_species,
+                              n_sites=n_sites,
+                              n_intervals=n_intervals,
+                              n_visits=n_visits))
+  
+  for(interval in 1:n_intervals){
+    for(site in 1:n_sites){
+      for(species in 1:n_species){
+        for(visit in 1:n_visits){
+          
+          # eventually here we will need to specify which(site) to restrict to actual range
+          V_museum[species,site,interval,visit] <- Z[species,site,interval] * # occupancy state * detection prob
+            rbinom(n = 1, size = 1, prob = p_matrix_museum[species,site,interval,visit])
+          
+        }
+      }
     }
-    
-    return(indices)
-    
-  }
-  master.index <- do.call(rbind, lapply(1:dd$nsp, get.indices))
-  colnames(master.index) <- c('sp','site','yr','visit')
+  } # end simulate detection data
   
-  ## data structures to be returned
+  ## --------------------------------------------------
+  ## Generate NA indicators (sampling could not have occurred either because
+  # a species range does not overlap with the site or no community samples were drawn)
   
-  my.data <- list(X=dd$X2[master.index])
+  # simulate NA data for the model to work around
+  # for our real data we will have some detections that cannot occur because
+  # 1) the site is not in the range of the species, or 
+  # 2) community sampling didnèt occur at some sites for some visits in some intervals
   
-  my.constants <- list(
-    nsp=dim(dd$X2)['nsp'],
-    nsite=dim(dd$X2)['nsite'],
-    nyr=dim(dd$X2)['nyr'],
-    nind=nrow(master.index),
-    yrv=master.index[,'yr'],
-    sitev=master.index[,'site'],
-    spv=master.index[,'sp'])
+  ## --------------------------------------------------
+  # citizen science NAs
   
-  my.info <- list(
-    time.interval.yr=time.interval.yr,
-    time.interval.visit=time.interval.visit,
-    limit.to.visits=limit.to.visits,
-    limit.to.range=limit.to.range,
-    sp.keep = names(sp.keep), 
-    site.keep = names(site.keep)
+  # 1 indicates a site was in range and thus the species could be detected there
+  V_citsci_NA <- ranges
+  # should NEVER have a V_citsci detection outside of the range
+  # check <- which(V_citsci>V_citsci_NA)
+  
+  ## --------------------------------------------------
+  # museum NAs
+  
+  # choose random sites that didn't get visited (for all species) by museum collecting visits
+  site_missed = sample.int(n_sites, sites_missing)
+  interval_missed = sample.int(n_intervals, intervals_missing)
+  visit_missed = sample.int(n_visits, visits_missing)
+  
+  # we will make an array that holds values of 1 if sampling occurred
+  # or 0 if sampling did not occur at the site*interval*visit.
+  V_museum_NA <- V_museum 
+  V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
+  
+  # replace all other values with 1 (was sampled)
+  V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
+  # and now replace all NAs with 0, which will act as an indicator for the likelihood function
+  # to skip over this sample by contracting the total possible number of observations that could have occurred
+  V_museum_NA[is.na(V_museum_NA)] <- 0
+  
+  # now multiply by whether a site was in a range or not,
+  # 1 means the species at the site in the time was BOTH..
+  # a target of a community sample AND
+  # the site is in the species's range
+  V_museum_NA <- V_museum_NA*ranges
+  
+  # now we want to replace the detection data with 0's where sampling did not occur
+  # so that we are saying that a a species occurs at a site*interval..
+  # was not observed at the visit to the site in the interval..
+  # BUT the model will remove this from contributing to the probability density by removing
+  # the max number of sightings that could have occurred for 
+  # each visit in the site*interval with a 0 in V_museum_NA
+  V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
+  
+  # should NEVER have a V_museum detection outside of the range and community sampling events
+  # check <- which(V_museum>V_museum_NA)  
+  
+  # sum(V_citsci == 1)
+  # sum(V_museum == 1)
+  # sum(V_citsci == 0)
+  # sum(V_museum == 0)
+  
+  # sum(V_citsci_NA == 1) # where 1 = sampled plus in range and 0 = unsampled and/or not in range
+  # sum(V_museum_NA == 1) # where 1 = sampled plus in range and 0 = unsampled and/or not in range
+  # sum(V_citsci_NA == 0)
+  # sum(V_museum_NA == 0)
+  
+  ## --------------------------------------------------
+  # Return stuff
+  return(list(
+    V_citsci = V_citsci, # detection data from citizen science records
+    V_museum = V_museum, # detection data from museum records
+    V_citsci_NA = V_citsci_NA, # array indicating whether sampling occurred in a site*interval*visit
+    V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
+    n_species = n_species, # number of species
+    n_sites = n_sites, # number of sites
+    n_intervals = n_intervals, # number of surveys 
+    n_visits = n_visits, # number of visits
+    pop_density = pop_density, # vector of pop densities
+    site_area = site_area # vector of site areas
+  ))
+  
+} # end simulate_data function
+
+
+## --------------------------------------------------
+### Variable values for data simulation
+## study dimensions
+n_species = 30 ## number of species
+n_sites = 30 ## number of sites
+n_intervals = 3 ## number of occupancy intervals
+n_visits = 6 ## number of samples per year
+
+## occupancy
+mu_psi_0 = -0.5
+sigma_psi_species = 0.5
+sigma_psi_site = 0.5
+mu_psi_interval = 0.5
+sigma_psi_interval = 0.2
+mu_psi_pop_dens = -0.5 # random effect of population density on occupancy
+sigma_psi_pop_dens = 0.2
+psi_site_area = 1 # fixed effect of site area on occupancy
+
+## detection
+# citizen science observation process
+mu_p_citsci_0 = -1
+p_citsci_species = 0
+sigma_p_citsci_species = 0.5
+p_citsci_site = 0
+sigma_p_citsci_site = 0.3
+p_citsci_interval = 1
+p_citsci_pop_density = 1 
+
+# museum record observation process
+mu_p_museum_0 = -0.5
+p_museum_species = 0
+sigma_p_museum_species = 0.5
+p_museum_site = 0
+sigma_p_museum_site = 0.3
+p_museum_interval = 0
+p_museum_pop_density = 0 
+
+# introduce NAs (missed visits)?
+sites_missing = 0.5*n_sites 
+intervals_missing = 2
+visits_missing = 4
+
+sites_in_range_beta1 = 2
+sites_in_range_beta2 = 2
+
+## --------------------------------------------------
+### Simulate data
+set.seed(1)
+my_simulated_data <- simulate_data(n_species,
+                                   n_sites,
+                                   n_intervals,
+                                   n_visits,
+                                   
+                                   # ecological process
+                                   mu_psi_0,
+                                   sigma_psi_species,
+                                   sigma_psi_site,
+                                   mu_psi_interval,
+                                   sigma_psi_interval,
+                                   mu_psi_pop_dens,
+                                   sigma_psi_pop_dens,
+                                   psi_site_area,
+                                  
+                                   # citizen science observation process
+                                   mu_p_citsci_0,
+                                   p_citsci_species,
+                                   sigma_p_citsci_species,
+                                   p_citsci_site,
+                                   sigma_p_citsci_site,
+                                   p_citsci_interval,
+                                   p_citsci_pop_density, 
+                                   
+                                   # museum record observation process
+                                   mu_p_museum_0,
+                                   p_museum_species,
+                                   sigma_p_museum_species,
+                                   p_museum_site,
+                                   sigma_p_museum_site,
+                                   p_museum_interval,
+                                   p_museum_pop_density, 
+                                   
+                                   # introduce NAs (missed visits)?
+                                   sites_missing, 
+                                   intervals_missing,
+                                   visits_missing,
+                                   
+                                   sites_in_range_beta1,
+                                   sites_in_range_beta2)
+
+## --------------------------------------------------
+### Prepare data for model
+
+# data to feed to the model
+V_citsci <- my_simulated_data$V_citsci # detection data
+V_museum <- my_simulated_data$V_museum # detection data
+V_citsci_NA <- my_simulated_data$V_citsci_NA # indicator of whether sampling occurred
+V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
+n_species <- my_simulated_data$n_species # number of species
+n_sites <- my_simulated_data$n_sites # number of sites
+n_intervals <- my_simulated_data$n_intervals # number of surveys 
+n_visits <- my_simulated_data$n_visits
+
+#View(as.data.frame(V_citsci[1:10,1:10,,]))
+#View(as.data.frame(V_museum[1:10,1:10,,]))
+sum(my_simulated_data$V_citsci == 1)
+sum(my_simulated_data$V_museum == 1)
+
+check_citsci <- which(V_citsci>V_citsci_NA)
+check_museum <- which(V_museum>V_museum_NA)
+ 
+intervals_raw <- seq(1, n_intervals, by=1)
+intervals <- intervals_raw - 1
+sites <- seq(1, n_sites, by=1)
+species <- seq(1, n_species, by=1)
+
+pop_densities <- my_simulated_data$pop_density
+site_areas <- my_simulated_data$site_area
+
+stan_data <- c("V_citsci", "V_museum", 
+               "V_citsci_NA", "V_museum_NA",
+               "n_species", "n_sites", "n_intervals", "n_visits", 
+               "intervals", "species", "sites",
+               "pop_densities", "site_areas") 
+
+# Parameters monitored
+params <- c("mu_psi_0",
+            "sigma_psi_species",
+            "sigma_psi_site",
+            "mu_psi_interval",
+            "sigma_psi_interval",
+            "mu_psi_pop_density",
+            "sigma_psi_pop_density",
+            "psi_site_area",
+            
+            "mu_p_citsci_0",
+            "sigma_p_citsci_species",
+            "sigma_p_citsci_site",
+            "p_citsci_interval",
+            "p_citsci_pop_density", 
+            
+            "mu_p_museum_0",
+            "sigma_p_museum_species",
+            "sigma_p_museum_site",
+            "p_museum_interval",
+            "p_museum_pop_density"
+)
+
+parameter_value <- c(mu_psi_0,
+                     sigma_psi_species,
+                     sigma_psi_site,
+                     mu_psi_interval,
+                     sigma_psi_interval,
+                     mu_psi_pop_dens,
+                     sigma_psi_pop_dens,
+                     psi_site_area,
+                     
+                     mu_p_citsci_0,
+                     sigma_p_citsci_species,
+                     sigma_p_citsci_site,
+                     p_citsci_interval,
+                     p_citsci_pop_density,
+                     
+                     mu_p_museum_0,
+                     sigma_p_museum_species,
+                     sigma_p_museum_site,
+                     p_museum_interval,
+                     p_museum_pop_density
+)
+
+# MCMC settings
+n_iterations <- 800
+n_thin <- 2
+n_burnin <- 400
+n_chains <- 3
+n_cores <- n_chains
+
+## Initial values
+# given the number of parameters, the chains need some decent initial values
+# otherwise sometimes they have a hard time starting to sample
+inits <- lapply(1:n_chains, function(i)
+  
+  list(mu_psi_0 = runif(1, -1, 1),
+       sigma_psi_species = runif(1, 0, 1),
+       sigma_psi_site = runif(1, 0, 1),
+       mu_psi_interval = runif(1, -1, 1),
+       sigma_psi_interval = runif(1, 0, 1),
+       mu_psi_pop_density = runif(1, -1, 1),
+       sigma_psi_pop_density = runif(1, 0, 1),
+       psi_site_area = runif(1, -1, 1),
+       
+       mu_p_citsci_0 = runif(1, -1, 1),
+       sigma_p_citsci_species = runif(1, 0, 1),
+       sigma_p_citsci_site = runif(1, 0, 1),
+       p_citsci_interval = runif(1, -1, 1),
+       p_citsci_pop_density = runif(1, -1, 1),
+       
+       mu_p_museum_0 = runif(1, -1, 1),
+       sigma_p_museum_species = runif(1, 0, 1),
+       sigma_p_museum_site = runif(1, 0, 1),
+       p_museum_interval = runif(1, -1, 1),
+       p_museum_pop_density = runif(1, -1, 1)
+       
   )
-  
-  return(list(my.constants = my.constants, my.data = my.data, my.info = my.info))
-}
+)
+
+targets <- as.data.frame(cbind(params, parameter_value))
+
+## --------------------------------------------------
+### Run model
+library(rstan)
+stan_model <- "./models/model_integrated_ranges.stan"
+
+## Call Stan from R
+stan_out_sim <- stan(stan_model,
+                     data = stan_data, 
+                     init = inits, 
+                     pars = params,
+                     chains = n_chains, iter = n_iterations, 
+                     warmup = n_burnin, thin = n_thin,
+                     seed = 1,
+                     open_progress = FALSE,
+                     cores = n_cores)
+
+print(stan_out_sim, digits = 3)
+View(targets)
+
+saveRDS(stan_out_sim, "./model_outputs/stan_out_sim_integrated_ranges.rds")
+stan_out_sim <- readRDS("./simulation/stan_out_sim_integrated_ranges.rds")
+
+## --------------------------------------------------
+### Simple diagnostic plots
+
+# traceplot
+traceplot(stan_out_sim, pars = c(
+  "mu_psi_0",
+  "mu_p_citsci_0",
+  "mu_p_museum_0"
+))
+
+# pairs plot
+pairs(stan_out, pars = c(
+  "mu_psi_0",
+  "mu_p_citsci_0",
+  "mu_p_museum_0"
+))
+
+# should now also write a posterior predictive check into the model
+
+
