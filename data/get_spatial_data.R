@@ -69,6 +69,12 @@ get_spatial_data <- function(
   # 2015 pop density at 1km resolution
   pop_raster=raster("./data/pden2010_block/pden2010_block/gpw_v4_population_density_rev11_2015_30_sec.tif")
   
+  # impervious surface cover raster
+  # https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus
+  # note this impervious surface cover has already been aggregated from 30mx30m to 300mx300m
+  imp <- raster::raster(
+    "./data/impervious_surface/nlcd_2016_impervious_aggregated_300m.tif")
+  
   ## --------------------------------------------------
   # Overlay the shapefile with a grid of sites of size == 'grid_size' 
   
@@ -167,10 +173,6 @@ get_spatial_data <- function(
   ## --------------------------------------------------
   # Now get impervious surface cover from each grid cell
   
-  # note this impervious surface cover has already been aggregated from 30mx30m to 300mx300m
-  imp <- raster::raster(
-    "D:/urban_spatial_data/nlcd_2016_impervious_l48_20210604/nlcd_2016_impervious_l48_20210604.tif")
-  
   # project the urban sites to the impervious surface cover raster
   crs_imp <- sf::st_crs(raster::crs(imp))
   prj2 <- st_transform(urban_grid_prepped, crs_imp)
@@ -200,6 +202,9 @@ get_spatial_data <- function(
   # free unused space
   rm(imp, prj2, r.vals_imp, r.mean_imp, impervious_cover)
   gc(verbose = FALSE)
+  
+  ## --------------------------------------------------
+  # Add raster extraction for any additional spatial covariates here...
   
   ## --------------------------------------------------
   # Calculate land area of grid cells 
