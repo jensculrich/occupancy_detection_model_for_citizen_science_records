@@ -35,11 +35,15 @@ center_scale <- function(x) {
 }
 
 ## --------------------------------------------------
-# Get Data
+# occurrence data
+df <- read.csv("./data/data_unfiltered.csv")
+
+## --------------------------------------------------
+# Study design
 
 ## global options
 # grid size
-grid_size <- 30000 # 25km x 25 km
+grid_size <- 30000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # minimum population size
@@ -51,6 +55,9 @@ crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
 min_population_size <- 250 
+
+## --------------------------------------------------
+# Spatial extent and urban areas
 
 # spatial data - California state shapefile
 CA <- tigris::states() %>%
@@ -65,67 +72,23 @@ crs(CA)
 urban_areas <- st_read('./data/california_urban_areas/zd071bk4213.shp') %>%
   st_transform(crs)
 
-# pop density raster
+## --------------------------------------------------
+# ecological rasters
+
+# human pop density raster
 # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
 # 2015 pop density at 1km resolution
 pop_raster=raster("./data/pden2010_block/pden2010_block/gpw_v4_population_density_rev11_2015_30_sec.tif")
 crs(pop_raster)
 
-r2 <- crop(pop_raster, CA)
-r3 <- mask(r2, CA)
-maxValue(r3)
-r3
-
-plot(log(r3+1),
-     col=rev(terrain.colors(10)),
-     alpha=1,
-     legend=T,
-     main="Log((Population Density/km^2) + 1)")
-
-my_window <- extent(-125, -112, 32, 42)
-plot(my_window, col=NA, xlab="longitude", ylab = "latitude")
-plot(log(r3+1), add=T)
-
-# NDVI raster
-# https://gis.data.ca.gov/datasets/CDFW::naip-2014-ndvi-california/about
-# 2014 NDVI raster at 1m resolution
-ndvi_raster1=raster::raster("./data/NDVI/NAIP_2014_NDVI_California.tiff", band = 1)
-ndvi_raster2=raster::raster("./data/NDVI/NAIP_2014_NDVI_California.tiff", band = 2)
-
-crs(ndvi_raster2) <- crs("+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83")
-ndvi_raster2
-test <- projectRaster(ndvi_raster2, crs = crs(CA))
-test <- resample(test, r3)
-test
-CA
-
-# need to figure out how to match the projections, might need to open arcgis 
-# and confirm that the actual crs that I entered in is correct
-# it's not documented on the website but might be included in the arc app
-r2_ndvi <- crop(test, CA)
-r3_ndvi <- mask(r2_ndvi, CA)
-maxValue(r3_ndvi)
-
-plot(r3_ndvi,
-     col=rev(terrain.colors(10)),
-     alpha=1,
-     legend=T,
-     main="NDVI")
-
-my_window <- extent(-125, -112, 32, 42)
-plot(my_window, col=NA, xlab="longitude", ylab = "latitude")
-plot(r3_ndvi, add=T)
-
-# occurrence data
-df <- read.csv("./data/data_unfiltered.csv")
-
 # TIN raster
 tin=raster::raster("./data/pheno_veg_rasters/tin_2014w/tin_2014w_ProjectRaster1.tif")
+raster::crs(tin)
 
-plot(tin,
-     #col=rev(terrain.colors(10)),
-     legend=T,
-     main="TIN")
+# impervious surface raster
+# 2016 urban imp surface cover https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus
+imp=raster::raster("D:/urban_spatial_data/nlcd_2016_impervious_l48_20210604/nlcd_2016_impervious_l48_20210604.img")
+raster::crs(imp)
 
 ## --------------------------------------------------
 # Prep the data
@@ -142,12 +105,12 @@ CA_trans <- st_transform(CA, 26910) # NAD83 / UTM Zone 10N
 # and then transform it to the crs
 df_trans <- st_transform(df_sf, crs = crs)
 
+ggplot() +
+  geom_sf(data=CA)
+
 # and let's just plot 100 points to get a picture of the data and shapefile
 df_trans_100 <- df_trans %>%
   sample_n(100)
-
-ggplot() +
-  geom_sf(data=CA)
 
 ggplot() +
   geom_sf(data=CA) + 
@@ -156,17 +119,6 @@ ggplot() +
           aes(fill = species), 
           size = 4, alpha = 0.5, shape = 23) +
   theme(legend.position="none")
-
-# this takes a long long time to plot
-r3_df <- as.data.frame(r3, xy = TRUE) %>%
-  rename("pop_dens" = "gpw_v4_population_density_rev11_2015_30_sec") %>%
-  mutate(logp1_pop_dens = log(pop_dens + 1))
-ggplot(r3_df) +
-  geom_tile(aes(x=x, y=y, fill=gpw_v4_population_density_rev11_2015_30_sec))
-plot(pop_raster)
-
-
-
 
 ## --------------------------------------------------
 # Overlay spatial polygon with grid 
@@ -191,8 +143,29 @@ ggplot() +
   labs(y = "") +
   theme(legend.position="none")
 
+## --------------------------------------------------
+# Tag records with site ID's based on spatial intersection
+
 # which grid square is each point in?
 df_id <- df_trans %>% st_join(grid, join = st_intersects) %>% as.data.frame
+
+## --------------------------------------------------
+# Extract pop density from each grid cell
+
+r2 <- crop(pop_raster, CA)
+r3 <- mask(r2, CA)
+maxValue(r3)
+r3
+
+plot(log(r3+1),
+     col=rev(terrain.colors(10)),
+     alpha=1,
+     legend=T,
+     main="Log((Population Density/km^2) + 1)")
+
+my_window <- extent(-125, -112, 32, 42)
+plot(my_window, col=NA, xlab="longitude", ylab = "latitude")
+plot(log(r3+1), add=T)
 
 # project the grid to the raster
 crs_raster <- sf::st_crs(raster::crs(r3))
@@ -205,6 +178,14 @@ r.vals <- raster::extract(r3, prj1)
 
 # Use list apply to calculate mean raster value for each grid cell
 r.mean <- lapply(r.vals, FUN=mean, na.rm=TRUE)
+
+# this takes a long long time to plot
+r3_df <- as.data.frame(r3, xy = TRUE) %>%
+  rename("pop_dens" = "gpw_v4_population_density_rev11_2015_30_sec") %>%
+  mutate(logp1_pop_dens = log(pop_dens + 1))
+ggplot(r3_df) +
+  geom_tile(aes(x=x, y=y, fill=gpw_v4_population_density_rev11_2015_30_sec))
+plot(pop_raster)
 
 # Join mean values to polygon data
 grid_pop_dens <- cbind(grid, unlist(r.mean)) %>% 
@@ -227,9 +208,9 @@ df_w_dens_trans <- st_transform(df_w_dens_sf, crs = crs)
 ## Let's try again with only the grid cells that overlap with urban areas
 urban_grid <- st_join(grid, df_w_dens_trans, join = st_intersects)
 
-urban_grid_w_cities <- st_join(urban_grid, urban_areas, join = st_intersects)
+urban_grid <- st_join(urban_grid, urban_areas, join = st_intersects)
 
-urban_grid_prepped <- urban_grid_w_cities %>% 
+urban_grid_prepped <- urban_grid %>% 
   filter(!is.na(grid_id.y)) %>% # remove grid cells that don't overlap with urban areas
   # we will select one row per grid cell (one city admin area)
   # keeping the city with the largest population size for now
@@ -342,19 +323,14 @@ ggplot() +
 # write.csv(df_w_dens_trans, "./data/data_urban_occurrences.csv")
 
 
-# spatial data - more states state shapefile
-states <- tigris::states() %>%
-  filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada", "Idaho"))
-str(states)
-st_crs(states)
-crs(states)
-
-ggplot() +
-  geom_sf(data=states)
-
 ## --------------------------------------------------
 # Calculate land TIN value of each grid cell
 crs(tin)
+plot(tin,
+     #col=rev(terrain.colors(10)),
+     legend=T,
+     main="TIN")
+
 
 # project the grid to the raster
 crs_tin <- sf::st_crs(raster::crs(tin))
@@ -382,3 +358,63 @@ plot <- ggplot(tin_df) +
   geom_sf(data=CA) 
 
 plot <- plot + geom_tile(aes(x=x, y=y, fill=tin_2014w_ProjectRaster1)) 
+
+
+## --------------------------------------------------
+# Calculate land impervious surface cover value of each grid cell
+
+# project the grid to the raster
+crs_imp <- sf::st_crs(raster::crs(imp))
+prj2 <- st_transform(urban_grid_prepped, crs_imp)
+
+imp2 <- crop(imp, prj2)
+
+#aggregate (to a coarser scale to speed the processing)
+# 1/30meters = x/500 meters -> 16.7 
+imp_agg <- aggregate(imp2, 10, fun=mean)
+
+writeRaster(imp_agg, "D:/urban_spatial_data/nlcd_2016_impervious_l48_20210604/nlcd_2016_impervious_l48_20210604.tif")
+
+imp_agg <- mask(imp_agg, prj2)
+
+# Extract raster values to list object
+# this takes a while since there are many raster cells with their own values
+# in each grid cell.
+# Use list apply to calculate mean raster value for each grid cell
+
+r.vals_imp <- raster::extract(imp_agg, prj2)
+
+for(i in 1:length(r.vals_imp)){
+  r.vals_imp[[i]][r.vals_imp[[i]]==127] <- NA
+}
+
+r.mean_imp <- lapply(r.vals_imp, FUN=mean, na.rm=TRUE)
+
+urban_grid_prepped <- cbind(urban_grid_prepped, unlist(r.mean_imp)) %>%
+  rename("impervious_cover" = "unlist.r.mean_imp.") %>%
+  mutate(scaled_impervious_cover = center_scale(impervious_cover))
+
+# view sites only with scaled data
+ggplot() +
+  geom_sf(data = CA_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = urban_grid_prepped, aes(fill = scaled_impervious_cover), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled impervious surface cover") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Impervious surface of urbanized areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# pretty high correlation here..
+cor(urban_grid_prepped$scaled_impervious_cover, urban_grid_prepped$scaled_pop_den_km2)
+
+## --------------------------------------------------
+# spatial data - more states state shapefile
+states <- tigris::states() %>%
+  filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada", "Idaho"))
+str(states)
+st_crs(states)
+crs(states)
+
+ggplot() +
+  geom_sf(data=states)

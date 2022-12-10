@@ -23,7 +23,7 @@ min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # of records for the taxonomic group within a site within a year is 
 min_year_for_species_ranges <- 1970 # use all data from after this year to infer species ranges
 
-source("./analysis/prep_data_integrated_ranges.R")
+source("./analysis/prep_data.R")
 my_data <- prep_data(era_start = era_start, # must define start date of the GBIF dataset
                      era_end = era_end, # must define start date of the GBIF dataset
                      n_intervals = n_intervals, # must define number of intervals to break up the era into
@@ -61,20 +61,12 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-# something happened with the data processing where this is no longer returned
-city_names <- my_data$city_name_vector 
-
 pop_densities <- my_data$pop_densities
+impervious_cover <- my_data$impervious_cover
 site_areas <- my_data$site_areas
 
-# infer NA for museum records after 2020
-# there is a dip in the data, presumably there has not been enough time to deposit/digitize records from recent years
-# V_museum_NA[1:n_species,1:n_sites,3,4] <- 0
-# V_museum_NA[1:n_species,1:n_sites,3,5] <- 0
-# I think actually this should just be represented by the lack of community sampling inferred,
-# but if there is a strong community sample we will make use of it
-# and checking there is currently NO museum data community samples from 2020 onwards
-
+# check correlation between variables
+correlation_matrix <- my_data$correlation_matrix
 
 # intervals will cause issues if you try to run on only 1 interval
 # since it's no longer sent in as a vector of intervals (can you force a single
@@ -107,6 +99,7 @@ params <- c("mu_psi_0",
             "psi_pop_density",
             "mu_psi_pop_density",
             "sigma_psi_pop_density",
+            "psi_interval",
             "mu_psi_interval",
             "sigma_psi_interval",
             "psi_site_area",
@@ -166,7 +159,7 @@ inits <- lapply(1:n_chains, function(i)
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./models/model_integrated_ranges.stan"
+stan_model <- "./models/model.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -236,91 +229,6 @@ print(stan_out, digits = 3, pars=
 
 saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_200_35km_25records.rds")
 # stan_out <- readRDS("./model_outputs/stan_out_model_integrated_ranges_200_35km_25records.rds")
-
-
-## --------------------------------------------------
-### Run model 2
-
-# Parameters monitored
-params <- c("mu_psi_0",
-            "psi_species",
-            "psi_pop_density",
-            "mu_psi_pop_density",
-            "sigma_psi_pop_density",
-            "psi_interval",
-            "psi_site_area",
-            
-            "mu_p_citsci_0",
-            "sigma_p_citsci_species",
-            "sigma_p_citsci_site",
-            "p_citsci_interval",
-            "p_citsci_pop_density", 
-            
-            "mu_p_museum_0",
-            "sigma_p_museum_species",
-            "sigma_p_museum_site",
-            "p_museum_interval",
-            "p_museum_pop_density"
-)
-
-# MCMC settings
-n_iterations <- 800
-n_thin <- 3
-n_burnin <- 400
-n_chains <- 3
-n_cores <- n_chains
-delta = 0.95
-
-## Initial values
-# given the number of parameters, the chains need some decent initial values
-# otherwise sometimes they have a hard time starting to sample
-inits <- lapply(1:n_chains, function(i)
-  
-  list(mu_psi_0 = runif(1, -1, 1),
-       sigma_psi_species = runif(1, 0, 1),
-       sigma_psi_site = runif(1, 0, 1),
-       psi_interval = runif(1, -1, 1),
-       mu_psi_pop_density = runif(1, -1, 1),
-       sigma_psi_pop_density = runif(1, 0, 1),
-       psi_site_area = runif(1, -1, 1),
-       
-       mu_p_citsci_0 = runif(1, -1, 1),
-       sigma_p_citsci_species = runif(1, 0, 1),
-       sigma_p_citsci_site = runif(1, 0, 1),
-       p_citsci_interval = runif(1, -1, 1),
-       p_citsci_pop_density = runif(1, -1, 1),
-       
-       mu_p_museum_0 = runif(1, -1, 1),
-       sigma_p_museum_species = runif(1, 0, 1),
-       sigma_p_museum_site = runif(1, 0, 1),
-       p_museum_interval = runif(1, -1, 1),
-       p_museum_pop_density = runif(1, -1, 1)
-       
-  )
-)
-
-## --------------------------------------------------
-### Run model 2
-stan_model <- "./models/model_integrated_ranges_no_interval_random.stan"
-
-## Call Stan from R
-stan_out <- stan(stan_model,
-                 data = stan_data, 
-                 init = inits, 
-                 pars = params,
-                 chains = n_chains, iter = n_iterations, 
-                 warmup = n_burnin, thin = n_thin,
-                 control=list(adapt_delta=delta),
-                 seed = 1,
-                 open_progress = FALSE,
-                 cores = n_cores)
-
-print(stan_out, digits = 3)
-print(stan_out[,], digits = 3)
-
-saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_250_30km_10records.rds")
-# stan_out <- readRDS("./model_outputs/stan_out_model_integrated_ranges_250_30km_10records.rds")
-
 
 ## --------------------------------------------------
 ### Simple diagnostic plots

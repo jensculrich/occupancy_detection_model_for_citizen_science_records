@@ -6,9 +6,11 @@
 # filter down to one unique occurrence per species*site*interval*year
 
 ## The data we will need to prepare to feed to the model:
-# V_citsci <- V_citsci # an array of citizen science detection data
-# V_museum <- V_museum # an array of museum records detection data
-# V_museum_NA <- V_museum_NA # indicator of whether community sampling event occurred
+# V_citsci # an array of presence/absence citizen science detection data
+# V_citsci_NA # indicator of whether site is in species range 
+# V_museum # an array of presence/absence museum records detection data
+# V_museum_NA # indicator of whether a) site is in species range and b) ..
+# if a museum community sampling event occurred at the site in the visit time
 # n_species # number of species
 # n_sites # number of sites
 # n_intervals # number of occupancy intervals 
@@ -37,11 +39,28 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   df_id_urban_filtered <- as.data.frame(my_spatial_data$df_id_urban_filtered)
   
   # spatial covariate data to pass to run model
-  city_name_vector <- my_spatial_data$city_names
   pop_density_vector <- my_spatial_data$scaled_pop_density
+  impervious_cover_vector <- my_spatial_data$scaled_impervious_cover
   site_area_vector <- my_spatial_data$scaled_grid_area
   site_name_vector <- my_spatial_data$site_name_vector
   urban_grid <- my_spatial_data$urban_grid
+  
+  # other info to pass to output that we may want to keep track of
+  # correlation between variables
+  correlation_matrix <- my_spatial_data$correlation_matrix
+  # total records from time period
+  total_records <- nrow(df_id_urban_filtered)
+  # citsci and museum records from time period
+  citsci_records <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    nrow()
+  museum_records <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    nrow()
+  # species counts
+  species_counts <- df_id_urban_filtered %>%
+    group_by(species) %>%
+    count()
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -369,6 +388,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   gc()
   
   ## --------------------------------------------------
+  # Now infer an NA structure for sites outside of range or 
+  # sites* visits (museums only) where no community sampling event occurred
+  
+  ## --------------------------------------------------
   # Infer citizen science missing data
   # Particularly, whether the species can be sampled or not at a site given its range
   # this is the only condition considered to effect whether a species could potentially
@@ -444,6 +467,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   ## --------------------------------------------------
   # Return stuff
   return(list(
+    
     V_citsci = V_citsci, # citizen science detection data
     V_museum = V_museum, # museum detection data
     V_citsci_NA = V_citsci_NA, # array indicating whether sampling occurred in a site*interval*visit
@@ -457,9 +481,15 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     sites = site_vector,
     species = species_vector,
     
-    city_names = city_name_vector,
     pop_densities = pop_density_vector,
-    site_areas = site_area_vector
+    impervious_cover = impervious_cover_vector,
+    site_areas = site_area_vector,
+    
+    correlation_matrix = correlation_matrix,
+    total_records = total_records,
+    citsci_records = citsci_records,
+    museum_records = museum_records,
+    species_counts = species_counts
     
   ))
   
