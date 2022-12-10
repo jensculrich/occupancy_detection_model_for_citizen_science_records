@@ -3,5 +3,6 @@
 .RData
 .Ruserdata
 data/pden2010_block/
+data/impervious_surface
 figures/data/
 data/NDVI/
