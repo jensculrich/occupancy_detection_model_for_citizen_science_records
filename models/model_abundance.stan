@@ -23,7 +23,7 @@ data {
   int<lower=1> n_visits; // visits within intervals
   
   int<lower=0> V_citsci[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
-  //int<lower=0> V_museum[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
+  int<lower=0> V_museum[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   
   int<lower=0> V_citsci_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
   //int<lower=0> V_museum_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
@@ -102,7 +102,7 @@ parameters {
   //real p_citsci_pop_density; // fixed effect of population on detection probability
   
   // museum records observation process
-  //real mu_p_museum_0; // global detection intercept for citizen science records
+  real mu_p_museum_0; // global detection intercept for citizen science records
   
   // species specific intercept allows some species to be detected at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
@@ -123,7 +123,7 @@ transformed parameters {
   
   real lambda[n_species, n_sites, n_intervals];  // odds of occurrence
   real p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
-  //real p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
+  real p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -154,13 +154,13 @@ transformed parameters {
             //p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
-          //p_museum[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
-            //mu_p_museum_0 + // a baseline intercept
+          p_museum[i,j,k] =
+            mu_p_museum_0 //+ // a baseline intercept
             //p_museum_species[species[i]] + // a species specific intercept
             //p_museum_site[sites[j]] + // a spatially specific intercept
             //p_museum_interval*intervals[k] + // an overall effect of time on detection
             //p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
-           //); // end p_museum[i,j,k]
+           ; // end p_museum[i,j,k]
            
       } // end loop across all intervals
     } // end loop across all sites
@@ -236,7 +236,7 @@ model {
   
   // museum records
   
-  //mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for detection
+  mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for detection
   
   //p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
@@ -261,26 +261,50 @@ model {
   for(i in 1:n_species) { // loop across all species
     for(j in 1:n_sites) { // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
+        for(l in 1:n_visits){ // loop across all visits
           
-        // If the site is in the range
+        // If the site is in the species's range
         if(sum(V_citsci_NA[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if not in range
         
-        vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
+        // If the species was seen at least once by cit sci or museum
+        // then it occurs with some abundance N at the site
+        //if(sum(V_citsci[i, j, k, 1:n_visits]) > 0 || sum(V_museum[i, j, k, 1:n_visits]) > 0){
+          
+          // Construct a vector of log-prob for each possible abundance
+          // based on the max count seen in citizen science data 
+          // (note should fix because it could be greater for citizen science data)
+          vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
             // (from max observed to K) 
           
-        for (abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)) // for each possible abundance:
+          for (abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)) // for each possible abundance:
+          
           // lp of abundance given ecological model and observational model
           
             lp[abundance] = 
               neg_binomial_2_log_lpmf(max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi)
-                + 
+                + // the variation in (detection thinned) abundance seen on each visit (citizen science)
                 binomial_logit_lpmf(V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, 
-                  p_citsci[i,j,k]); // vectorized over n visits..
-            
+                  p_citsci[i,j,k]) // vectorized over n visits..
+                + // detecting the species at least once on each viable visit (museums)
+                // or not at all on visit l, given the relative abundance size and detection probability
+                binomial_logit_lpmf(
+                  V_museum[i,j,k,l] | max_y[i,j,k] + abundance - 1, 
+                  p_museum[i,j,k]);
+                  
             target += log_sum_exp(lp);
+         
+          } // end for loop
           
+        //} else {
+        // Else the species was NOT seen at least once by cit sci or museum, and so
+        // it either occurs with some abundance N at the site and is never detected 
+        // OR it was never detected at the site because it does not occur.
+          
+        //}
         
-        }
+        
+        
+        
 
      
           // if species is detected at the specific site*interval at least once
@@ -313,7 +337,7 @@ model {
             
           //} // end if/else
           
-          
+        } // end loop across all visits 
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species

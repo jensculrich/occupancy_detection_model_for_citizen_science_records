@@ -35,7 +35,7 @@ simulate_data <- function(n_species,
                           #p_citsci_pop_density, 
                           
                           # museum record observation process
-                          #mu_p_museum_0,
+                          mu_p_museum_0,
                           #p_museum_species,
                           #sigma_p_museum_species,
                           #p_museum_site,
@@ -135,7 +135,7 @@ simulate_data <- function(n_species,
   
   p_matrix_citsci <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
   # a p value for each species, at each site, in each interval, AND in each visit
-  #p_matrix_museum <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
+  p_matrix_museum <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
   # a p value for each species, at each site, in each interval, AND in each visit
   
   for(species in 1:n_species) { # for each site
@@ -161,13 +161,13 @@ simulate_data <- function(n_species,
               #p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           )
           
-          #p_matrix_museum[species, site, interval, visit] <- ilogit( # detection is equal to 
-            #mu_p_museum_0 + # a baseline intercept
+          p_matrix_museum[species, site, interval, visit] <- ilogit( # detection is equal to 
+            mu_p_museum_0 #+ # a baseline intercept
             #p_museum_species[species] + # a species specific intercept
             #p_museum_site[site] + # a spatiotemporally specific intercept
             #p_museum_interval*intervals[interval] + # an overall effect of time on detection
             #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
-          #)
+          )
           
         } # for each visit
       } # for each species
@@ -253,7 +253,6 @@ simulate_data <- function(n_species,
       for(species in 1:n_species){
         for(visit in 1:n_visits){
           
-          # eventually here we will need to specify which(site) to restrict to actual range
           V_citsci[species,site,interval,visit] <-  rbinom(
             n = 1, 
             size = N_matrix[species,site,interval], 
@@ -267,24 +266,31 @@ simulate_data <- function(n_species,
   # preview V_citsci
   V_citsci[1:n_species,1:n_sites,1,1]
   
-  #V_museum <- array(NA, dim=c(n_species=n_species,
-                              #n_sites=n_sites,
-                              #n_intervals=n_intervals,
-                              #n_visits=n_visits))
+  V_museum <- array(NA, dim=c(n_species=n_species,
+                              n_sites=n_sites,
+                              n_intervals=n_intervals,
+                              n_visits=n_visits))
   
-  #for(interval in 1:n_intervals){
-    #for(site in 1:n_sites){
-      #for(species in 1:n_species){
-        #for(visit in 1:n_visits){
+  for(interval in 1:n_intervals){
+    for(site in 1:n_sites){
+      for(species in 1:n_species){
+        for(visit in 1:n_visits){
           
-          # eventually here we will need to specify which(site) to restrict to actual range
-          #V_museum[species,site,interval,visit] <- Z[species,site,interval] * # occupancy state * detection prob
-            #rbinom(n = 1, size = 1, prob = p_matrix_museum[species,site,interval,visit])
+          V_museum[species,site,interval,visit] <- 
+            # Z[species,site,interval] * # occupancy state * detection prob
+            # N_matrix[species,site,interval]
+            rbinom(n = 1, size = N_matrix[species,site,interval], prob = p_matrix_museum[species,site,interval,visit])
           
-        #}
-      #}
-    #}
-  #} # end simulate detection data
+        }
+      }
+    }
+  } # end simulate detection data
+  
+  # preview V_museum
+  V_museum[1:n_species,1:n_sites,1,1]
+  
+  # and N_matrix
+  N_matrix[1:n_species,1:n_sites,1]
   
   ## --------------------------------------------------
   ## Generate NA indicators (sampling could not have occurred either because
@@ -353,7 +359,7 @@ simulate_data <- function(n_species,
   # Return stuff
   return(list(
     V_citsci = V_citsci, # detection data from citizen science records
-    #V_museum = V_museum, # detection data from museum records
+    V_museum = V_museum, # detection data from museum records
     V_citsci_NA = V_citsci_NA, # array indicating whether sampling occurred in a site*interval*visit
     #V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
     n_species = n_species, # number of species
@@ -384,7 +390,7 @@ mu_lambda_0 = 3
 #mu_lambda_pop_dens = -0.5 # random effect of population density on occupancy
 #sigma_lambda_pop_dens = 0.2
 #lambda_site_area = 1 # fixed effect of site area on occupancy
-phi = 2
+phi = 4
 
 ## detection
 # citizen science observation process
@@ -397,7 +403,7 @@ mu_p_citsci_0 = -1
 #p_citsci_pop_density = 1 
 
 # museum record observation process
-#mu_p_museum_0 = -0.5
+mu_p_museum_0 = -3
 #p_museum_species = 0
 #sigma_p_museum_species = 0.5
 #p_museum_site = 0
@@ -442,7 +448,7 @@ my_simulated_data <- simulate_data(n_species,
                                    #p_citsci_pop_density, 
                                    
                                    # museum record observation process
-                                   #mu_p_museum_0,
+                                   mu_p_museum_0,
                                    #p_museum_species,
                                    #sigma_p_museum_species,
                                    #p_museum_site,
@@ -463,9 +469,9 @@ my_simulated_data <- simulate_data(n_species,
 
 # data to feed to the model
 V_citsci <- my_simulated_data$V_citsci # detection data
-#V_museum <- my_simulated_data$V_museum # detection data
+V_museum <- my_simulated_data$V_museum # detection data
 V_citsci_NA <- my_simulated_data$V_citsci_NA # indicator of whether sampling occurred
-#V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
+V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
 n_species <- my_simulated_data$n_species # number of species
 n_sites <- my_simulated_data$n_sites # number of sites
 n_intervals <- my_simulated_data$n_intervals # number of surveys 
@@ -500,13 +506,30 @@ for(i in 1:n_species){
   }
 }
 
+V_museum_binary <- V_museum # detection data
+
+for(i in 1:n_species){
+  for(j in 1:n_sites){
+    for(k in 1:n_intervals){
+      for(l in 1:n_visits){
+        
+        if(V_museum_binary[i,j,k,l] > 0) 
+          V_museum_binary[i,j,k,l] <- 1
+        
+        
+      }
+    }
+  }
+}
+
+V_museum <- V_museum_binary # detection data
 
 
 #pop_densities <- my_simulated_data$pop_density
 #site_areas <- my_simulated_data$site_area
 
 stan_data <- c("V_citsci", 
-               #"V_museum", 
+               "V_museum", 
                "V_citsci_NA", 
                #"V_museum_NA",
                "n_species", "n_sites", "n_intervals", "n_visits", 
@@ -526,13 +549,13 @@ params <- c("mu_lambda_0",
             #"psi_site_area",
             "phi",
             
-            "mu_p_citsci_0"#,
+            "mu_p_citsci_0",
             #"sigma_p_citsci_species",
             #"sigma_p_citsci_site",
             #"p_citsci_interval",
             #"p_citsci_pop_density", 
             
-            #"mu_p_museum_0",
+            "mu_p_museum_0"#,
             #"sigma_p_museum_species",
             #"sigma_p_museum_site",
             #"p_museum_interval",
@@ -549,13 +572,13 @@ parameter_value <- c(mu_lambda_0,
                      #psi_site_area,
                      phi,
                      
-                     mu_p_citsci_0#,
+                     mu_p_citsci_0,
                      #sigma_p_citsci_species,
                      #sigma_p_citsci_site,
                      #p_citsci_interval,
                      #p_citsci_pop_density,
                      
-                     #mu_p_museum_0,
+                     mu_p_museum_0#,
                      #sigma_p_museum_species,
                      #sigma_p_museum_site,
                      #p_museum_interval,
@@ -584,13 +607,13 @@ inits <- lapply(1:n_chains, function(i)
        #psi_site_area = runif(1, -1, 1),
        phi = runif(1, 0, 1),
        
-       mu_p_citsci_0 = runif(1, -1, 1)#,
+       mu_p_citsci_0 = runif(1, -1, 1),
        #sigma_p_citsci_species = runif(1, 0, 1),
        #sigma_p_citsci_site = runif(1, 0, 1),
        #p_citsci_interval = runif(1, -1, 1),
        #p_citsci_pop_density = runif(1, -1, 1),
        
-       #mu_p_museum_0 = runif(1, -1, 1),
+       mu_p_museum_0 = runif(1, -1, 1)#,
        #sigma_p_museum_species = runif(1, 0, 1),
        #sigma_p_museum_site = runif(1, 0, 1),
        #p_museum_interval = runif(1, -1, 1),
@@ -630,6 +653,7 @@ stan_out_sim <- readRDS("./simulation/stan_out_sim_abundance.rds")
 traceplot(stan_out_sim, pars = c(
   "mu_lambda_0",
   "mu_p_citsci_0",
+  "mu_p_museum_0",
   "phi"
 ))
 
