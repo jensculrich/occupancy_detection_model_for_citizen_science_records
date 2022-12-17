@@ -4,7 +4,6 @@
 // citizen science data and gbif data may have their own observation processes
 // and also allows for missing (NA) data
 
-
 data {
   
   int<lower=1> n_species;  // observed species
@@ -36,26 +35,22 @@ data {
 } // end data
 
 transformed data {
+  
   int<lower=0> max_y[n_species, n_sites, n_intervals];
-  //int<lower=0> N_ll;
-  //int tmp[n_species, n_sites, n_intervals];
   
   for (i in 1:n_species) {
     for(j in 1:n_sites){
       for(k in 1:n_intervals){
         max_y[i,j,k] = max(V_citsci[i,j,k]);
-        //tmp[i,j,k] = K - max_y[i,j,k] + 1;
       }
     }
   }
   
-  // N_ll = sum(tmp);
-  
-}
+} // end transformed data
 
 parameters {
   
-  // OCCUPANCY
+  // ABUNDANCE
   
   real<lower=0> phi; // abundance overdispersion parameter
   
@@ -115,6 +110,9 @@ parameters {
   
   //real p_museum_interval; // fixed temporal effect on detection probability
   //real p_museum_pop_density; // fixed effect of population on detection probability
+  
+  real<lower=-1,upper=1> rho;  // correlation of (binary detection, abundance)
+  vector[2] rho_lambda_p[n_species, n_sites, n_intervals]; 
   
 } // end parameters
 
@@ -253,6 +251,8 @@ model {
   
   //p_museum_pop_density ~ cauchy(0, 2.5); // population effect on detection probability
 
+  (rho + 1) / 2 ~ beta(2, 2);
+  rho_lambda_p ~ multi_normal(rep_vector(0, 2), cov_matrix_2d(p_museum, lambda, rho));
   
   // LIKELIHOOD
   
@@ -280,18 +280,43 @@ model {
           
           // lp of abundance given ecological model and observational model
           
+          //if(V_museum[i,j,k,l] == 1){
+          // cumulative probability density of getting 0 sightings given the abundance and p
+            
             lp[abundance] = 
               neg_binomial_2_log_lpmf(max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi)
                 + // the variation in (detection thinned) abundance seen on each visit (citizen science)
                 binomial_logit_lpmf(V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, 
                   p_citsci[i,j,k]) // vectorized over n visits..
-                + // detecting the species at least once on each viable visit (museums)
-                // or not at all on visit l, given the relative abundance size and detection probability
-                binomial_logit_lpmf(
-                  V_museum[i,j,k,l] | max_y[i,j,k] + abundance - 1, 
-                  p_museum[i,j,k]);
+                + // 
+                  // 
+                binomial_logit_lpmf(V_museum[i,j,k] | n_visits,
+                  )
+                ; 
+                  //(p_museum[i,j,k]), max_y[i,j,k] + abundance - 1
                   
             target += log_sum_exp(lp);
+            
+          //} else
+          
+            //lp[abundance] = 
+              //neg_binomial_2_log_lpmf(max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi)
+               // + // the variation in (detection thinned) abundance seen on each visit (citizen science)
+                //binomial_logit_lpmf(V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, 
+                 // p_citsci[i,j,k]) // vectorized over n visits..
+                //+ // detecting the species at least once on each viable visit (museums)
+                // or not at all on visit l, given the relative abundance size and detection probability
+                //binomial_lccdf(
+                  // needs to be changed to be 
+                  // the probability of 1 OR MORE success given the abundance
+                  // or the probability of 0 successes given the abundance
+                  // not just the probability of 1 or 0.
+                  // maybe this would be the complement of the cdf?
+                  //1 | max_y[i,j,k] + abundance, // don't subtract 1, because abundance must be > 0
+                 // inv_logit(p_museum[i,j,k]));
+                //  ;
+                  
+           // target += log_sum_exp(lp);
          
           } // end for loop
           
