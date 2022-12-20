@@ -5,18 +5,20 @@
 // and also allows for missing (NA) data
 
 functions {
+ 
+ real update_max_y(real y){
+   
+   real tmp = y;
+   
+   if (y == 0){
+     tmp = y + 1;
+   } else{
+     tmp = y;
+   }
+   return (tmp);
+ }
   
-  // covariance matrix
-  matrix cov_matrix_2d(vector sigma, real rho) {
-    matrix[2,2] Sigma;
-    Sigma[1,1] = square(sigma[1]);
-    Sigma[2,2] = square(sigma[2]);
-    Sigma[1,2] = sigma[1] * sigma[2] * rho;
-    Sigma[2,1] = Sigma[1,2];
-    return Sigma;
-  }
-
-} // end functions
+}
 
 data {
   
@@ -61,7 +63,7 @@ transformed data {
 parameters {
   
   // ABUNDANCE
-  
+  real<lower=0, upper=1> omega; // Suitability
   real<lower=0> phi; // abundance overdispersion parameter
   
   real mu_lambda_0; // global intercept for occupancy
@@ -73,11 +75,6 @@ parameters {
   
   // museum records observation process
   real mu_p_museum_0; // global detection intercept for citizen science records
-  
-  // Covarying parameters
-  real<lower=-1,upper=1> rho_uv; // correlation of (abundance, detection)
-  vector<lower=0>[2] sigma_uv; // sd of (abundance, detection)
-  vector[2] uv[n_species]; // covarying species-specific abundance and museum detection rate intercepts
   
 } // end parameters
 
@@ -93,8 +90,7 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals  
           
           lambda[i,j,k] = // 
-            mu_lambda_0 + // a baseline intercept
-            uv[i,1]
+            mu_lambda_0 //+ // a baseline intercept
             //psi_species[species[i]] + // a species specific intercept
             //psi_site[sites[j]] + // a site specific intercept
             //psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
@@ -119,8 +115,7 @@ transformed parameters {
            ; // end p_citsci[i,j,k]
            
           p_museum[i,j,k] = // the inverse of the log odds of detection is equal to..
-            mu_p_museum_0 + // a baseline intercept
-            uv[i,2]
+            mu_p_museum_0 //+ // a baseline intercept
             //p_museum_species[species[i]] + // a species specific intercept
             //p_museum_site[sites[j]] + // a spatially specific intercept
             //p_museum_interval*intervals[k] + // an overall effect of time on detection
@@ -141,6 +136,7 @@ model {
   
   // Abundance (Ecological Process)
   
+  // implicit flat 0,1 prior used on omega
   phi ~ cauchy(0, 2.5); // abundance overdispersion scale parameter
   
   mu_lambda_0 ~ cauchy(0, 2.5); // global intercept for occupancy rate
@@ -154,11 +150,6 @@ model {
   // museum records
   mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for detection
   
-  // Covarying parameters
-  sigma_uv ~ cauchy(0, 2.5);
-  (rho_uv + 1) / 2 ~ beta(2, 2);
-  uv ~ multi_normal(rep_vector(0, 2), cov_matrix_2d(sigma_uv, rho_uv));
-  
   // LIKELIHOOD
   
   // Stan can sample the mean and sd of parameters by summing out the
@@ -170,48 +161,62 @@ model {
         // If the site is in the range
         if(sum(V_citsci_NA[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if not in range
         
-        vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
-            // (from max observed to K) 
+        if(sum(V_citsci[i,j,k]) > 0 || sum(V_museum[i,j,k]) > 0) {
           
-        for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ // for each possible abundance:
-        
-          // lp of abundance given ecological model and observational model
+          real lp = bernoulli_lpmf(1 | omega);
           
-          lp[abundance] = 
-            neg_binomial_2_log_lpmf(
-              max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi) +
-            binomial_logit_lpmf(
-              V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, p_citsci[i,j,k]); 
-                // vectorized over n visits..
-                
-          // If the species was ever detected at the site during the interval then occupancy = 1  
-          if((sum(V_citsci_NA[i,j,k]) > 0) || (sum(V_citsci[i,j,k]) > 0)){
-                
-              lp[abundance] = lp[abundance] + 
-                
-                1 - exp(-inv_logit(p_museum[i,j,k]) * exp(lambda[i,j,k]));
-                    
+          // if max_y[i,j,k] = 0, replace with 1 - 
+            // because there can't be 0 individuals if it was detected by museum records
+          int max_y_updated;
+          if(max_y[i,j,k] == 0){
+            max_y_updated = 1;
           } else {
-          // else 
-            
-            lp[abundance] = lp[abundance] + 
-                
-                exp(inv_logit(p_museum[i,j,k]) * exp(lambda[i,j,k]));
-            
+            max_y_updated = max_y[i,j,k];
           }
-            
-            
-        }
+          
+          // for each possible abundance:
+          for(abundance in 1:(K[i,j,k] - max_y_updated + 1)){ 
+          
+            // lp of abundance given ecological model and observational model
+            lp = lp +
+            // vectorized over n visits..
+              neg_binomial_2_log_lpmf(
+                max_y_updated + abundance - 1 | lambda[i,j,k], phi) + 
+              binomial_logit_lpmf(
+                V_citsci[i,j,k] | max_y_updated + abundance - 1, p_citsci[i,j,k]) +
+              binomial_logit_lpmf(
+                V_museum[i,j,k] | n_visits, p_museum[i,j,k]); 
+          
+          }
+                
+          target += lp;
         
-        target += log_sum_exp(lp);
+        } else { // else was never detected and may or may not be present
+          
+          real lp[2];
+      
+          lp[1] = bernoulli_lpmf(0 | omega); // not present
+          lp[2] = bernoulli_lpmf(1 | omega); // present but not observed
+          
+          for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){
             
-        } // end loop across if in range
+            lp[2] = lp[2] +
+             neg_binomial_2_log_lpmf(
+                max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi) +
+              binomial_logit_lpmf( // 0 citsci detections
+                0 | max_y[i,j,k] + abundance - 1, p_citsci[i,j,k]) +
+              binomial_logit_lpmf( // 0 museum detections
+                0 | n_visits, p_museum[i,j,k]); 
+          }
+          
+          target += log_sum_exp(lp);
+        
+        } // end else
+            
+        } // end if in range
           
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species
   
 } // end model
-
-
-

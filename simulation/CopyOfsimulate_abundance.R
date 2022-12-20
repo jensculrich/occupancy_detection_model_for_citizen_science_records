@@ -14,6 +14,7 @@ simulate_data <- function(n_species,
                           n_visits,
                           
                           ## ecological process
+                          omega,
                           phi,
                           
                           mu_lambda_0,
@@ -24,11 +25,6 @@ simulate_data <- function(n_species,
                           
                           # museum record observation process
                           mu_p_museum_0,
-                          
-                          # species specific covariance process
-                          rho_uv,
-                          sigma_u,
-                          sigma_v,
                           
                           sites_in_range_beta1,
                           sites_in_range_beta2
@@ -63,17 +59,17 @@ simulate_data <- function(n_species,
   
   ## --------------------------------------------------
   ### specify species-specific abundance and detection rates
-  mu_uv <- c(0, 0) # centered means since we already have grand intercepts
+  #mu_uv <- c(0, 0) # centered means since we already have grand intercepts
   
-  Sigma <- matrix(NA, nrow = 2, ncol = 2)
-  Sigma[1,1] = (sigma_u)^2
-  Sigma[2,2] = (sigma_v)^2
-  Sigma[1,2] = sigma_u * sigma_v * rho_uv
-  Sigma[2,1] = sigma_u * sigma_v * rho_uv
+  #Sigma <- matrix(NA, nrow = 2, ncol = 2)
+  #Sigma[1,1] = (sigma_u)^2
+  #Sigma[2,2] = (sigma_v)^2
+  #Sigma[1,2] = sigma_u * sigma_v * rho_uv
+  #Sigma[2,1] = sigma_u * sigma_v * rho_uv
   
-  uv <- MASS::mvrnorm(n = n_species, mu = mu_uv, Sigma = Sigma, empirical = FALSE)
-  uv
-  (rho_uv_simmed <- cor(uv[,1], uv[,2])) # correlation of site occupancy and detection
+  #uv <- MASS::mvrnorm(n = n_species, mu = mu_uv, Sigma = Sigma, empirical = FALSE)
+  #uv
+  #(rho_uv_simmed <- cor(uv[,1], uv[,2])) # correlation of site occupancy and detection
   
   ## --------------------------------------------------
   ## Create arrays for psi and p
@@ -90,8 +86,8 @@ simulate_data <- function(n_species,
       for(interval in 1:n_intervals) { # for each species
         
         lambda_matrix[species, site, interval] <- exp( # occupancy is equal to
-          mu_lambda_0 + # a baseline intercept
-          uv[species,1] # a species intercept (correlated with museum detection rates)
+          mu_lambda_0 # a baseline intercept
+          # uv[species,1] # a species intercept (correlated with museum detection rates)
             #lambda_site[site] + # a site specific intercept
             #lambda_interval[species]*intervals[interval] + # a species specific temporal change
             #lambda_pop_dens[species]*pop_density[site] + # a fixed effect of population density 
@@ -110,7 +106,7 @@ simulate_data <- function(n_species,
           
           p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
             mu_p_museum_0 #+ # a baseline intercept
-            uv[species,2] # a species intercept (correlated with species abundance)            
+            # uv[species,2] # a species intercept (correlated with species abundance)            
             #p_museum_site[site] + # a spatiotemporally specific intercept
             #p_museum_interval*intervals[interval] + # an overall effect of time on detection
             #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
@@ -144,6 +140,37 @@ simulate_data <- function(n_species,
     
   }
   
+  ranges[1:n_species, 1:n_sites,1,1]
+  ranges[1:n_species, 1:n_sites,1,2]
+  
+  # Creating the Sequence
+  # beta_distr = seq(0,1, by=0.1)
+  
+  # Case 3
+  #plot(beta_distr, dbeta(gfg, 5,2), xlab = "X",
+  #     ylab = "Beta Density", type = "l",
+  #     col = "Red")
+  
+  ## --------------------------------------------------
+  # Generate species*site*interval suitability
+  
+  suitability <- array(dim = c(n_species, n_sites, n_intervals, n_visits), NA)
+  
+  for(species in 1:n_species){
+    for(site in 1:n_sites){
+      for(interval in 1:n_intervals){
+        
+        # rep across visits so the site is open to a species or closed to a species
+        # across all visits 1:n_visits
+        suitability[species,site,interval,1:n_sites] <- rep(rbinom(1, 1, prob=omega), n_sites)
+        
+      }
+    }
+  }
+  
+  suitability[1:n_species, 1:n_sites,1,1]
+  suitability[1:n_species, 1:n_sites,1,2]
+  
   ## --------------------------------------------------
   ## Generate abundance data given means lambda and dispersion phi
   
@@ -157,9 +184,11 @@ simulate_data <- function(n_species,
         
         # if site is in the species's range, then determine occupancy with some prob psi
         # else occupancy state is 0
-        if(ranges[species,site,1,1] == 1) {
+        if(ranges[species,site,1,1] == 1 && suitability[species,site,interval,1]) {
           
-          N_matrix[species,site,interval] <- rnbinom(n = 1, mu = lambda_matrix[species,site,interval], size = phi)
+          N_matrix[species,site,interval] <- rpois(n = 1, 
+                                                   mu = lambda_matrix[species,site,interval], 
+                                                   size = phi)
 
         } else{
           
@@ -343,8 +372,7 @@ simulate_data <- function(n_species,
     n_visits = n_visits, # number of visits
     #pop_density = pop_density, # vector of pop densities
     #site_area = site_area # vector of site areas
-    K = K, # upper limit search area
-    rho_uv_simmed = rho_uv_simmed
+    K = K # upper limit search area
   ))
   
 } # end simulate_data function
@@ -359,7 +387,8 @@ n_intervals = 3 ## number of occupancy intervals
 n_visits = 6 ## number of samples per year
 
 ## ecological process
-phi = 2
+omega = 0.8
+phi = 1.5
 
 mu_lambda_0 = 3
 
@@ -378,17 +407,12 @@ mu_p_citsci_0 = 0
 # museum record observation process
 mu_p_museum_0 = -1
 
-# covarying abundance and museum detection processes
-rho_uv = 0.75 # >0 = positive correlation between abundance and detection process
-sigma_u = 0.5 # sigma abundance rates
-sigma_v = 1 # sigma detection rates
-
 # introduce NAs (missed visits)?
 #sites_missing = 0.5*n_sites 
 #intervals_missing = 2
 #visits_missing = 4
 
-sites_in_range_beta1 = 2
+sites_in_range_beta1 = 5
 sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
@@ -400,6 +424,7 @@ my_simulated_data <- simulate_data(n_species,
                                    n_visits,
                                    
                                    # ecological process
+                                   omega, 
                                    phi,
                                    
                                    mu_lambda_0,
@@ -410,10 +435,6 @@ my_simulated_data <- simulate_data(n_species,
                                    # museum record observation process
                                    mu_p_museum_0,
                                    
-                                   # species specific covariance process
-                                   rho_uv,
-                                   sigma_u,
-                                   sigma_v,
                                    
                                    # range dynamics
                                    sites_in_range_beta1,
@@ -456,35 +477,32 @@ stan_data <- c("V_citsci",
                ) 
 
 # Parameters monitored
-params <- c("phi",
+params <- c("omega",
+            "phi",
             
             "mu_lambda_0",
             
             "mu_p_citsci_0",
             
-            "mu_p_museum_0",
+            "mu_p_museum_0"
             
-            "rho_uv",
-            "sigma_uv"
 )
 
-parameter_value <- c(phi,
+parameter_value <- c(omega,
+                     phi,
                      
                      mu_lambda_0,
                      
                      mu_p_citsci_0,
                      
-                     mu_p_museum_0,
+                     mu_p_museum_0
                      
-                     rho_uv,
-                     sigma_u, 
-                     sigma_v
 )
 
 # MCMC settings
-n_iterations <- 800
+n_iterations <- 600
 n_thin <- 2
-n_burnin <- 400
+n_burnin <- 300
 n_chains <- 3
 n_cores <- 4
 
@@ -501,7 +519,7 @@ inits <- lapply(1:n_chains, function(i)
        
        mu_p_museum_0 = runif(1, -1, 1),
        
-       rho_uv = runif(1, -1, 1)
+       omega = runif(1, 0, 1)
        
   )
 )
@@ -538,7 +556,8 @@ traceplot(stan_out_sim, pars = c(
   "mu_lambda_0",
   "mu_p_citsci_0",
   "mu_p_museum_0",
-  "phi"
+  "phi",
+  "omega"
 ))
 
 # pairs plot
