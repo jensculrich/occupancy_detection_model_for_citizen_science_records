@@ -557,7 +557,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./models/model_integrated_ranges.stan"
+stan_model <- "./models/model.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,

@@ -124,21 +124,21 @@ transformed parameters {
     for (j in 1:n_sites){    // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
         
-          p_citsci[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
+          p_citsci[i,j,k] = // the inverse of the log odds of detection is equal to..
             mu_p_citsci_0 + // a baseline intercept
             p_citsci_species[species[i]] + // a species specific intercept
             p_citsci_site[sites[j]] + // a spatially specific intercept
             p_citsci_interval*intervals[k] + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
-           ); // end p_citsci[i,j,k]
+           ; // end p_citsci[i,j,k]
            
-          p_museum[i,j,k] = inv_logit( // the inverse of the log odds of detection is equal to..
+          p_museum[i,j,k] = // the inverse of the log odds of detection is equal to..
             mu_p_museum_0 + // a baseline intercept
             p_museum_species[species[i]] + // a species specific intercept
             p_museum_site[sites[j]] + // a spatially specific intercept
             p_museum_interval*intervals[k] + // an overall effect of time on detection
             p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
-           ); // end p_museum[i,j,k]
+           ; // end p_museum[i,j,k]
            
       } // end loop across all intervals
     } // end loop across all sites
@@ -245,10 +245,10 @@ model {
             
              // lp_observed:
              target += log(psi[i,j,k]) +
-                      binomial_lpmf(sum(V_citsci[i,j,k,1:n_visits]) | sum(V_citsci_NA[i,j,k,1:n_visits]), p_citsci[i,j,k]) + 
+                      binomial_logit_lpmf(sum(V_citsci[i,j,k,1:n_visits]) | sum(V_citsci_NA[i,j,k,1:n_visits]), p_citsci[i,j,k]) + 
                       // sum(V_museum_NA[i,j,k,1:n_visits]) below tells us how many sampling 
                       // events actually occurred for museum records
-                      binomial_lpmf(sum(V_museum[i,j,k,1:n_visits]) | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]);
+                      binomial_logit_lpmf(sum(V_museum[i,j,k,1:n_visits]) | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]);
                           
           // else the species was never detected at the site*interval
           // lp_unobserved sums the probability density of:
@@ -258,10 +258,10 @@ model {
             
             // lp_unobserved
             target += log_sum_exp(log(psi[i,j,k]) +
-                    binomial_lpmf(0 | sum(V_citsci_NA[i,j,k,1:n_visits]), p_citsci[i,j,k]) +
+                    binomial_logit_lpmf(0 | sum(V_citsci_NA[i,j,k,1:n_visits]), p_citsci[i,j,k]) +
                     // sum(V_museum_NA[i,j,k,1:n_visits]) below tells us how many sampling 
                     // events actually occurred for museum records
-                    binomial_lpmf(0 | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]),
+                    binomial_logit_lpmf(0 | sum(V_museum_NA[i,j,k,1:n_visits]), p_museum[i,j,k]),
                     log1m(psi[i,j,k])); 
             
           } // end if/else
