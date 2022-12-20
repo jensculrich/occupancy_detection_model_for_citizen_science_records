@@ -158,14 +158,7 @@ model {
     for(j in 1:n_sites) { // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
           
-        // If the site is in the range
-        if(sum(V_citsci_NA[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if not in range
-        
-        if(sum(V_citsci[i,j,k]) > 0 || sum(V_museum[i,j,k]) > 0) {
-          
-          real lp = bernoulli_lpmf(1 | omega);
-          
-          // if max_y[i,j,k] = 0, replace with 1 - 
+        // if max_y[i,j,k] = 0, replace with 1 - 
             // because there can't be 0 individuals if it was detected by museum records
           int max_y_updated;
           if(max_y[i,j,k] == 0){
@@ -173,23 +166,33 @@ model {
           } else {
             max_y_updated = max_y[i,j,k];
           }
+        
+        // If the site is in the range
+        if(sum(V_citsci_NA[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if not in range
+        
+        if(sum(V_citsci[i,j,k]) > 0 || sum(V_museum[i,j,k]) > 0) {
+          
+          vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
+            // (from max observed to K)
           
           // for each possible abundance:
           for(abundance in 1:(K[i,j,k] - max_y_updated + 1)){ 
           
             // lp of abundance given ecological model and observational model
-            lp = lp +
-            // vectorized over n visits..
+            lp[abundance] = 
+              // vectorized over n visits..
               neg_binomial_2_log_lpmf(
                 max_y_updated + abundance - 1 | lambda[i,j,k], phi) + 
               binomial_logit_lpmf(
                 V_citsci[i,j,k] | max_y_updated + abundance - 1, p_citsci[i,j,k]) +
               binomial_logit_lpmf(
-                V_museum[i,j,k] | n_visits, p_museum[i,j,k]); 
+                sum(V_museum[i,j,k,1:n_visits]) | n_visits, p_museum[i,j,k]); 
           
           }
                 
-          target += lp;
+          target += log_sum_exp(
+              bernoulli_lpmf(1 | omega) + 
+              lp);
         
         } else { // else was never detected and may or may not be present
           
@@ -198,15 +201,17 @@ model {
           lp[1] = bernoulli_lpmf(0 | omega); // not present
           lp[2] = bernoulli_lpmf(1 | omega); // present but not observed
           
-          for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){
+          // probability present at some unknown abundance  >= 1; but never observed 
+          for(abundance in 1:(K[i,j,k] - max_y_updated + 1)){
             
             lp[2] = lp[2] +
              neg_binomial_2_log_lpmf(
-                max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi) +
+                max_y_updated + abundance - 1 | lambda[i,j,k], phi) +
               binomial_logit_lpmf( // 0 citsci detections
-                0 | max_y[i,j,k] + abundance - 1, p_citsci[i,j,k]) +
-              binomial_logit_lpmf( // 0 museum detections
-                0 | n_visits, p_museum[i,j,k]); 
+                0 | max_y_updated + abundance - 1, p_citsci[i,j,k]) +
+              binomial_logit_lpmf(
+                0 | n_visits, p_museum[i,j,k]);
+                
           }
           
           target += log_sum_exp(lp);

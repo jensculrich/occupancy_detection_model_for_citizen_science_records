@@ -182,11 +182,13 @@ simulate_data <- function(n_species,
     for(site in 1:n_sites){
       for(species in 1:n_species){
         
-        # if site is in the species's range, then determine occupancy with some prob psi
-        # else occupancy state is 0
+        # if site is in the species's range, 
+        # and is also suitable
+        # then determine abundance with some prob lambda
+        # else abundance state is 0
         if(ranges[species,site,1,1] == 1 && suitability[species,site,interval,1]) {
           
-          N_matrix[species,site,interval] <- rpois(n = 1, 
+          N_matrix[species,site,interval] <- rnbinom(n = 1, 
                                                    mu = lambda_matrix[species,site,interval], 
                                                    size = phi)
 
@@ -417,7 +419,7 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(1)
+set.seed(2)
 my_simulated_data <- simulate_data(n_species,
                                    n_sites,
                                    n_intervals,
