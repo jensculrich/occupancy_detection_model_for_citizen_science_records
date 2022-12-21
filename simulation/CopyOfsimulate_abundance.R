@@ -15,8 +15,9 @@ simulate_data <- function(n_species,
                           n_visits,
                           
                           # ecological process
-                          gamma_0,
-                          gamma_1,
+                          omega,
+                          #gamma_0,
+                          #gamma_1,
                           phi,
                           
                           mu_eta_0,
@@ -120,7 +121,7 @@ simulate_data <- function(n_species,
   
   # preview the psi and p arrays
   # head(eta_matrix[1:n_species, 1:n_sites,1])
-  head(p_matrix_museum[1:n_species, 1:n_sites,1,1])
+  head(p_matrix_citsci[1:n_species, 1:n_sites,1,1])
   
   # (p_matrix[1,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
   # (p_matrix[2,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
@@ -164,7 +165,7 @@ simulate_data <- function(n_species,
         # rep across visits so the site is open to a species or closed to a species
         # across all visits 1:n_visits
         suitability[species,site,interval] <- 
-          rbinom(1,1,prob=inv_logit(gamma_0 + gamma_1*(log_eta_matrix[species,site,interval])))
+          rbinom(1,1,prob=omega)
         
       }
     }
@@ -216,7 +217,7 @@ simulate_data <- function(n_species,
     for(site in 1:n_sites){
       for(species in 1:n_species){
         
-        if(N_matrix[species,site,interval] > 0) {
+        if(suitability[species,site,interval] > 0) {
           
           # if one or more is present, then transform into a binary response of presence
           Z_matrix[species,site,interval] <- 1
@@ -382,17 +383,18 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 7 ## number of species
-n_sites = 7 ## number of sites
+n_species = 10 ## number of species
+n_sites = 10 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
 ## ecological process
-gamma_0 = 1
-gamma_1 = 0
-phi = 1
+omega = 0.8
+#gamma_0 = 1
+#gamma_1 = 0
+phi = 2
 
-mu_eta_0 = 2
+mu_eta_0 = 3.5
 eta_site_area = 1
 
 
@@ -419,15 +421,16 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(2)
+set.seed(1)
 my_simulated_data <- simulate_data(n_species,
                                    n_sites,
                                    n_intervals,
                                    n_visits,
                                    
                                    # ecological process
-                                   gamma_0,
-                                   gamma_1,
+                                   omega,
+                                   #gamma_0,
+                                   #gamma_1,
                                    phi,
                                    
                                    mu_eta_0,
@@ -493,7 +496,7 @@ params <- c("omega",
             
 )
 
-parameter_value <- c(0.73,
+parameter_value <- c(omega,
                      # gamma_0,
                      #gamma_1,
                      phi,
@@ -508,9 +511,9 @@ parameter_value <- c(0.73,
 )
 
 # MCMC settings
-n_iterations <- 400
+n_iterations <- 500
 n_thin <- 2
-n_burnin <- 200
+n_burnin <- 250
 n_chains <- 3
 n_cores <- 4
 
@@ -519,7 +522,9 @@ n_cores <- 4
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
   
-  list(phi = runif(1, 0, 1),
+  list(omega = runif(1, 0, 1),
+    
+       phi = runif(1, 0, 1),
        
        mu_eta_0 = runif(1, 0, 1),
        
@@ -527,7 +532,7 @@ inits <- lapply(1:n_chains, function(i)
        
        mu_p_museum_0 = runif(1, -1, 1),
        
-       gamma_0 = runif(1, -0.25, 0.25),
+       #gamma_0 = runif(1, -0.25, 0.25),
        
        #gamma_1 = runif(1, -0.25, 0.25),
        
