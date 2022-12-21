@@ -8,13 +8,15 @@
 # a few species only might be targeted and not fully community wide)
 
 # model fitting using 'model_simplest.stan' should return the parameter inputs
+
 simulate_data <- function(n_species,
                           n_sites,
                           n_intervals,
                           n_visits,
                           
                           ## ecological process
-                          omega,
+                          omega_0,
+                          omega_1,
                           phi,
                           
                           mu_lambda_0,
@@ -31,7 +33,7 @@ simulate_data <- function(n_species,
 ){
   
   ## ilogit and logit functions
-  ilogit <- function(x) exp(x)/(1+exp(x))
+  inv_logit <- function(x) exp(x)/(1+exp(x))
   logit <- function(x) log(x/(1-x))
   
   
@@ -162,7 +164,9 @@ simulate_data <- function(n_species,
         
         # rep across visits so the site is open to a species or closed to a species
         # across all visits 1:n_visits
-        suitability[species,site,interval,1:n_sites] <- rep(rbinom(1, 1, prob=omega), n_sites)
+        suitability[species,site,interval,1:n_visits] <- rep( # rep across visits
+          rbinom(1, 1, prob=inv_logit(omega_0 + omega_1*log(lambda_matrix[species,site,interval]))), 
+          n_visits)
         
       }
     }
@@ -245,7 +249,7 @@ simulate_data <- function(n_species,
           V_citsci[species,site,interval,visit] <-  rbinom(
             n = 1, 
             size = N_matrix[species,site,interval], 
-            prob = ilogit(p_matrix_citsci[species,site,interval,visit]))
+            prob = inv_logit(p_matrix_citsci[species,site,interval,visit]))
           
         }
       }
@@ -270,7 +274,7 @@ simulate_data <- function(n_species,
             # N_matrix[species,site,interval]
             rbinom(n = 1, 
                    size = Z_matrix[species,site,interval], 
-                   prob = ilogit(p_matrix_museum[species,site,interval,visit]))
+                   prob = inv_logit(p_matrix_museum[species,site,interval,visit]))
           
         }
       }
@@ -389,7 +393,8 @@ n_intervals = 3 ## number of occupancy intervals
 n_visits = 6 ## number of samples per year
 
 ## ecological process
-omega = 0.8
+omega_0 = 0
+omega_1 = 0.5
 phi = 1.5
 
 mu_lambda_0 = 3
@@ -419,14 +424,15 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(2)
+set.seed(1)
 my_simulated_data <- simulate_data(n_species,
                                    n_sites,
                                    n_intervals,
                                    n_visits,
                                    
                                    # ecological process
-                                   omega, 
+                                   omega_0,
+                                   omega_1,
                                    phi,
                                    
                                    mu_lambda_0,
@@ -455,8 +461,6 @@ n_sites <- my_simulated_data$n_sites # number of sites
 n_intervals <- my_simulated_data$n_intervals # number of surveys 
 n_visits <- my_simulated_data$n_visits
 K <- my_simulated_data$K
-rho_uv_simmed <- my_simulated_data$rho_uv_simmed
-sigma_uv <- cbind(sigma_u, sigma_v)
 
 sum(my_simulated_data$V_citsci >= 1)
 sum(my_simulated_data$V_citsci)
@@ -479,7 +483,8 @@ stan_data <- c("V_citsci",
                ) 
 
 # Parameters monitored
-params <- c("omega",
+params <- c("omega_0",
+            "omega_1",
             "phi",
             
             "mu_lambda_0",
@@ -490,7 +495,8 @@ params <- c("omega",
             
 )
 
-parameter_value <- c(omega,
+parameter_value <- c(omega_0,
+                     omega_1,
                      phi,
                      
                      mu_lambda_0,
@@ -515,13 +521,14 @@ inits <- lapply(1:n_chains, function(i)
   
   list(phi = runif(1, 0, 1),
        
-       mu_lambda_0 = runif(1, -1, 1),
+       mu_lambda_0 = runif(1, 0, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
        
        mu_p_museum_0 = runif(1, -1, 1),
        
-       omega = runif(1, 0, 1)
+       omega_0 = runif(1, -0.1, 0.1),
+       omega_1 = runif(1, -0.1, 0.1)
        
   )
 )

@@ -4,22 +4,6 @@
 // citizen science data and gbif data may have their own observation processes
 // and also allows for missing (NA) data
 
-functions {
- 
- real update_max_y(real y){
-   
-   real tmp = y;
-   
-   if (y == 0){
-     tmp = y + 1;
-   } else{
-     tmp = y;
-   }
-   return (tmp);
- }
-  
-}
-
 data {
   
   int<lower=1> n_species;  // observed species
@@ -49,21 +33,53 @@ data {
 
 transformed data {
   int<lower=0> max_y[n_species, n_sites, n_intervals];
+  int<lower=0> max_y_lower[n_species, n_sites, n_intervals];
   
   for (i in 1:n_species) {
     for(j in 1:n_sites){
       for(k in 1:n_intervals){
+        
+        // Set the floor of the latent state search to be at least as many as the most 
+        // that we observed of a species at a site in a time interval (by cit sci records)
         max_y[i,j,k] = max(V_citsci[i,j,k]);
-      }
-    }
-  }
+        
+        // We only search abundance if it is it must be greater than 1, i.e.,
+        // was detected by a museum but not by citizen science
+        // or we search in a hypothetical situation where the site is suitable
+        // we did not detect and records, but we consider the probabiility that 1:K
+        // individuals exist and went undetected.
+        // Therefore, replace any max_y == 0 with max_y == 1 
+        // to be the floor of the latent state search.
+        if(max_y[i,j,k] == 0){
+            max_y[i,j,k] = 1;
+          } else {
+            max_y[i,j,k] = max_y[i,j,k];
+          }
+      
+      } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species
+  
+  for (i in 1:n_species) {
+    for(j in 1:n_sites){
+      for(k in 1:n_intervals){
+        
+        // Set the floor of the latent state search to be at least as many as the most 
+        // that we observed of a species at a site in a time interval (by cit sci records)
+        // Allow max_y_lower to stay at 0 if we didn't observe any records
+        max_y_lower[i,j,k] = max(V_citsci[i,j,k]);
+      
+      } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species
   
 } // end transformed data
 
 parameters {
   
   // ABUNDANCE
-  real<lower=0, upper=1> omega; // Suitability
+  real omega_0; // occupancy intercept
+  real omega_1; // relationship between abundance and occupancy 
   real<lower=0> phi; // abundance overdispersion parameter
   
   real mu_lambda_0; // global intercept for occupancy
@@ -81,9 +97,11 @@ parameters {
 
 transformed parameters {
   
-  real lambda[n_species, n_sites, n_intervals];  // odds of occurrence
+  real lambda[n_species, n_sites, n_intervals]; // mean of abundance process
   real p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
   real p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
+  
+  real<lower=0, upper=1> omega[n_species, n_sites, n_intervals]; // Availability
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -125,7 +143,19 @@ transformed parameters {
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species
-             
+  
+  // Smith et al. 2012 Ecology trick for incorporating the abundance-occupancy 
+  // relationship into a zero-inflated abundance model
+  for (i in 1:n_species){   // loop across all species
+    for (j in 1:n_sites){    // loop across all sites
+      for(k in 1:n_intervals){ // loop across all intervals  
+        
+        // availability is predicted by abundance
+        omega[i,j,k] = inv_logit(omega_0 + omega_1*lambda[i,j,k]);
+        
+      } // end loop across all intervals
+    } // end loop across all sites
+  }  // end loop across all species
   
 } // end transformed parameters
 
@@ -136,7 +166,9 @@ model {
   
   // Abundance (Ecological Process)
   
-  // implicit flat 0,1 prior used on omega
+  omega_0 ~ cauchy(0, 1);
+  omega_1 ~ cauchy(0, 1);
+  
   phi ~ cauchy(0, 2.5); // abundance overdispersion scale parameter
   
   mu_lambda_0 ~ cauchy(0, 2.5); // global intercept for occupancy rate
@@ -158,62 +190,67 @@ model {
     for(j in 1:n_sites) { // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
           
-        // if max_y[i,j,k] = 0, replace with 1 - 
-            // because there can't be 0 individuals if it was detected by museum records
-          int max_y_updated;
-          if(max_y[i,j,k] == 0){
-            max_y_updated = 1;
-          } else {
-            max_y_updated = max_y[i,j,k];
-          }
-        
-        // If the site is in the range
+        // If the site is in the range of a species
         if(sum(V_citsci_NA[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if not in range
         
+        // If a species was detected at least once by either data set, Nijk > 0;
+        // Evaluate sum probabilty of an abundance generating term (lambda_ijk),
+        // an individual-level detection rate by citizen science data collections (p_citsci_ijk),
+        // a species-level detection rate by museum data collections (p_museum_ijk),
+        // and an occupancy-abundance relationship (omega_ijk)
         if(sum(V_citsci[i,j,k]) > 0 || sum(V_museum[i,j,k]) > 0) {
           
           vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
             // (from max observed to K)
           
           // for each possible abundance:
-          for(abundance in 1:(K[i,j,k] - max_y_updated + 1)){ 
+          for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ 
           
             // lp of abundance given ecological model and observational model
             lp[abundance] = 
               // vectorized over n visits..
-              neg_binomial_2_log_lpmf(
-                max_y_updated + abundance - 1 | lambda[i,j,k], phi) + 
-              binomial_logit_lpmf(
-                V_citsci[i,j,k] | max_y_updated + abundance - 1, p_citsci[i,j,k]) +
-              binomial_logit_lpmf(
+              neg_binomial_2_log_lpmf( // generation of abundance given lambda
+                max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi) + 
+              binomial_logit_lpmf( // individual-level detection, citizen science
+                V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, p_citsci[i,j,k]) +
+              binomial_logit_lpmf( // binary, species-level detecion, museums
                 sum(V_museum[i,j,k,1:n_visits]) | n_visits, p_museum[i,j,k]); 
           
           }
                 
-          target += log_sum_exp(
-              bernoulli_lpmf(1 | omega) + 
-              lp);
+          target += log_sum_exp(lp +
+              // plus outcome of site being available, given the 
+              // abundance-dependent probability of suitability
+              bernoulli_lpmf(1 | omega[i,j,k]) 
+              );
         
         } else { // else was never detected and may or may not be present
           
           real lp[2];
-      
-          lp[1] = bernoulli_lpmf(0 | omega); // not present
-          lp[2] = bernoulli_lpmf(1 | omega); // present but not observed
           
-          // probability present at some unknown abundance  >= 1; but never observed 
-          for(abundance in 1:(K[i,j,k] - max_y_updated + 1)){
+          // outcome of site being unavailable for occupancy, given the 
+          // abundance-dependent probability of suitability
+          lp[1] = bernoulli_lpmf(0 | omega[i,j,k]); // not present
+          // outcome of site being available for occupancy, given the 
+          // abundance-dependent probability of suitability
+          lp[2] = bernoulli_lpmf(1 | omega[i,j,k]); // present but not observed
+          
+          // probability present at an available site with
+          // some unknown latent abundance state >= 1; but never observed 
+          for(abundance in 1:(K[i,j,k] - max_y_lower[i,j,k] + 1)){
             
             lp[2] = lp[2] +
-             neg_binomial_2_log_lpmf(
-                max_y_updated + abundance - 1 | lambda[i,j,k], phi) +
-              binomial_logit_lpmf( // 0 citsci detections
-                0 | max_y_updated + abundance - 1, p_citsci[i,j,k]) +
-              binomial_logit_lpmf(
+             neg_binomial_2_log_lpmf( // generation of abundance given lambda
+                max_y_lower[i,j,k] + abundance - 1 | lambda[i,j,k], phi) +
+              binomial_logit_lpmf( // 0 individual-level detection, citizen science
+                0 | max_y_lower[i,j,k] + abundance - 1, p_citsci[i,j,k]) +
+              binomial_logit_lpmf( // 0 binary, species-level detecion, museums
                 0 | n_visits, p_museum[i,j,k]);
                 
           }
           
+          // sum lp of both possibilities of availability
+          // and all possible abundance states that went unobserved if it's available
           target += log_sum_exp(lp);
         
         } // end else
