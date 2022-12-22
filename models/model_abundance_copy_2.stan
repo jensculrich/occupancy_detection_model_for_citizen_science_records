@@ -32,8 +32,7 @@ data {
 
 transformed data {
   int<lower=0> max_y[n_species, n_sites, n_intervals];
-  int<lower=0> max_y_lower[n_species, n_sites, n_intervals];
-  
+
   for (i in 1:n_species) {
     for(j in 1:n_sites){
       for(k in 1:n_intervals){
@@ -58,20 +57,7 @@ transformed data {
       } // end loop across intervals
     } // end loop across sites
   } // end loop across species
-  
-  for (i in 1:n_species) {
-    for(j in 1:n_sites){
-      for(k in 1:n_intervals){
-        
-        // Set the floor of the latent state search to be at least as many as the most 
-        // that we observed of a species at a site in a time interval (by cit sci records)
-        // Allow max_y_lower to stay at 0 if we didn't observe any records
-        max_y_lower[i,j,k] = max(V_citsci[i,j,k]);
-      
-      } // end loop across intervals
-    } // end loop across sites
-  } // end loop across species
-  
+
 } // end transformed data
 
 parameters {
@@ -297,3 +283,84 @@ model {
   } // end loop across all species
   
 } // end model
+
+generated quantities {
+  
+  // Posterior Predictive Check
+  
+  int<lower=0> N[n_species,n_sites,n_intervals]; // predicted abundance 
+
+  real eval[n_species,n_sites,n_intervals,n_visits]; // Expected values
+  
+  int y_new[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
+    
+  real E[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
+  real E_new[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
+  
+  real fit = 0; // sum squared distances of real data across all observation intervals
+  real fit_new = 0; // sum squared distances of new data across all observation intervals
+ 
+  // predict abundance given log_eta
+  for (i in 1:n_species){ // loop across all species
+    for (j in 1:n_sites){ // loop across all sites
+      for(k in 1:n_intervals){ // loop across all intervals
+        
+        if(bernoulli_logit_rng(omega[i,j,k]) == 1){ // if the site is suitable
+            
+            // predict the abundance from the count distribution
+            N[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+            
+        } else { // else the site is not suitable
+          
+          // and abundance is an excess zero
+          N[i,j,k] = 0;
+          
+        } // end if/else 
+      
+      } // loop across all intervals
+    } // loop across all sites
+  } // loop across all species
+    
+  // Initialize E and E_new
+  for(l in 1:n_visits) {
+      E[1,1,1,l] = 0;
+      E_new[1,1,1,l] = 0;
+  }
+  
+  for (i in 2:n_species){
+    for(j in 2:n_sites){
+      for(k in 2:n_intervals){
+        
+        E[i,j,k] = E[i-1,j-1,k-1];
+        E_new[i,j,k] = E_new[i-1,j-1,k-1];
+    
+      }
+    }
+  }
+  
+  for (i in 1:n_species){ // loop across all species
+    for (j in 1:n_sites){ // loop across all sites
+      for(k in 1:n_intervals){ // loop across all intervals
+        for(l in 1:n_visits){ // loop across all visits
+         
+          // Assess model fit using Chi-squared discrepancy
+          // Compute fit statistic E for observed data
+          eval[i,j,k,l] = inv_logit(logit_p_citsci[i,j,k]) * neg_binomial_2_rng(exp(log_eta[i,j,k]), phi); // expected value at observation i for visit j 
+          // (probabilty across visits is fixed) is = expected detection prob * expected abundance
+          // Compute fit statistic E_new for real data (V)
+          E[i,j,k,l] = square(V_citsci[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+          // Generate new replicate count data and
+          y_new[i,j,k,l] = binomial_rng(N[i,j,k], inv_logit(logit_p_citsci[i,j,k]));
+          // Compute fit statistic E_new for replicate data
+          E_new[i,j,k,l] = square(y_new[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+      
+        } // loop across all visits
+    
+        fit = fit + sum(E[i,j,k]); // descrepancies for each site*species*interval combo (across 1:l visits)
+        fit_new = fit_new + sum(E_new[i,j,k]); // descrepancies for generated data (across 1:l visits)
+                                      
+      } // loop across all intervals
+    } // loop across all sites
+  } // loop across all species
+  
+}

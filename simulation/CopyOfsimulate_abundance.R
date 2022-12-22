@@ -415,8 +415,8 @@ simulate_data <- function(
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 16 ## number of species
-n_sites = 16 ## number of sites
+n_species = 8 ## number of species
+n_sites = 8 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
@@ -427,7 +427,7 @@ gamma_1 = 0.5
 phi = 2
 
 # abundance
-mu_eta_0 = 3.5
+mu_eta_0 = 3
 sigma_eta_species = 0.75
 eta_site_area = 1
 
@@ -447,14 +447,14 @@ sigma_p_museum_species = 0.5
 # introduce NAs (visits that did not survey entire community)?
 sites_missing = 0.5*n_sites 
 intervals_missing = 2
-visits_missing = 4
+visits_missing = 2
 
 sites_in_range_beta1 = 5
 sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(13)
+set.seed(112)
 my_simulated_data <- simulate_data(## Study design
                                    n_species,
                                    n_sites,
@@ -540,8 +540,11 @@ params <- c(#"omega",
             "sigma_p_citsci_species",
             
             "mu_p_museum_0",
-            "sigma_p_museum_species"
+            "sigma_p_museum_species",
             
+            # posterior predictive check
+            "fit",
+            "fit_new"
 )
 
 parameter_value <- c(#omega,
@@ -557,8 +560,10 @@ parameter_value <- c(#omega,
                      sigma_p_citsci_species,
                      
                      mu_p_museum_0,
-                     sigma_p_museum_species
+                     sigma_p_museum_species,
                      
+                     NA, # posterior predictive check
+                     NA # posterior predictive check
 )
 
 # MCMC settings
@@ -625,9 +630,9 @@ traceplot(stan_out_sim, pars = c(
   "mu_p_citsci_0",
   "mu_p_museum_0",
   "phi",
-  "omega"
-  #"gamma_0",
-  #"gamma_1"
+  #"omega"
+  "gamma_0",
+  "gamma_1"
 ))
 
 # pairs plot
@@ -643,5 +648,26 @@ pairs(stan_out_sim, pars = c(
 ))
 
 # should now also write a posterior predictive check into the model
+list_of_draws <- as.data.frame(stan_out_sim)
 
+# Evaluation of fit
+plot(list_of_draws$fit, list_of_draws$fit_new, main = "", xlab =
+       "Discrepancy actual data", ylab = "Discrepancy replicate data",
+     frame.plot = FALSE,
+     ylim = c(25000, 90000),
+     xlim = c(25000, 90000))
+abline(0, 1, lwd = 2, col = "black")
+
+# Should be close to 1. 
+# If the mean of actual data is greater (value > 1)
+# then the model underpredicts the real variation in counts.
+# If the mean of actual data is less (value < 1)
+# then the model overpredicts the variation in counts.
+mean(list_of_draws$fit) / mean(list_of_draws$fit_new)
+
+# Should be close to 50% or 0.5
+# similarly the actual data should be further away from  
+# the expected value of the count about half of the time,
+# (versus a count generated using the abundance rate and detection rate)
+mean(list_of_draws$fit_new > list_of_draws$fit)
 
