@@ -22,7 +22,7 @@ data {
   int<lower=0> V_museum[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   
   int<lower=0> ranges[n_species, n_sites, n_intervals, n_visits];  // NA indicator where 1 == site is in range, 0 == not in range
-  //int<lower=0> V_museum_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
+  int<lower=0> V_museum_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
   
   int<lower=0> K[n_species, n_sites, n_intervals]; // Upper bound of population size
   
@@ -79,8 +79,9 @@ parameters {
   // ABUNDANCE
   
   //real<lower=0,upper=1> omega;
-  real gamma_0; // occupancy intercept
-  real gamma_1; // relationship between abundance and occupancy 
+  real<lower=0,upper=1> omega;
+  //real gamma_0; // occupancy intercept
+  //real gamma_1; // relationship between abundance and occupancy 
   
   real<lower=0> phi; // abundance overdispersion parameter
   
@@ -88,13 +89,28 @@ parameters {
   
   real eta_site_area; // effect of site are on occupancy
   
+  // species specific intercept allows some species to occur at higher rates than others, 
+  // but with overall estimates for occupancy partially informed by the data pooled across all species.
+  vector[n_species] eta_species; // species specific intercept for occupancy
+  real<lower=0> sigma_eta_species; // variance in species intercepts
+  
   // DETECTION
   
   // citizen science observation process
   real mu_p_citsci_0; // global detection intercept for citizen science records
   
+  // species specific intercept allows some species to be detected at higher rates than others, 
+  // but with overall estimates for occupancy partially informed by the data pooled across all species.
+  vector[n_species] p_citsci_species; // species specific intercept for detection
+  real<lower=0> sigma_p_citsci_species; // variance in species intercepts
+  
   // museum records observation process
   real mu_p_museum_0; // global detection intercept for citizen science records
+  
+  // species specific intercept allows some species to be detected at higher rates than others, 
+  // but with overall estimates for occupancy partially informed by the data pooled across all species.
+  vector[n_species] p_museum_species; // species specific intercept for detection
+  real<lower=0> sigma_p_museum_species; // variance in species intercepts
   
 } // end parameters
 
@@ -105,7 +121,7 @@ transformed parameters {
   real logit_p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
   real logit_p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
   
-  real omega[n_species, n_sites, n_intervals]; // availability
+  //real omega[n_species, n_sites, n_intervals]; // availability
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -113,7 +129,7 @@ transformed parameters {
           
           log_eta[i,j,k] = // 
             mu_eta_0 + // a baseline intercept
-            //psi_species[species[i]] + // a species specific intercept
+            eta_species[species[i]] + // a species-specific intercept
             //psi_site[sites[j]] + // a site specific intercept
             //psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
             //psi_pop_density[species[i]]*pop_densities[j] + // an effect of pop density on occurrence
@@ -124,7 +140,7 @@ transformed parameters {
           // relationship into a zero-inflated abundance model  
           // availability is predicted by abundance
           // omega is logit scaled
-          omega[i,j,k] = gamma_0 + gamma_1 * log_eta[i,j,k];
+          //omega[i,j,k] = gamma_0 + gamma_1 * log_eta[i,j,k];
             
       } // end loop across all intervals
     } // end loop across all sites
@@ -135,16 +151,16 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals
         
           logit_p_citsci[i,j,k] =  // logit scaled individual-level detection rate
-            mu_p_citsci_0 //+ // a baseline intercept
-            //p_citsci_species[species[i]] + // a species specific intercept
+            mu_p_citsci_0 + // a baseline intercept
+            p_citsci_species[species[i]] //+ // a species specific intercept
             //p_citsci_site[sites[j]] + // a spatially specific intercept
             //p_citsci_interval*intervals[k] + // an overall effect of time on detection
             //p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
           logit_p_museum[i,j,k] = // logit scaled species-level detection rate
-            mu_p_museum_0 //+ // a baseline intercept
-            //p_museum_species[species[i]] + // a species specific intercept
+            mu_p_museum_0 + // a baseline intercept
+            p_museum_species[species[i]] //+ // a species specific intercept
             //p_museum_site[sites[j]] + // a spatially specific intercept
             //p_museum_interval*intervals[k] + // an overall effect of time on detection
             //p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
@@ -163,12 +179,17 @@ model {
   
   // Abundance (Ecological Process)
   
-  gamma_0 ~ normal(0, 0.5);
-  gamma_1 ~ normal(0, 0.5);
+  //gamma_0 ~ normal(0, 0.5);
+  //gamma_1 ~ normal(0, 0.5);
   
   phi ~ cauchy(0, 2.5); // abundance overdispersion scale parameter
   
   mu_eta_0 ~ cauchy(0, 2.5); // global intercept for abundance rate
+  
+  eta_species ~ normal(0, sigma_eta_species); 
+  // occupancy intercept for each species drawn from the community
+  // distribution (variance defined by sigma), centered at 0. 
+  sigma_eta_species ~ normal(0, 1); // weakly informative prior
   
   eta_site_area ~ cauchy(0, 2.5); // effect of site area on abundance rate
   
@@ -177,9 +198,19 @@ model {
   // citizen science records
   
   mu_p_citsci_0 ~ cauchy(0, 2.5); // global intercept for (citizen science) detection
+  
+  p_citsci_species ~ normal(0, sigma_p_citsci_species); 
+  // detection intercept for each species drawn from the community
+  // distribution (variance defined by sigma), centered at 0. 
+  sigma_p_citsci_species ~ cauchy(0, 1);
 
   // museum records
   mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for (museum) detection
+  
+  p_museum_species ~ normal(0, sigma_p_museum_species); 
+  // detection intercept for each species drawn from the community
+  // distribution (variance defined by sigma), centered at 0. 
+  sigma_p_museum_species ~ cauchy(0, 1);
   
   // LIKELIHOOD
   
@@ -213,14 +244,15 @@ model {
               binomial_logit_lpmf( // individual-level detection, citizen science
                 V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
               binomial_logit_lpmf( // binary, species-level detecion, museums
-                sum(V_museum[i,j,k]) | n_visits, logit_p_museum[i,j,k]); 
+                // (given the number of community sampling events that occurred)
+                sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]); 
           
           }
                 
           target += log_sum_exp(lp +
               // plus outcome of site being available, given the 
               // abundance-dependent probability of suitability
-              bernoulli_logit_lpmf(1 | omega[i,j,k]) 
+              bernoulli_lpmf(1 | omega) 
               );
         
         } else { // else was never detected and the site may or may not be available
@@ -229,10 +261,10 @@ model {
           
           // outcome of site being unavailable for occupancy, given the 
           // abundance-dependent probability of suitability
-          lp[1] = bernoulli_logit_lpmf(0 | omega[i,j,k]); // site not available for species in interval
+          lp[1] = bernoulli_lpmf(0 | omega); // site not available for species in interval
           // outcome of site being available for occupancy, given the 
           // abundance-dependent probability of suitability
-          lp[2] = bernoulli_logit_lpmf(1 | omega[i,j,k]); // available but not observed
+          lp[2] = bernoulli_lpmf(1 | omega); // available but not observed
           
           // probability present at an available site with
           // some unknown latent abundance state; but never observed.
@@ -246,7 +278,8 @@ model {
               binomial_logit_lpmf( // 0 individual-level detections, citizen science
                 0 | max_y_lower[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
               binomial_logit_lpmf( // 0 species-level detecions, museums
-                0 | n_visits, logit_p_museum[i,j,k]);
+                // (given the number of community sampling events that occurred)
+                0 | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
                 
           }
           

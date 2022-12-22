@@ -9,29 +9,42 @@
 
 # model fitting using 'model_simplest.stan' should return the parameter inputs
 
-simulate_data <- function(n_species,
-                          n_sites,
-                          n_intervals,
-                          n_visits,
-                          
-                          # ecological process
-                          #omega,
-                          gamma_0,
-                          gamma_1,
-                          phi,
-                          
-                          mu_eta_0,
-                          eta_site_area,
-                          
-                          # citizen science observation process
-                          mu_p_citsci_0,
-                          
-                          # museum record observation process
-                          mu_p_museum_0,
-                          
-                          # range dynamics
-                          sites_in_range_beta1,
-                          sites_in_range_beta2
+simulate_data <- function(
+    ## Study design
+    n_species,
+    n_sites,
+    n_intervals,
+    n_visits,
+    
+    ## Ecological process
+    # dispersion and zero-inflation
+    omega,
+    #gamma_0,
+    #gamma_1,
+    phi,
+    
+    # abundance
+    mu_eta_0,
+    sigma_eta_species,
+    eta_site_area,
+    
+    ## Detection process
+    # citizen science observation process
+    mu_p_citsci_0,
+    sigma_p_citsci_species,
+    
+    # museum record observation process
+    mu_p_museum_0,
+    sigma_p_museum_species,
+    
+    ## Range dynamics
+    sites_in_range_beta1,
+    sites_in_range_beta2,
+    
+    ## Community surveys
+    sites_missing,
+    intervals_missing,
+    visits_missing
 ){
   
   ## ilogit and logit functions
@@ -62,7 +75,28 @@ simulate_data <- function(n_species,
   site_area <- rnorm(n_sites, mean = 0, sd = 1)
   
   ## --------------------------------------------------
-  ## Create arrays for psi and p
+  ### specify species-specific abundance rates
+  
+  ## species-specific random intercepts
+  eta_species <- rnorm(n=n_species, mean=0, sd=sigma_eta_species)
+  # species baseline occupancy is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma_eta_sp
+  
+  ## --------------------------------------------------
+  ### specify species-specific detection probabilities
+  
+  ## species-specific random intercepts
+  p_citsci_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_citsci_species)
+  # species baseline detection probability is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma_p_species
+  
+  ## species-specific random intercepts
+  p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
+  # species baseline detection probability is drawn from a normal distribution with mean 0 and 
+  # species specific variation defined by sigma_p_species
+  
+  ## --------------------------------------------------
+  ## Create arrays for abundance rate (eta) and detection rate (p)
   log_eta_matrix <- array(NA, dim =c(n_species, n_sites, n_intervals)) 
   # a psi value for each species, at each site, in each interval 
   
@@ -75,8 +109,9 @@ simulate_data <- function(n_species,
     for(site in 1:n_sites) { # for each interval
       for(interval in 1:n_intervals) { # for each species
         
-        log_eta_matrix[species, site, interval] <- # occupancy is equal to
+        log_eta_matrix[species, site, interval] <- # log abundance rate is equal to
           mu_eta_0 + # a baseline intercept
+          eta_species[species] + # a species-specific intercept  
             #eta_site[site] + # a site specific intercept
             #eta_interval[species]*intervals[interval] + # a species specific temporal change
             #eta_pop_dens[species]*pop_density[site] + # a fixed effect of population density 
@@ -85,16 +120,16 @@ simulate_data <- function(n_species,
         for(visit in 1:n_visits) { # for each visit
           
           p_matrix_citsci[species, site, interval, visit] <-  # detection is equal to 
-            mu_p_citsci_0 #+ # a baseline intercept
-              #p_citsci_species[species] + # a species specific intercept
+            mu_p_citsci_0 + # a baseline intercept
+              p_citsci_species[species] #+ # a species-specific intercept
               #p_citsci_site[site] + # a spatiotemporally specific intercept
               #p_citsci_interval*intervals[interval] + # an overall effect of time on detection
               #p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           
           p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
-            mu_p_museum_0 #+ # a baseline intercept
-            # uv[species,2] # a species intercept (correlated with species abundance)            
+            mu_p_museum_0 + # a baseline intercept
+            p_museum_species[species] #+ # a species-specific intercept            
             #p_museum_site[site] + # a spatiotemporally specific intercept
             #p_museum_interval*intervals[interval] + # an overall effect of time on detection
             #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
@@ -151,7 +186,8 @@ simulate_data <- function(n_species,
         # rep across visits so the site is open to a species or closed to a species
         # across all visits 1:n_visits
         suitability[species,site,interval] <- 
-          rbinom(1,1,prob=inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
+          rbinom(1,1,prob=omega)
+                   #inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
         
       }
     }
@@ -205,7 +241,8 @@ simulate_data <- function(n_species,
         
         if(suitability[species,site,interval] > 0) {
           
-          # if one or more is present, then transform into a binary response of presence
+          # if the site is suitable, then transform into a binary response of site available
+          # Note, this includes abundances of zero than can arise through the count distribution
           Z_matrix[species,site,interval] <- 1
        
         }
@@ -254,12 +291,25 @@ simulate_data <- function(n_species,
       for(species in 1:n_species){
         for(visit in 1:n_visits){
           
+          # if site is in the species's range
+          # then determine abundance (including 0 abundance) with some prob eta
+          # else abundance state is 0
+          if(ranges[species,site,1,1] == 1) {
+          
           V_museum[species,site,interval,visit] <- 
             # Z[species,site,interval] * # occupancy state * detection prob
             # N_matrix[species,site,interval]
             rbinom(n = 1, 
                    size = Z_matrix[species,site,interval], 
                    prob = inv_logit(p_matrix_museum[species,site,interval,visit]))
+          
+          } else{
+            
+            # if not in the range we won't detect it.
+            # This will be handled by treating as an NA using the V_museum_NA indicator generated below
+            V_museum[species,site,interval, visit] <- 0
+            
+          }
           
         }
       }
@@ -279,34 +329,32 @@ simulate_data <- function(n_species,
   # 2) community sampling didnèt occur at some sites for some visits in some intervals
   
   ## --------------------------------------------------
-  # citizen science NAs
-  
-  # ranges is the V_citsci_NA indicator
+  # museum NAs
   
   ## --------------------------------------------------
   # museum NAs
   
   # choose random sites that didn't get visited (for all species) by museum collecting visits
-  #site_missed = sample.int(n_sites, sites_missing)
-  #interval_missed = sample.int(n_intervals, intervals_missing)
-  #visit_missed = sample.int(n_visits, visits_missing)
+  site_missed = sample.int(n_sites, sites_missing)
+  interval_missed = sample.int(n_intervals, intervals_missing)
+  visit_missed = sample.int(n_visits, visits_missing)
   
   # we will make an array that holds values of 1 if sampling occurred
   # or 0 if sampling did not occur at the site*interval*visit.
-  #V_museum_NA <- V_museum 
-  #V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
+  V_museum_NA <- V_museum 
+  V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
   
   # replace all other values with 1 (was sampled)
-  #V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
+  V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
   # and now replace all NAs with 0, which will act as an indicator for the likelihood function
   # to skip over this sample by contracting the total possible number of observations that could have occurred
-  #V_museum_NA[is.na(V_museum_NA)] <- 0
+  V_museum_NA[is.na(V_museum_NA)] <- 0
   
   # now multiply by whether a site was in a range or not,
   # 1 means the species at the site in the time was BOTH..
   # a target of a community sample AND
   # the site is in the species's range
-  #V_museum_NA <- V_museum_NA*ranges
+  V_museum_NA <- V_museum_NA*ranges
   
   # now we want to replace the detection data with 0's where sampling did not occur
   # so that we are saying that a a species occurs at a site*interval..
@@ -314,20 +362,18 @@ simulate_data <- function(n_species,
   # BUT the model will remove this from contributing to the probability density by removing
   # the max number of sightings that could have occurred for 
   # each visit in the site*interval with a 0 in V_museum_NA
-  #V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
+  V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
   
   # should NEVER have a V_museum detection outside of the range and community sampling events
-  # check <- which(V_museum>V_museum_NA)  
+  check <- which(V_museum>V_museum_NA)  
   
   # sum(V_citsci == 1)
   # sum(V_museum == 1)
   # sum(V_citsci == 0)
   # sum(V_museum == 0)
   
-  # sum(V_citsci_NA == 1) # where 1 = sampled plus in range and 0 = unsampled and/or not in range
-  # sum(V_museum_NA == 1) # where 1 = sampled plus in range and 0 = unsampled and/or not in range
-  # sum(V_citsci_NA == 0)
-  # sum(V_museum_NA == 0)
+  # sum(V_museum_NA == 1) # where 1 = sampled plus in range  
+  # sum(V_museum_NA == 0) # and 0 = unsampled and/or not in range
   
   ## --------------------------------------------------
   # Max search range for each species*site*interval
@@ -352,15 +398,14 @@ simulate_data <- function(n_species,
     V_citsci = V_citsci, # detection data from citizen science records
     V_museum = V_museum, # detection data from museum records
     ranges = ranges, # array indicating whether sampling occurred in a site*interval*visit
-    #V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
+    V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
     n_species = n_species, # number of species
     n_sites = n_sites, # number of sites
     n_intervals = n_intervals, # number of surveys 
     n_visits = n_visits, # number of visits
     #pop_density = pop_density, # vector of pop densities
     site_area = site_area, # vector of site areas
-    K = K, # upper limit search area
-    mu_p_citsci_0 = mu_p_citsci_0
+    K = K # upper limit search area
   ))
   
 } # end simulate_data function
@@ -369,26 +414,26 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 10 ## number of species
+n_species = 16 ## number of species
 n_sites = 16 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
 ## ecological process
-#omega = 0.8
-gamma_0 = 0.25
-gamma_1 = 0.5
+omega = 0.8
+#gamma_0 = 0.25
+#gamma_1 = 0.5
 phi = 2
 
+# abundance
 mu_eta_0 = 3.5
+sigma_eta_species = 0.75
 eta_site_area = 1
-
 
 ## detection
 # citizen science observation process
 mu_p_citsci_0 = 0
-#p_citsci_species = 0
-#sigma_p_citsci_species = 0.5
+sigma_p_citsci_species = 0.5
 #p_citsci_site = 0
 #sigma_p_citsci_site = 0.3
 #p_citsci_interval = 1
@@ -396,41 +441,53 @@ mu_p_citsci_0 = 0
 
 # museum record observation process
 mu_p_museum_0 = -1
+sigma_p_museum_species = 0.5
 
-# introduce NAs (missed visits)?
-#sites_missing = 0.5*n_sites 
-#intervals_missing = 2
-#visits_missing = 4
+# introduce NAs (visits that did not survey entire community)?
+sites_missing = 0.5*n_sites 
+intervals_missing = 2
+visits_missing = 4
 
 sites_in_range_beta1 = 5
 sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(1)
-my_simulated_data <- simulate_data(n_species,
+set.seed(13)
+my_simulated_data <- simulate_data(## Study design
+                                   n_species,
                                    n_sites,
                                    n_intervals,
                                    n_visits,
                                    
-                                   # ecological process
-                                   # omega,
-                                   gamma_0,
-                                   gamma_1,
+                                   ## Ecological process
+                                   omega,
+                                   #gamma_0,
+                                   #gamma_1,
                                    phi,
                                    
+                                   # abundance
                                    mu_eta_0,
+                                   sigma_eta_species,
                                    eta_site_area,
                                   
+                                   ## Detection process
                                    # citizen science observation process
                                    mu_p_citsci_0,
+                                   sigma_p_citsci_species,
                                    
                                    # museum record observation process
                                    mu_p_museum_0,
+                                   sigma_p_museum_species,
                                    
-                                   # range dynamics
+                                   ## Range dynamics
                                    sites_in_range_beta1,
-                                   sites_in_range_beta2)
+                                   sites_in_range_beta2,
+                                   
+                                   ## Community surveys
+                                   sites_missing,
+                                   intervals_missing,
+                                   visits_missing)
 
 ## --------------------------------------------------
 ### Prepare data for model
@@ -439,13 +496,13 @@ my_simulated_data <- simulate_data(n_species,
 V_citsci <- my_simulated_data$V_citsci # detection data
 V_museum <- my_simulated_data$V_museum # detection data
 ranges <- my_simulated_data$ranges # indicator of whether sampling occurred
-#V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
+V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
 n_species <- my_simulated_data$n_species # number of species
 n_sites <- my_simulated_data$n_sites # number of sites
 n_intervals <- my_simulated_data$n_intervals # number of surveys 
 n_visits <- my_simulated_data$n_visits
 K <- my_simulated_data$K
-site_areas <- my_simulated_data$site_area
+
 
 sum(my_simulated_data$V_citsci >= 1)
 sum(my_simulated_data$V_citsci)
@@ -457,10 +514,11 @@ sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
 
 #pop_densities <- my_simulated_data$pop_density
-#site_areas <- my_simulated_data$site_area
+site_areas <- my_simulated_data$site_area
 
 stan_data <- c("V_citsci", 
                "V_museum",
+               "V_museum_NA",
                "ranges", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "K",
@@ -468,38 +526,44 @@ stan_data <- c("V_citsci",
                "site_areas") 
 
 # Parameters monitored
-params <- c(#"omega",
-            "gamma_0",
-            "gamma_1",
+params <- c("omega",
+            #"gamma_0",
+            #"gamma_1",
             "phi",
             
             "mu_eta_0",
+            "sigma_eta_species",
             "eta_site_area",
             
             "mu_p_citsci_0",
+            "sigma_p_citsci_species",
             
-            "mu_p_museum_0"
+            "mu_p_museum_0",
+            "sigma_p_museum_species"
             
 )
 
-parameter_value <- c(#omega,
-                     gamma_0,
-                     gamma_1,
+parameter_value <- c(omega,
+                     #gamma_0,
+                     #gamma_1,
                      phi,
                      
                      mu_eta_0,
+                     sigma_eta_species,
                      eta_site_area,
                      
                      mu_p_citsci_0,
+                     sigma_p_citsci_species,
                      
-                     mu_p_museum_0
+                     mu_p_museum_0,
+                     sigma_p_museum_species
                      
 )
 
 # MCMC settings
-n_iterations <- 600
-n_thin <- 2
-n_burnin <- 300
+n_iterations <- 400
+n_thin <- 3
+n_burnin <- 200
 n_chains <- 3
 n_cores <- 4
 
@@ -508,21 +572,21 @@ n_cores <- 4
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
   
-  list(#omega = runif(1, 0, 1),
-    
+  list(omega = runif(1, 0, 1),
+       #gamma_0 = runif(1, -0.25, 0.25),
+       #gamma_1 = runif(1, -0.25, 0.25),
        phi = runif(1, 0, 1),
        
-       mu_eta_0 = runif(1, 0, 1),
+       mu_eta_0 = runif(1, -1, 1),
+       sigma_eta_species = runif(1, 0, 1),
+       eta_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
+       sigma_p_citsci_species = runif(1, 0, 1),
        
        mu_p_museum_0 = runif(1, -1, 1),
+       sigma_p_museum_species = runif(1, 0, 1)
        
-       gamma_0 = runif(1, -0.25, 0.25),
-       
-       gamma_1 = runif(1, -0.25, 0.25),
-       
-       eta_site_area = runif(1, -1, 1)
   )
 )
 
@@ -560,8 +624,9 @@ traceplot(stan_out_sim, pars = c(
   "mu_p_citsci_0",
   "mu_p_museum_0",
   "phi",
-  "gamma_0",
-  "gamma_1"
+  "omega"
+  #"gamma_0",
+  #"gamma_1"
 ))
 
 # pairs plot
