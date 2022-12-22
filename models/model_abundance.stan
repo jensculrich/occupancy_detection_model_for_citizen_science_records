@@ -1,22 +1,5 @@
-// multi-species occupancy model for GBIF occurrence data
+// multi-species integrated abundance-occupancy model for NHC data
 // jcu, started nov 21, 2022.
-// builds on model0 by introducing integrated model structure where
-// citizen science data and gbif data may have their own observation processes
-// and also allows for missing (NA) data
-
-functions {
-  
-  // covariance matrix
-  matrix cov_matrix_2d(vector sigma, real rho) {
-    matrix[2,2] Sigma;
-    Sigma[1,1] = square(sigma[1]);
-    Sigma[2,2] = square(sigma[2]);
-    Sigma[1,2] = sigma[1] * sigma[2] * rho;
-    Sigma[2,1] = Sigma[1,2];
-    return Sigma;
-  }
-
-} // end functions
 
 data {
   
@@ -38,23 +21,56 @@ data {
   int<lower=0> V_citsci[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   int<lower=0> V_museum[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
   
-  int<lower=0> V_citsci_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
+  int<lower=0> ranges[n_species, n_sites, n_intervals, n_visits];  // NA indicator where 1 == site is in range, 0 == not in range
   //int<lower=0> V_museum_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
   
   int<lower=0> K[n_species, n_sites, n_intervals]; // Upper bound of population size
+  
+  vector[n_sites] site_areas; // spatial area extent of each site
   
 } // end data
 
 transformed data {
   int<lower=0> max_y[n_species, n_sites, n_intervals];
+  int<lower=0> max_y_lower[n_species, n_sites, n_intervals];
   
   for (i in 1:n_species) {
     for(j in 1:n_sites){
       for(k in 1:n_intervals){
+        
+        // Set the floor of the latent state search to be at least as many as the most 
+        // that we observed of a species at a site in a time interval (by cit sci records)
         max_y[i,j,k] = max(V_citsci[i,j,k]);
-      }
-    }
-  }
+        
+        // We only search abundance if it is it must be greater than 1, i.e.,
+        // was detected by a museum but not by citizen science
+        // or we search in a hypothetical situation where the site is suitable
+        // we did not detect and records, but we consider the probabiility that 1:K
+        // individuals exist and went undetected.
+        // Therefore, replace any max_y == 0 with max_y == 1 
+        // to be the floor of the latent state search.
+        if(max_y[i,j,k] == 0){
+            max_y[i,j,k] = 1;
+          } else {
+            max_y[i,j,k] = max_y[i,j,k];
+          }
+      
+      } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species
+  
+  for (i in 1:n_species) {
+    for(j in 1:n_sites){
+      for(k in 1:n_intervals){
+        
+        // Set the floor of the latent state search to be at least as many as the most 
+        // that we observed of a species at a site in a time interval (by cit sci records)
+        // Allow max_y_lower to stay at 0 if we didn't observe any records
+        max_y_lower[i,j,k] = max(V_citsci[i,j,k]);
+      
+      } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species
   
 } // end transformed data
 
@@ -62,9 +78,15 @@ parameters {
   
   // ABUNDANCE
   
+  //real<lower=0,upper=1> omega;
+  real gamma_0; // occupancy intercept
+  real gamma_1; // relationship between abundance and occupancy 
+  
   real<lower=0> phi; // abundance overdispersion parameter
   
-  real mu_lambda_0; // global intercept for occupancy
+  real mu_eta_0; // global intercept for occupancy
+  
+  real eta_site_area; // effect of site are on occupancy
   
   // DETECTION
   
@@ -74,33 +96,35 @@ parameters {
   // museum records observation process
   real mu_p_museum_0; // global detection intercept for citizen science records
   
-  // Covarying parameters
-  real<lower=-1,upper=1> rho_uv; // correlation of (abundance, detection)
-  vector<lower=0>[2] sigma_uv; // sd of (abundance, detection)
-  vector[2] uv[n_species]; // covarying species-specific abundance and museum detection rate intercepts
-  
 } // end parameters
 
 
 transformed parameters {
   
-  real lambda[n_species, n_sites, n_intervals];  // odds of occurrence
-  real p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
-  real p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
+  real log_eta[n_species, n_sites, n_intervals]; // mean of abundance process
+  real logit_p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
+  real logit_p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
+  
+  real omega[n_species, n_sites, n_intervals]; // availability
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals  
           
-          lambda[i,j,k] = // 
-            mu_lambda_0 + // a baseline intercept
-            uv[i,1]
+          log_eta[i,j,k] = // 
+            mu_eta_0 + // a baseline intercept
             //psi_species[species[i]] + // a species specific intercept
             //psi_site[sites[j]] + // a site specific intercept
             //psi_interval[species[i]]*intervals[k] + // a species specific temporal effect
             //psi_pop_density[species[i]]*pop_densities[j] + // an effect of pop density on occurrence
-            //psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
+            eta_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end lambda[i,j,k]
+          
+          // Smith et al. 2012 Ecology trick for incorporating the abundance-occupancy 
+          // relationship into a zero-inflated abundance model  
+          // availability is predicted by abundance
+          // omega is logit scaled
+          omega[i,j,k] = gamma_0 + gamma_1 * log_eta[i,j,k];
             
       } // end loop across all intervals
     } // end loop across all sites
@@ -110,7 +134,7 @@ transformed parameters {
     for (j in 1:n_sites){    // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
         
-          p_citsci[i,j,k] =  // removed inv_logit transormation..
+          logit_p_citsci[i,j,k] =  // logit scaled individual-level detection rate
             mu_p_citsci_0 //+ // a baseline intercept
             //p_citsci_species[species[i]] + // a species specific intercept
             //p_citsci_site[sites[j]] + // a spatially specific intercept
@@ -118,9 +142,8 @@ transformed parameters {
             //p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
-          p_museum[i,j,k] = // the inverse of the log odds of detection is equal to..
-            mu_p_museum_0 + // a baseline intercept
-            uv[i,2]
+          logit_p_museum[i,j,k] = // logit scaled species-level detection rate
+            mu_p_museum_0 //+ // a baseline intercept
             //p_museum_species[species[i]] + // a species specific intercept
             //p_museum_site[sites[j]] + // a spatially specific intercept
             //p_museum_interval*intervals[k] + // an overall effect of time on detection
@@ -130,7 +153,6 @@ transformed parameters {
       } // end loop across all intervals
     } // end loop across all sites
   } // end loop across all species
-             
   
 } // end transformed parameters
 
@@ -141,23 +163,23 @@ model {
   
   // Abundance (Ecological Process)
   
+  gamma_0 ~ normal(0, 0.5);
+  gamma_1 ~ normal(0, 0.5);
+  
   phi ~ cauchy(0, 2.5); // abundance overdispersion scale parameter
   
-  mu_lambda_0 ~ cauchy(0, 2.5); // global intercept for occupancy rate
+  mu_eta_0 ~ cauchy(0, 2.5); // global intercept for abundance rate
+  
+  eta_site_area ~ cauchy(0, 2.5); // effect of site area on abundance rate
   
   // Detection (Observation Process)
   
   // citizen science records
   
-  mu_p_citsci_0 ~ cauchy(0, 2.5); // global intercept for detection
+  mu_p_citsci_0 ~ cauchy(0, 2.5); // global intercept for (citizen science) detection
 
   // museum records
-  mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for detection
-  
-  // Covarying parameters
-  sigma_uv ~ cauchy(0, 2.5);
-  (rho_uv + 1) / 2 ~ beta(2, 2);
-  uv ~ multi_normal(rep_vector(0, 2), cov_matrix_2d(sigma_uv, rho_uv));
+  mu_p_museum_0 ~ cauchy(0, 2.5); // global intercept for (museum) detection
   
   // LIKELIHOOD
   
@@ -167,45 +189,74 @@ model {
     for(j in 1:n_sites) { // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
           
-        // If the site is in the range
-        if(sum(V_citsci_NA[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if not in range
+        // If the site is in the range of a species, then evaluate lp, otherwise do not (treat as NA).
+        if(sum(ranges[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if site is not in range
         
-        vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
-            // (from max observed to K) 
+        // If a species was detected at least once by either data set, Nijk > 0;
+        // Evaluate sum probabilty of an abundance generating term (lambda_ijk),
+        // an individual-level detection rate by citizen science data collections (p_citsci_ijk),
+        // a species-level detection rate by museum data collections (p_museum_ijk),
+        // and an occupancy-abundance relationship (omega_ijk)
+        if(sum(V_citsci[i,j,k]) > 0 || sum(V_museum[i,j,k]) > 0) {
           
-        for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ // for each possible abundance:
-        
-          // lp of abundance given ecological model and observational model
+          vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
+            // (from max observed to K)
           
-          lp[abundance] = 
-            neg_binomial_2_log_lpmf(
-              max_y[i,j,k] + abundance - 1 | lambda[i,j,k], phi) +
-            binomial_logit_lpmf(
-              V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, p_citsci[i,j,k]); 
-                // vectorized over n visits..
-                
-          // If the species was ever detected at the site during the interval then occupancy = 1  
-          if((sum(V_citsci_NA[i,j,k]) > 0) || (sum(V_citsci[i,j,k]) > 0)){
-                
-              lp[abundance] = lp[abundance] + 
-                
-                1 - exp(-inv_logit(p_museum[i,j,k]) * exp(lambda[i,j,k]));
-                    
-          } else {
-          // else 
-            
-            lp[abundance] = lp[abundance] + 
-                
-                exp(inv_logit(p_museum[i,j,k]) * exp(lambda[i,j,k]));
-            
+          // for each possible abundance:
+          for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ 
+          
+            // lp of abundance given ecological model and observational model
+            lp[abundance] = 
+              // vectorized over n visits..
+              neg_binomial_2_log_lpmf( // generation of abundance given count distribution
+                max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi) + 
+              binomial_logit_lpmf( // individual-level detection, citizen science
+                V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
+              binomial_logit_lpmf( // binary, species-level detecion, museums
+                sum(V_museum[i,j,k]) | n_visits, logit_p_museum[i,j,k]); 
+          
           }
-            
-            
-        }
+                
+          target += log_sum_exp(lp +
+              // plus outcome of site being available, given the 
+              // abundance-dependent probability of suitability
+              bernoulli_logit_lpmf(1 | omega[i,j,k]) 
+              );
         
-        target += log_sum_exp(lp);
+        } else { // else was never detected and the site may or may not be available
+          
+          real lp[2];
+          
+          // outcome of site being unavailable for occupancy, given the 
+          // abundance-dependent probability of suitability
+          lp[1] = bernoulli_logit_lpmf(0 | omega[i,j,k]); // site not available for species in interval
+          // outcome of site being available for occupancy, given the 
+          // abundance-dependent probability of suitability
+          lp[2] = bernoulli_logit_lpmf(1 | omega[i,j,k]); // available but not observed
+          
+          // probability present at an available site with
+          // some unknown latent abundance state; but never observed.
+          // In this formulation the latent abundance could include 0,
+          // potentially causing underestimates in species-level detection ability?
+          for(abundance in 1:(K[i,j,k] - max_y_lower[i,j,k] + 1)){
             
-        } // end loop across if in range
+            lp[2] = lp[2] +
+             neg_binomial_2_log_lpmf( // generation of abundance given count distribution
+                max_y_lower[i,j,k] + abundance - 1 | log_eta[i,j,k], phi) +
+              binomial_logit_lpmf( // 0 individual-level detections, citizen science
+                0 | max_y_lower[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
+              binomial_logit_lpmf( // 0 species-level detecions, museums
+                0 | n_visits, logit_p_museum[i,j,k]);
+                
+          }
+          
+          // sum lp of both possibilities of availability
+          // and all possible abundance states that went unobserved if it's available
+          target += log_sum_exp(lp);
+        
+        } // end else
+            
+        } // end if in range
           
       } // end loop across all intervals
     } // end loop across all sites

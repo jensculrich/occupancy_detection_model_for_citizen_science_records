@@ -15,9 +15,9 @@ simulate_data <- function(n_species,
                           n_visits,
                           
                           # ecological process
-                          omega,
-                          #gamma_0,
-                          #gamma_1,
+                          #omega,
+                          gamma_0,
+                          gamma_1,
                           phi,
                           
                           mu_eta_0,
@@ -60,20 +60,6 @@ simulate_data <- function(n_species,
   # this simulates the realism that some sites are e.g. partially on ocean or  
   # partially outside the administrative area from which we are drawing collection data.
   site_area <- rnorm(n_sites, mean = 0, sd = 1)
-  
-  ## --------------------------------------------------
-  ### specify species-specific abundance and detection rates
-  #mu_uv <- c(0, 0) # centered means since we already have grand intercepts
-  
-  #Sigma <- matrix(NA, nrow = 2, ncol = 2)
-  #Sigma[1,1] = (sigma_u)^2
-  #Sigma[2,2] = (sigma_v)^2
-  #Sigma[1,2] = sigma_u * sigma_v * rho_uv
-  #Sigma[2,1] = sigma_u * sigma_v * rho_uv
-  
-  #uv <- MASS::mvrnorm(n = n_species, mu = mu_uv, Sigma = Sigma, empirical = FALSE)
-  #uv
-  #(rho_uv_simmed <- cor(uv[,1], uv[,2])) # correlation of site occupancy and detection
   
   ## --------------------------------------------------
   ## Create arrays for psi and p
@@ -165,7 +151,7 @@ simulate_data <- function(n_species,
         # rep across visits so the site is open to a species or closed to a species
         # across all visits 1:n_visits
         suitability[species,site,interval] <- 
-          rbinom(1,1,prob=omega)
+          rbinom(1,1,prob=inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
         
       }
     }
@@ -351,7 +337,7 @@ simulate_data <- function(n_species,
     for(j in 1:n_sites){
       for(k in 1:n_intervals){
         
-        K[i,j,k] <- 5*(max(V_citsci[i,j,k,])+5)
+        K[i,j,k] <- 3*(max(V_citsci[i,j,k,])+5)
         
       }
     }
@@ -384,14 +370,14 @@ simulate_data <- function(n_species,
 ### Variable values for data simulation
 ## study dimensions
 n_species = 10 ## number of species
-n_sites = 10 ## number of sites
+n_sites = 16 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
 ## ecological process
-omega = 0.8
-#gamma_0 = 1
-#gamma_1 = 0
+#omega = 0.8
+gamma_0 = 0.25
+gamma_1 = 0.5
 phi = 2
 
 mu_eta_0 = 3.5
@@ -428,9 +414,9 @@ my_simulated_data <- simulate_data(n_species,
                                    n_visits,
                                    
                                    # ecological process
-                                   omega,
-                                   #gamma_0,
-                                   #gamma_1,
+                                   # omega,
+                                   gamma_0,
+                                   gamma_1,
                                    phi,
                                    
                                    mu_eta_0,
@@ -482,9 +468,9 @@ stan_data <- c("V_citsci",
                "site_areas") 
 
 # Parameters monitored
-params <- c("omega",
-            #"gamma_0",
-            #"gamma_1",
+params <- c(#"omega",
+            "gamma_0",
+            "gamma_1",
             "phi",
             
             "mu_eta_0",
@@ -496,9 +482,9 @@ params <- c("omega",
             
 )
 
-parameter_value <- c(omega,
-                     # gamma_0,
-                     #gamma_1,
+parameter_value <- c(#omega,
+                     gamma_0,
+                     gamma_1,
                      phi,
                      
                      mu_eta_0,
@@ -511,9 +497,9 @@ parameter_value <- c(omega,
 )
 
 # MCMC settings
-n_iterations <- 500
+n_iterations <- 600
 n_thin <- 2
-n_burnin <- 250
+n_burnin <- 300
 n_chains <- 3
 n_cores <- 4
 
@@ -522,7 +508,7 @@ n_cores <- 4
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
   
-  list(omega = runif(1, 0, 1),
+  list(#omega = runif(1, 0, 1),
     
        phi = runif(1, 0, 1),
        
@@ -532,9 +518,9 @@ inits <- lapply(1:n_chains, function(i)
        
        mu_p_museum_0 = runif(1, -1, 1),
        
-       #gamma_0 = runif(1, -0.25, 0.25),
+       gamma_0 = runif(1, -0.25, 0.25),
        
-       #gamma_1 = runif(1, -0.25, 0.25),
+       gamma_1 = runif(1, -0.25, 0.25),
        
        eta_site_area = runif(1, -1, 1)
   )

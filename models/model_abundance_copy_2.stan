@@ -1,8 +1,5 @@
-// multi-species occupancy model for GBIF occurrence data
+// multi-species integrated abundance-occupancy model for NHC data
 // jcu, started nov 21, 2022.
-// builds on model0 by introducing integrated model structure where
-// citizen science data and gbif data may have their own observation processes
-// and also allows for missing (NA) data
 
 data {
   
@@ -81,9 +78,10 @@ parameters {
   
   // ABUNDANCE
   
-  real<lower=0,upper=1> omega;
-  //real gamma_0; // occupancy intercept
-  //real gamma_1; // relationship between abundance and occupancy 
+  //real<lower=0,upper=1> omega;
+  real gamma_0; // occupancy intercept
+  real gamma_1; // relationship between abundance and occupancy 
+  
   real<lower=0> phi; // abundance overdispersion parameter
   
   real mu_eta_0; // global intercept for occupancy
@@ -107,7 +105,7 @@ transformed parameters {
   real logit_p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
   real logit_p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
   
-  //real omega[n_species, n_sites, n_intervals]; // availability
+  real omega[n_species, n_sites, n_intervals]; // availability
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -125,7 +123,8 @@ transformed parameters {
           // Smith et al. 2012 Ecology trick for incorporating the abundance-occupancy 
           // relationship into a zero-inflated abundance model  
           // availability is predicted by abundance
-          //omega[i,j,k] = gamma_0;
+          // omega is logit scaled
+          omega[i,j,k] = gamma_0 + gamma_1 * log_eta[i,j,k];
             
       } // end loop across all intervals
     } // end loop across all sites
@@ -164,8 +163,8 @@ model {
   
   // Abundance (Ecological Process)
   
-  //gamma_0 ~ normal(0, 1);
-  //gamma_1 ~ normal(0, 1);
+  gamma_0 ~ normal(0, 0.5);
+  gamma_1 ~ normal(0, 0.5);
   
   phi ~ cauchy(0, 2.5); // abundance overdispersion scale parameter
   
@@ -221,7 +220,7 @@ model {
           target += log_sum_exp(lp +
               // plus outcome of site being available, given the 
               // abundance-dependent probability of suitability
-              bernoulli_lpmf(1 | omega) 
+              bernoulli_logit_lpmf(1 | omega[i,j,k]) 
               );
         
         } else { // else was never detected and the site may or may not be available
@@ -230,10 +229,10 @@ model {
           
           // outcome of site being unavailable for occupancy, given the 
           // abundance-dependent probability of suitability
-          lp[1] = bernoulli_lpmf(0 | omega); // site not available for species in interval
+          lp[1] = bernoulli_logit_lpmf(0 | omega[i,j,k]); // site not available for species in interval
           // outcome of site being available for occupancy, given the 
           // abundance-dependent probability of suitability
-          lp[2] = bernoulli_lpmf(1 | omega); // available but not observed
+          lp[2] = bernoulli_logit_lpmf(1 | omega[i,j,k]); // available but not observed
           
           // probability present at an available site with
           // some unknown latent abundance state; but never observed.
