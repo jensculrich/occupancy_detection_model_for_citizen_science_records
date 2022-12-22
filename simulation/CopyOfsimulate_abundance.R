@@ -18,9 +18,9 @@ simulate_data <- function(
     
     ## Ecological process
     # dispersion and zero-inflation
-    omega,
-    #gamma_0,
-    #gamma_1,
+    #omega,
+    gamma_0,
+    gamma_1,
     phi,
     
     # abundance
@@ -186,7 +186,8 @@ simulate_data <- function(
         # rep across visits so the site is open to a species or closed to a species
         # across all visits 1:n_visits
         suitability[species,site,interval] <- 
-          rbinom(1,1,prob=omega)
+          rbinom(1,1, inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
+                 #prob=omega)
                    #inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
         
       }
@@ -420,9 +421,9 @@ n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
 ## ecological process
-omega = 0.8
-#gamma_0 = 0.25
-#gamma_1 = 0.5
+#omega = 0.8
+gamma_0 = 0.25
+gamma_1 = 0.5
 phi = 2
 
 # abundance
@@ -461,9 +462,9 @@ my_simulated_data <- simulate_data(## Study design
                                    n_visits,
                                    
                                    ## Ecological process
-                                   omega,
-                                   #gamma_0,
-                                   #gamma_1,
+                                   #omega,
+                                   gamma_0,
+                                   gamma_1,
                                    phi,
                                    
                                    # abundance
@@ -526,9 +527,9 @@ stan_data <- c("V_citsci",
                "site_areas") 
 
 # Parameters monitored
-params <- c("omega",
-            #"gamma_0",
-            #"gamma_1",
+params <- c(#"omega",
+            "gamma_0",
+            "gamma_1",
             "phi",
             
             "mu_eta_0",
@@ -543,9 +544,9 @@ params <- c("omega",
             
 )
 
-parameter_value <- c(omega,
-                     #gamma_0,
-                     #gamma_1,
+parameter_value <- c(#omega,
+                     gamma_0,
+                     gamma_1,
                      phi,
                      
                      mu_eta_0,
@@ -572,9 +573,9 @@ n_cores <- 4
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
   
-  list(omega = runif(1, 0, 1),
-       #gamma_0 = runif(1, -0.25, 0.25),
-       #gamma_1 = runif(1, -0.25, 0.25),
+  list(#omega = runif(1, 0, 1),
+       gamma_0 = runif(1, -0.25, 0.25),
+       gamma_1 = runif(1, -0.25, 0.25),
        phi = runif(1, 0, 1),
        
        mu_eta_0 = runif(1, -1, 1),
@@ -630,10 +631,15 @@ traceplot(stan_out_sim, pars = c(
 ))
 
 # pairs plot
-pairs(stan_out, pars = c(
+pairs(stan_out_sim, pars = c(
   "mu_eta_0",
+  "eta_site_area",
   "mu_p_citsci_0",
-  "phi"
+  "mu_p_museum_0",
+  "phi",
+  "omega"
+  #"gamma_0",
+  #"gamma_1"
 ))
 
 # should now also write a posterior predictive check into the model

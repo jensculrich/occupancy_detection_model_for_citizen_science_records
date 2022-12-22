@@ -79,9 +79,9 @@ parameters {
   // ABUNDANCE
   
   //real<lower=0,upper=1> omega;
-  real<lower=0,upper=1> omega;
-  //real gamma_0; // occupancy intercept
-  //real gamma_1; // relationship between abundance and occupancy 
+  //real<lower=0,upper=1> omega;
+  real gamma_0; // occupancy intercept
+  real gamma_1; // relationship between abundance and occupancy 
   
   real<lower=0> phi; // abundance overdispersion parameter
   
@@ -121,7 +121,7 @@ transformed parameters {
   real logit_p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
   real logit_p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
   
-  //real omega[n_species, n_sites, n_intervals]; // availability
+  real omega[n_species, n_sites, n_intervals]; // availability
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -140,7 +140,7 @@ transformed parameters {
           // relationship into a zero-inflated abundance model  
           // availability is predicted by abundance
           // omega is logit scaled
-          //omega[i,j,k] = gamma_0 + gamma_1 * log_eta[i,j,k];
+          omega[i,j,k] = gamma_0 + gamma_1 * log_eta[i,j,k];
             
       } // end loop across all intervals
     } // end loop across all sites
@@ -179,8 +179,8 @@ model {
   
   // Abundance (Ecological Process)
   
-  //gamma_0 ~ normal(0, 0.5);
-  //gamma_1 ~ normal(0, 0.5);
+  gamma_0 ~ normal(0, 0.5);
+  gamma_1 ~ normal(0, 0.5);
   
   phi ~ cauchy(0, 2.5); // abundance overdispersion scale parameter
   
@@ -231,63 +231,64 @@ model {
         if(sum(V_citsci[i,j,k]) > 0 || sum(V_museum[i,j,k]) > 0) {
           
           vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
-            // (from max observed to K)
+            // (abundance is at least as big as the max observed count but may range up to K)
           
-          // for each possible abundance:
+          // for each possible abundance in max observed abundance through K:
           for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ 
           
             // lp of abundance given ecological model and observational model
             lp[abundance] = 
-              // vectorized over n visits..
               neg_binomial_2_log_lpmf( // generation of abundance given count distribution
                 max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi) + 
+              // with abundance detections vectorized over n visits..
               binomial_logit_lpmf( // individual-level detection, citizen science
                 V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
               binomial_logit_lpmf( // binary, species-level detecion, museums
                 // (given the number of community sampling events that occurred)
-                sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]); 
+                sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]) +
+              // plus outcome of site being available, given the 
+              // abundance-dependent probability of suitability
+              bernoulli_logit_lpmf(1 | omega[i,j,k]); 
           
           }
                 
-          target += log_sum_exp(lp +
-              // plus outcome of site being available, given the 
-              // abundance-dependent probability of suitability
-              bernoulli_lpmf(1 | omega) 
-              );
+          target += log_sum_exp(lp);
         
         } else { // else was never detected and the site may or may not be available
           
           real lp[2];
           
-          // outcome of site being unavailable for occupancy, given the 
-          // abundance-dependent probability of suitability
-          lp[1] = bernoulli_lpmf(0 | omega); // site not available for species in interval
-          // outcome of site being available for occupancy, given the 
-          // abundance-dependent probability of suitability
-          lp[2] = bernoulli_lpmf(1 | omega); // available but not observed
-          
           // probability present at an available site with
           // some unknown latent abundance state; but never observed.
           // In this formulation the latent abundance could include 0,
           // potentially causing underestimates in species-level detection ability?
-          for(abundance in 1:(K[i,j,k] - max_y_lower[i,j,k] + 1)){
+          for(abundance in 1:(K[i,j,k])){
             
+            // outcome of site being unavailable for occupancy, given the 
+            // abundance-dependent probability of suitability
+            lp[1] = bernoulli_logit_lpmf(0 | omega[i,j,k]) ; // site not available for species in interval
+            
+            // outcome of site being available for occupancy, given the 
+            // abundance-dependent probability of suitability
+            lp[2] = bernoulli_logit_lpmf(1 | omega[i,j,k]); // available but not observed
+            
+            // start at abundance - 1 so that the search has a floor of 0
             lp[2] = lp[2] +
              neg_binomial_2_log_lpmf( // generation of abundance given count distribution
-                max_y_lower[i,j,k] + abundance - 1 | log_eta[i,j,k], phi) +
+                abundance - 1 | log_eta[i,j,k], phi) +
               binomial_logit_lpmf( // 0 individual-level detections, citizen science
-                0 | max_y_lower[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
+                0 | abundance - 1, logit_p_citsci[i,j,k]) +
               binomial_logit_lpmf( // 0 species-level detecions, museums
                 // (given the number of community sampling events that occurred)
                 0 | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
                 
-          }
+          } // end for abundance in 1:K
           
           // sum lp of both possibilities of availability
           // and all possible abundance states that went unobserved if it's available
           target += log_sum_exp(lp);
         
-        } // end else
+        } // end else species never detected at site during interval
             
         } // end if in range
           
