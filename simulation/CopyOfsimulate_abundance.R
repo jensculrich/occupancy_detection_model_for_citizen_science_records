@@ -142,7 +142,7 @@ simulate_data <- function(
   
   # preview the psi and p arrays
   # head(eta_matrix[1:n_species, 1:n_sites,1])
-  head(p_matrix_citsci[1:n_species, 1:n_sites,1,1])
+  #head(p_matrix_citsci[1:n_species, 1:n_sites,1,1])
   
   # (p_matrix[1,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
   # (p_matrix[2,1,1:n_intervals,1]) # if p.interval is >0 these should generally be increasing from low to high
@@ -163,8 +163,8 @@ simulate_data <- function(
     
   }
   
-  ranges[1:n_species, 1:n_sites,1,1]
-  ranges[1:n_species, 1:n_sites,1,2]
+  #ranges[1:n_species, 1:n_sites,1,1]
+  #ranges[1:n_species, 1:n_sites,1,2]
   
   # Creating the Sequence
   # beta_distr = seq(0,1, by=0.1)
@@ -177,25 +177,34 @@ simulate_data <- function(
   ## --------------------------------------------------
   # Generate species*site*interval suitability
   
-  suitability <- array(dim = c(n_species, n_sites, n_intervals), NA)
+  omega <- array(dim = c(n_species, n_sites, n_intervals), NA)
   
   for(species in 1:n_species){
     for(site in 1:n_sites){
       for(interval in 1:n_intervals){
         
-        # rep across visits so the site is open to a species or closed to a species
-        # across all visits 1:n_visits
-        suitability[species,site,interval] <- 
-          rbinom(1,1, inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
-                 #prob=omega)
-                   #inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
+        # if the site is in range then it has some chance to be occupied
+        if(ranges[species,site,1,1] == 1){
+          
+          # rep across visits so the site is open to a species or closed to a species
+          # across all visits 1:n_visits
+          omega[species,site,interval] <- 
+            rbinom(1,1, inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
+                 
+        } else{ # the site is not in range so must not be occupied
+          # these one count for or against omega estimation since the range indicator will
+          # tell STAN to skip over these species*site combinations
+          
+          omega[species,site,interval] <- 0
         
+        } # end if/else
       }
     }
   }
   
-  suitability[1:n_species, 1:n_sites,1]
-  suitability[1:n_species, 1:n_sites,2]
+  # 1 are occupied sites, 0 are unoccupied sites
+  #omega[1:n_species, 1:n_sites,1]
+  #omega[1:n_species, 1:n_sites,2]
   
   ## --------------------------------------------------
   ## Generate abundance data given means eta and dispersion phi
@@ -204,19 +213,29 @@ simulate_data <- function(
                        n_sites=n_sites,
                        n_intervals=n_intervals))
   
-  for(interval in 1:n_intervals){
+  for(species in 1:n_species){
     for(site in 1:n_sites){
-      for(species in 1:n_species){
+      for(interval in 1:n_intervals){
         
         # if site is in the species's range, 
         # and is also suitable
-        # then determine abundance (including 0 abundance) with some prob eta
+        # then sample abundance with some prob eta from a trunctated (>0) count distribution
         # else abundance state is 0
-        if(ranges[species,site,1,1] == 1 && suitability[species,site,interval] == 1) {
+        if(omega[species,site,interval] == 1){
           
-          N_matrix[species,site,interval] <- rnbinom(n = 1, 
-                                                   mu = exp(log_eta_matrix[species,site,interval]),
-                                                   size = phi)
+          # eta for species, site, interval
+          T <- exp(log_eta_matrix[species,site,interval])
+          N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=phi) 
+          Y0 <- N_matrix[species,site,interval][N_matrix[species,site,interval]>0] 
+          r <- (1 - length(Y0))
+          # to create a truncated count distr we reject any 0 values and continue sampling
+          while(r>0){
+            N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=phi) 
+            Y0 <- c(Y0,
+                    N_matrix[species,site,interval][N_matrix[species,site,interval]>0])
+            r <- (1 - length(Y0))
+          }
+          
 
         } else{
           
@@ -229,32 +248,7 @@ simulate_data <- function(
   }
   
   # preview N_matrix
-  N_matrix[1:n_species,1:n_sites,1]
-  
-  ## --------------------------------------------------
-  ## Generate abundance data given means eta and dispersion phi
-  
-  Z_matrix <- N_matrix
-  
-  for(interval in 1:n_intervals){
-    for(site in 1:n_sites){
-      for(species in 1:n_species){
-        
-        if(suitability[species,site,interval] > 0) {
-          
-          # if the site is suitable, then transform into a binary response of site available
-          # Note, this includes abundances of zero than can arise through the count distribution
-          Z_matrix[species,site,interval] <- 1
-       
-        }
-        
-      }
-    }
-  }
-  
-  # preview Z_matrix
-  Z_matrix[1:n_species,1:n_sites,1]
-  N_matrix[1:n_species,1:n_sites,1]
+  # N_matrix[1:n_species,1:n_sites,1]
   
   ## --------------------------------------------------
   ## Generate detection non detection data 
@@ -301,7 +295,7 @@ simulate_data <- function(
             # Z[species,site,interval] * # occupancy state * detection prob
             # N_matrix[species,site,interval]
             rbinom(n = 1, 
-                   size = Z_matrix[species,site,interval], 
+                   size = omega[species,site,interval], 
                    prob = inv_logit(p_matrix_museum[species,site,interval,visit]))
           
           } else{
@@ -415,8 +409,8 @@ simulate_data <- function(
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 8 ## number of species
-n_sites = 8 ## number of sites
+n_species = 20 ## number of species
+n_sites = 20 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
@@ -427,7 +421,7 @@ gamma_1 = 0.5
 phi = 2
 
 # abundance
-mu_eta_0 = 3
+mu_eta_0 = 2
 sigma_eta_species = 0.75
 eta_site_area = 1
 
@@ -454,41 +448,45 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(112)
-my_simulated_data <- simulate_data(## Study design
-                                   n_species,
-                                   n_sites,
-                                   n_intervals,
-                                   n_visits,
-                                   
-                                   ## Ecological process
-                                   #omega,
-                                   gamma_0,
-                                   gamma_1,
-                                   phi,
-                                   
-                                   # abundance
-                                   mu_eta_0,
-                                   sigma_eta_species,
-                                   eta_site_area,
-                                  
-                                   ## Detection process
-                                   # citizen science observation process
-                                   mu_p_citsci_0,
-                                   sigma_p_citsci_species,
-                                   
-                                   # museum record observation process
-                                   mu_p_museum_0,
-                                   sigma_p_museum_species,
-                                   
-                                   ## Range dynamics
-                                   sites_in_range_beta1,
-                                   sites_in_range_beta2,
-                                   
-                                   ## Community surveys
-                                   sites_missing,
-                                   intervals_missing,
-                                   visits_missing)
+set.seed(100)
+my_simulated_data <- simulate_data(
+  
+        ## Study design
+        n_species,
+        n_sites,
+        n_intervals,
+        n_visits,
+        
+        ## Ecological process
+        # dispersion and zero-inflation
+        #omega,
+        gamma_0,
+        gamma_1,
+        phi,
+        
+        # abundance
+        mu_eta_0,
+        sigma_eta_species,
+        eta_site_area,
+        
+        ## Detection process
+        # citizen science observation process
+        mu_p_citsci_0,
+        sigma_p_citsci_species,
+        
+        # museum record observation process
+        mu_p_museum_0,
+        sigma_p_museum_species,
+        
+        ## Range dynamics
+        sites_in_range_beta1,
+        sites_in_range_beta2,
+        
+        ## Community surveys
+        sites_missing,
+        intervals_missing,
+        visits_missing
+)
 
 ## --------------------------------------------------
 ### Prepare data for model
@@ -567,9 +565,9 @@ parameter_value <- c(#omega,
 )
 
 # MCMC settings
-n_iterations <- 400
+n_iterations <- 500
 n_thin <- 3
-n_burnin <- 200
+n_burnin <- 250
 n_chains <- 3
 n_cores <- 4
 

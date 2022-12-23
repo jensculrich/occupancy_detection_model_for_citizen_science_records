@@ -1,6 +1,21 @@
 // multi-species integrated abundance-occupancy model for NHC data
 // jcu, started nov 21, 2022.
 
+//functions{
+  
+  // lower bound truncation for random number generator
+  //real negbin_hurdle_rng(real eta, real phi, int lb) {
+    
+    //real p = neg_binomial_2_lcdf(lb | eta, phi);  // cdf for bounds
+    //real u = uniform_rng(p, 1);
+    //return (phi * inv_Phi(u)) + eta;  // inverse cdf for value
+    
+    //return y;
+  
+  //}
+  
+//}
+
 data {
   
   int<lower=1> n_species;  // observed species
@@ -225,16 +240,18 @@ model {
             // lp of abundance given ecological model and observational model
             lp[abundance] = 
               neg_binomial_2_log_lpmf( // generation of abundance given count distribution
-                max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi) + 
+                max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi)  
+              - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
+                exp(log_eta[i,j,k]), phi)
               // with abundance detections vectorized over n visits..
-              binomial_logit_lpmf( // individual-level detection, citizen science
-                V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) +
-              binomial_logit_lpmf( // binary, species-level detecion, museums
+              + binomial_logit_lpmf( // individual-level detection, citizen science
+                V_citsci[i,j,k] | max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]) 
+              + binomial_logit_lpmf( // binary, species-level detecion, museums
                 // (given the number of community sampling events that occurred)
-                sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]) +
+                sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k])
               // plus outcome of site being available, given the 
               // abundance-dependent probability of suitability
-              bernoulli_logit_lpmf(1 | omega[i,j,k]); 
+              + log(inv_logit(omega[i,j,k])); 
           
           }
                 
@@ -252,19 +269,21 @@ model {
             
             // outcome of site being unavailable for occupancy, given the 
             // abundance-dependent probability of suitability
-            lp[1] = bernoulli_logit_lpmf(0 | omega[i,j,k]) ; // site not available for species in interval
+            lp[1] = log1m(inv_logit(omega[i,j,k])); // site not available for species in interval
             
             // outcome of site being available for occupancy, given the 
             // abundance-dependent probability of suitability
-            lp[2] = bernoulli_logit_lpmf(1 | omega[i,j,k]); // available but not observed
+            lp[2] = log(inv_logit(omega[i,j,k])); // available but not observed
             
-            // start at abundance - 1 so that the search has a floor of 0
-            lp[2] = lp[2] +
-             neg_binomial_2_log_lpmf( // generation of abundance given count distribution
-                abundance - 1 | log_eta[i,j,k], phi) +
-              binomial_logit_lpmf( // 0 individual-level detections, citizen science
-                0 | abundance - 1, logit_p_citsci[i,j,k]) +
-              binomial_logit_lpmf( // 0 species-level detecions, museums
+            // start at abundance = 1 so that the search has a floor of 1
+            lp[2] = lp[2] 
+             + neg_binomial_2_log_lpmf( // generation of abundance given count distribution
+                abundance | log_eta[i,j,k], phi) 
+             - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
+                exp(log_eta[i,j,k]), phi)
+             + binomial_logit_lpmf( // but getting 0 individual-level detections, citizen science
+                0 | abundance, logit_p_citsci[i,j,k]) 
+             + binomial_logit_lpmf( // and 0 species-level detecions, museums
                 // (given the number of community sampling events that occurred)
                 0 | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
                 
@@ -307,8 +326,13 @@ generated quantities {
         
         if(bernoulli_logit_rng(omega[i,j,k]) == 1){ // if the site is suitable
             
-            // predict the abundance from the count distribution
+          // predict the abundance from the count distribution
+          N[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+          
+          // brute force truncation of the random number generator
+          while(N[i,j,k] == 0){
             N[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+          }
             
         } else { // else the site is not suitable
           
@@ -345,16 +369,24 @@ generated quantities {
          
           // Assess model fit using Chi-squared discrepancy
           // Compute fit statistic E for observed data
-          eval[i,j,k,l] = inv_logit(logit_p_citsci[i,j,k]) * neg_binomial_2_rng(exp(log_eta[i,j,k]), phi); // expected value at observation i for visit j 
-          // (probabilty across visits is fixed) is = expected detection prob * expected abundance
-          // Compute fit statistic E_new for real data (V)
-          E[i,j,k,l] = square(V_citsci[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
-          // Generate new replicate count data and
-          y_new[i,j,k,l] = binomial_rng(N[i,j,k], inv_logit(logit_p_citsci[i,j,k]));
-          // Compute fit statistic E_new for replicate data
-          E_new[i,j,k,l] = square(y_new[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+          
+          if(sum(ranges[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if site is not in range
+          
+            // expected value of count is 
+            eval[i,j,k,l] = 
+              N[i,j,k] // expected abundance
+              * inv_logit(logit_p_citsci[i,j,k]); // times detection rate
+            // (probabilty across visits is fixed) is = expected detection prob * expected abundance
+            // Compute fit statistic E_new for real data (V)
+            E[i,j,k,l] = square(V_citsci[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+            // Generate new replicate count data and
+            y_new[i,j,k,l] = binomial_rng(N[i,j,k], inv_logit(logit_p_citsci[i,j,k]));
+            // Compute fit statistic E_new for replicate data
+            E_new[i,j,k,l] = square(y_new[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+            
+          } # end if site is in range
       
-        } // loop across all visits
+        } // end loop across all visits
     
         fit = fit + sum(E[i,j,k]); // descrepancies for each site*species*interval combo (across 1:l visits)
         fit_new = fit_new + sum(E_new[i,j,k]); // descrepancies for generated data (across 1:l visits)
