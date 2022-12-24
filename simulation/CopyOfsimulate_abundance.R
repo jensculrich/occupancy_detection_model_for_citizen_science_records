@@ -409,8 +409,8 @@ simulate_data <- function(
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
-n_sites = 20 ## number of sites
+n_species = 8 ## number of species
+n_sites = 8 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
@@ -448,7 +448,7 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(100)
+set.seed(2)
 my_simulated_data <- simulate_data(
   
         ## Study design
@@ -565,9 +565,9 @@ parameter_value <- c(#omega,
 )
 
 # MCMC settings
-n_iterations <- 500
+n_iterations <- 300
 n_thin <- 3
-n_burnin <- 250
+n_burnin <- 150
 n_chains <- 3
 n_cores <- 4
 
@@ -640,9 +640,9 @@ pairs(stan_out_sim, pars = c(
   "mu_p_citsci_0",
   "mu_p_museum_0",
   "phi",
-  "omega"
-  #"gamma_0",
-  #"gamma_1"
+  #"omega"
+  "gamma_0",
+  "gamma_1"
 ))
 
 # should now also write a posterior predictive check into the model
@@ -652,8 +652,8 @@ list_of_draws <- as.data.frame(stan_out_sim)
 plot(list_of_draws$fit, list_of_draws$fit_new, main = "", xlab =
        "Discrepancy actual data", ylab = "Discrepancy replicate data",
      frame.plot = FALSE,
-     ylim = c(25000, 90000),
-     xlim = c(25000, 90000))
+     ylim = c(0, 10000),
+     xlim = c(0, 10000))
 abline(0, 1, lwd = 2, col = "black")
 
 # Should be close to 1. 
