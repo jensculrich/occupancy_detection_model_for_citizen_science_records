@@ -340,7 +340,7 @@ generated quantities {
       for(k in 1:n_intervals){ // loop across intervals
         
         // if the site is in range and is predicted to be occupied
-        if(bernoulli_logit_rng(omega[i,j,k]) && sum(ranges[i,j,k]) > 0){ 
+        if(sum(ranges[i,j,k]) > 0){ 
         
         vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
             // (abundance is at least as big as the max observed count but may range up to K)
@@ -355,12 +355,15 @@ generated quantities {
               - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
                 exp(log_eta[i,j,k]), phi)
               + binomial_logit_lpmf(V_citsci[i,j,k] | // and some observed data with a detection rate p
-                max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k]);
+                max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k])
+              + binomial_logit_lpmf( // binary, species-level detecion, museums
+              // (given the number of community sampling events that occurred)
+              sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
           
           }
           
-          // N is the most likely latent discrete from the truncated count distribution
-          N[i,j,k] = categorical_rng(softmax(lp)) - 1;
+          // N is the most likely latent discrete state from the truncated count distribution
+          N[i,j,k] = categorical_rng(softmax(lp));
         
         } else { // else the site is not occupied or not in range
             
@@ -377,26 +380,37 @@ generated quantities {
     for (j in 1:n_sites){ // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals
         for(l in 1:n_visits){ // loop across all visits
-         
+          
+          int w[n_species,n_sites,n_intervals];
+                      
           // Assess model fit using Chi-squared discrepancy
           // Compute fit statistic E for observed data
           
           // The sum of the NA indicator vector ranges == 0 if site is not in range
           if(sum(ranges[i,j,k]) > 0){ 
-          
+            
             // expected value of count is 
-            eval[i,j,k,l] = 
-              N[i,j,k] // value of the latent abundance state with highest probability
+            eval[i,j,k,l] =
+              bernoulli_logit_rng(omega[i,j,k]) 
+              * N[i,j,k] // value of the latent abundance state with highest probability
               * inv_logit(logit_p_citsci[i,j,k]); // times the estimate for detection rate
-              // should equal the expected value of the count
-            // (probabilty across visits is fixed) is = expected detection prob * expected abundance
+
             // Compute fit statistic E_new for real data (V_citsci)
             E[i,j,k,l] = square(V_citsci[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+            
             // Generate new replicate count data and
+
+            w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+            
+            while(w[i,j,k]==0){
+              w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+            }
+            
+            
             y_new[i,j,k,l] = 
-              bernoulli_logit_rng(omega[i,j,k]) * 
-              binomial_rng(neg_binomial_rng(exp(log_eta[i,j,k]), phi),
-              inv_logit(logit_p_citsci[i,j,k]));
+              bernoulli_logit_rng(omega[i,j,k])
+              * binomial_rng(w[i,j,k],
+                inv_logit(logit_p_citsci[i,j,k]));
             // Compute fit statistic E_new for replicate data
             E_new[i,j,k,l] = square(y_new[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
             

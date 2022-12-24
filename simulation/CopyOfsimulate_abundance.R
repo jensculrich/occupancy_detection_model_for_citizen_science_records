@@ -652,8 +652,8 @@ list_of_draws <- as.data.frame(stan_out_sim)
 plot(list_of_draws$fit, list_of_draws$fit_new, main = "", xlab =
        "Discrepancy actual data", ylab = "Discrepancy replicate data",
      frame.plot = FALSE,
-     ylim = c(0, 10000),
-     xlim = c(0, 10000))
+     ylim = c(0, 250000),
+     xlim = c(0, 250000))
 abline(0, 1, lwd = 2, col = "black")
 
 # Should be close to 1. 
