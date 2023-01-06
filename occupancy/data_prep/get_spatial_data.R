@@ -44,6 +44,24 @@ get_spatial_data <- function(
     (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
   }
   
+  # if using the default choices, just read in the preprocessed data
+  # else the study dimension choices have been altered then the site variables will need 
+  # to be re-extracted and the NHC records will need to be tagged to the corresponding sites
+  # This step saves time and computing power if the model is simply being run at 
+  # these default values.
+  
+  if(min_population_size == 200 && grid_size == 35000){
+    
+    site_data <- read.csv(
+      "./preprocessed_data/site_data_35km_200minpop_.RDS")
+    
+    df_id_dens <- read.csv(
+      "./preprocessed_data/occurrence_records_35km_200minpop_.RDS")
+    
+  } else{
+    
+  
+  
   ## --------------------------------------------------
   # occurrence data
   df <- read.csv("./data/data_unfiltered.csv") 
@@ -239,6 +257,8 @@ get_spatial_data <- function(
   # free unused space
   rm(grid_intersect)
   gc(verbose = FALSE)
+  
+  }
   
   ## --------------------------------------------------
   # Calculate correlations between variables 

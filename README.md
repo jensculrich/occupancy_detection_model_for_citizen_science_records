@@ -91,11 +91,11 @@ Syrphid NHC data from California.
 ### ./spatial_data/
 ### ./population_density/
 #### gpw_v4_population_density_rev11_2015_30_sec.tif
-Human population density. Dataset obtained from the [NASA Socioeconomic Data and Applications Center](https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download) was collected in 2015. Data are at a resolution of 30 seconds (about 500m by 500m), and are stored in the WGS84 geographic coordinate system. 
+Human population density. Dataset obtained from the [NASA Socioeconomic Data and Applications Center](https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download) was collected in 2015. Data are at a resolution of 30 seconds (about 500m by 500m), and are stored in the WGS84 latitude/longitude (EPSG:4326) geographic coordinate system. 
 
 ### ./impervious_surface/
 #### nlcd_2016_impervious_aggregated_300m.tif
-Impervious surface across the study extent. File was pre-cropped to match the extent and then aggregated to average value per 300m. The aggregation is to speed up the site variable extraction (and save energy and computing resources)  when the spatial and temporal grains are adjusted across a loop for the sensitivity analysis. The original dataset obtained from the [the USGS National Landcover Database](https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus) has an extent across western United States. The Dataset was collected in 2016 and represents the percent of developed surface over every 30-meter pixel in the extent, and are stored in the _ geographic coordinate system.
+Impervious surface across the study extent. File was pre-cropped to match the extent and then aggregated to average value per 300m. The aggregation is to speed up the site variable extraction (and save energy and computing resources)  when the spatial and temporal grains are adjusted across a loop for the sensitivity analysis. The original dataset obtained from the [the USGS National Landcover Database](https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus) has an extent across western United States. The Dataset was collected in 2016 and represents the percent of developed surface over every 30-meter pixel in the extent, and are stored in the Albers Conical Equal Area (EPSG:9822) geographic coordinate system.
 
 ### ./plant_cover/
 #### .tif

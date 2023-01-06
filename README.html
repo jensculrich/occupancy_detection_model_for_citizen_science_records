@@ -267,6 +267,7 @@ pre code {
 <p>Note, download the compressed folder and unzip it here at this directory location to access and manipulate the data using the data prep workflow held in ./abundance-occupancy/or ./occupancy/</p>
 <div id="occurrence_data" class="section level3">
 <h3>./occurrence_data/</h3>
+<p>NHC occurrence data obtained from <a href="https://www.gbif.org/">GBIF</a></p>
 </div>
 <div id="syrphidae" class="section level3">
 <h3>./syrphidae/</h3>
@@ -285,19 +286,26 @@ pre code {
 <h3>./population_density/</h3>
 <div id="gpw_v4_population_density_rev11_2015_30_sec.tif" class="section level4">
 <h4>gpw_v4_population_density_rev11_2015_30_sec.tif</h4>
-<p>Human population density. Dataset obtained from the <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">NASA Socioeconomic Data and Applications Center</a> was collected in 2015. Data are at a resolution of 30 seconds (about 500m by 500m) in the WGS84 geographic coordinate system.</p>
+<p>Human population density. Dataset obtained from the <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">NASA Socioeconomic Data and Applications Center</a> was collected in 2015. Data are at a resolution of 30 seconds (about 500m by 500m), and are stored in the WGS84 geographic coordinate system.</p>
 </div>
 </div>
 <div id="impervious_surface" class="section level3">
 <h3>./impervious_surface/</h3>
 <div id="nlcd_2016_impervious_aggregated_300m.tif" class="section level4">
 <h4>nlcd_2016_impervious_aggregated_300m.tif</h4>
-<p>Impervious surface across study extent, aggregated to average value per 300m. The aggregation is to speed up the site variable extraction when the spatial and temporal grains are adjusted across a loop for sensitivity analysis. Dataset was collected in 2016 from … and at a resolution of … Original projection is in …</p>
+<p>Impervious surface across the study extent. File was pre-cropped to match the extent and then aggregated to average value per 300m. The aggregation is to speed up the site variable extraction (and save energy and computing resources) when the spatial and temporal grains are adjusted across a loop for the sensitivity analysis. The original dataset obtained from the <a href="https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus">the USGS National Landcover Database</a> has an extent across western United States. The Dataset was collected in 2016 and represents the percent of developed surface over every 30-meter pixel in the extent, and are stored in the _ geographic coordinate system.</p>
+</div>
+</div>
+<div id="plant_cover" class="section level3">
+<h3>./plant_cover/</h3>
+<div id="tif" class="section level4">
+<h4>.tif</h4>
+<p>_ plant cover across the study extent. File was pre-cropped to match the extent and then aggregated to average value per 300m. The aggregation is to speed up the site variable extraction (and save energy and computing resources) when the spatial and temporal grains are adjusted across a loop for the sensitivity analysis. The original dataset obtained from the <a href>the USGS National Landcover Database</a> has an extent across western United States. The Dataset was collected in … and represents the percent of developed surface over every 30-meter pixel in the extent, and are stored in the _ geographic coordinate system.</p>
 </div>
 </div>
 <div id="california_urban_areas" class="section level3">
 <h3>./california_urban_areas</h3>
-<p>Currently not using this data, it was originally used to map specific city names to sites.</p>
+<p>Currently not using this data, it was originally used to map specific city names to sites. #### _.shp Administrative area place names</p>
 </div>
 </div>
 </div>
