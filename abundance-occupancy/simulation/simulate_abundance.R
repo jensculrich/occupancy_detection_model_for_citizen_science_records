@@ -186,23 +186,23 @@ simulate_data <- function(
           eta_species[species] + # a species-specific intercept  
           eta_site[site] + # a site specific intercept
           eta_impervious_surface[species]*impervious_surfaces[site] + # a species specific temporal change
-          eta_perennial_plant_cover[species]*perennial_plant_cover[site] + # a fixed effect of population density 
+          #eta_perennial_plant_cover[species]*perennial_plant_cover[site] + # a fixed effect of population density 
           eta_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
           
           p_matrix_citsci[species, site, interval, visit] <-  # detection is equal to 
             mu_p_citsci_0 + # a baseline intercept
-              p_citsci_species[species] #+ # a species-specific intercept
-              #p_citsci_site[site] + # a spatiotemporally specific intercept
+              p_citsci_species[species] + # a species-specific intercept
+              p_citsci_site[site] #+ # a spatiotemporally specific intercept
               #p_citsci_interval[site]*intervals[interval] + # an overall effect of time on detection
               #p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           
           p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
             mu_p_museum_0 + # a baseline intercept
-            p_museum_species[species] #+ # a species-specific intercept            
-            #p_museum_site[site] + # a spatiotemporally specific intercept
+            p_museum_species[species] + # a species-specific intercept            
+            p_museum_site[site] #+ # a spatiotemporally specific intercept
             #p_museum_interval[site]*intervals[interval] + # an overall effect of time on detection
             #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
           
@@ -491,14 +491,14 @@ n_visits = 5 ## number of samples per year
 ## ecological process
 #omega = 0.8
 gamma_0 = 0.25
-gamma_1 = 0.5
+gamma_1 = 0.75
 phi = 2
 
 # abundance
-mu_eta_0 = 2
+mu_eta_0 = 1.5
 sigma_eta_species = 0.75
 sigma_eta_site = 0.75
-mu_eta_impervious_surface = -0.5
+mu_eta_impervious_surface = -1
 sigma_eta_impervious_surface = 0.5
 mu_eta_perennial_plants = 1
 sigma_eta_perennial_plants = 0.5
@@ -633,27 +633,27 @@ params <- c(
             "sigma_eta_site",
             "mu_eta_impervious_surface",
             "sigma_eta_impervious_surface",
-            "mu_eta_perennial_plants",
-            "sigma_eta_perennial_plants",
+            #"mu_eta_perennial_plants",
+            #"sigma_eta_perennial_plants",
             "eta_site_area",
             
             "mu_p_citsci_0",
             "sigma_p_citsci_species",
-            #"sigma_p_citsci_site",
+            "sigma_p_citsci_site",
             #"mu_p_citsci_interval",
             #"sigma_p_citsci_interval",
             #"p_citsci_pop_density",
             
             "mu_p_museum_0",
             "sigma_p_museum_species",
-            #"sigma_p_museum_site",
+            "sigma_p_museum_site"#,
             #"mu_p_museum_interval",
             #"sigma_p_museum_interval",
             #"p_museum_pop_density",
             
             # posterior predictive check
-            "fit",
-            "fit_new"#,
+            #"fit",
+            #"fit_new",
             #"fit_occupancy",
             #"fit_occupancy_new"
 )
@@ -668,36 +668,36 @@ parameter_value <- c(
                      sigma_eta_site,
                      mu_eta_impervious_surface,
                      sigma_eta_impervious_surface,
-                     mu_eta_perennial_plants,
-                     sigma_eta_perennial_plants,
+                     #mu_eta_perennial_plants,
+                     #sigma_eta_perennial_plants,
                      eta_site_area,
                      
                      mu_p_citsci_0,
                      sigma_p_citsci_species,
-                     #sigma_p_citsci_site,
+                     sigma_p_citsci_site,
                      #mu_p_citsci_interval,
                      #sigma_p_citsci_interval,
                      #p_citsci_pop_density,
                      
                      mu_p_museum_0,
                      sigma_p_museum_species,
-                     #sigma_p_museum_site,
+                     sigma_p_museum_site#,
                      #mu_p_museum_interval,
                      #sigma_p_museum_interval,
                      #p_museum_pop_density,
                      
-                     NA, # posterior predictive check
-                     NA#, # posterior predictive check
+                     #NA, # posterior predictive check
+                     #NA, # posterior predictive check
                      #NA, # posterior predictive check
                      #NA # posterior predictive check
 )
 
 # MCMC settings
 n_iterations <- 300
-n_thin <- 4
+n_thin <- 1
 n_burnin <- 150
 n_chains <- 3
-n_cores <- parallel::detectCores()
+n_cores <- 4
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -708,7 +708,7 @@ inits <- lapply(1:n_chains, function(i)
   
   list(#omega = runif(1, 0, 1),
        gamma_0 = runif(1, -0.25, 0.25),
-       gamma_1 = runif(1, -0.25, 0.25),
+       gamma_1 = runif(1, 0, 1),
        phi = runif(1, 0, 1),
        
        mu_eta_0 = runif(1, -1, 1),
@@ -716,20 +716,20 @@ inits <- lapply(1:n_chains, function(i)
        sigma_eta_site = runif(1, 0, 1),
        mu_eta_impervious_surface = runif(1, -1, 1),
        sigma_eta_impervious_surface = runif(1, 0, 1),
-       mu_eta_perennial_plants = runif(1, -1, 1),
-       sigma_eta_perennial_plants = runif(1, 0, 1),
+       #mu_eta_perennial_plants = runif(1, -1, 1),
+       #sigma_eta_perennial_plants = runif(1, 0, 1),
        eta_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
        sigma_p_citsci_species = runif(1, 0, 1),
-       #sigma_p_citsci_site = runif(1, 0, 1),
+       sigma_p_citsci_site = runif(1, 0, 1),
        #mu_p_citsci_interval = runif(1, -1, 1),
        #sigma_p_citsci_interval = runif(1, 0, 1),
        #p_citsci_pop_density = runif(1, -1, 1),
        
        mu_p_museum_0 = runif(1, -1, 1),
-       sigma_p_museum_species = runif(1, 0, 1)#,
-       #sigma_p_museum_site = runif(1, 0, 1),
+       sigma_p_museum_species = runif(1, 0, 1),
+       sigma_p_museum_site = runif(1, 0, 1)#,
        #mu_p_museum_interval = runif(1, -1, 1),
        #sigma_p_museum_interval = runif(1, 0, 1),
        #p_museum_pop_density = runif(1, -1, 1)
@@ -742,7 +742,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./models/model_abundance.stan"
+stan_model <- "./abundance-occupancy/models/model_abundance.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -758,8 +758,8 @@ stan_out_sim <- stan(stan_model,
 print(stan_out_sim, digits = 3)
 View(targets)
 
-saveRDS(stan_out_sim, "./model_outputs/stan_out_sim_abundance.rds")
-stan_out_sim <- readRDS("./model_outputs/stan_out_sim_abundance.rds")
+saveRDS(stan_out_sim, "./abundance-occupancy/model_outputs/stan_out_sim_abundance.rds")
+stan_out_sim <- readRDS("./abundance-occupancy/model_outputs/stan_out_sim_abundance.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
