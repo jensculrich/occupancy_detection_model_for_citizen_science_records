@@ -29,7 +29,7 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] impervious_surfaces; // (scaled) impervious surface cover of each site
-  vector[n_sites] perennial_plant_cover; // (scaled) perennial plant cover of each site
+  //vector[n_sites] perennial_plant_cover; // (scaled) perennial plant cover of each site
   
 } // end data
 
@@ -368,24 +368,24 @@ model {
   
 } // end model
 
-generated quantities {
+//generated quantities {
   
   // Remove '//'s in code below to add occupancy posterior pred check
   
   // Posterior Predictive Check
   
   // Abundance
-  int<lower=0> N[n_species,n_sites,n_intervals]; // expected abundance 
+  //int<lower=0> N[n_species,n_sites,n_intervals]; // expected abundance 
 
-  real eval[n_species,n_sites,n_intervals,n_visits]; // expected values
+  //real eval[n_species,n_sites,n_intervals,n_visits]; // expected values
   
-  int y_new[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
+  //int y_new[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
     
-  real E[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
-  real E_new[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
+  //real E[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
+  //real E_new[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
   
-  real fit = 0; // sum squared distances of real data from expected values
-  real fit_new = 0; // sum squared distances of new data from expected values
+  //real fit = 0; // sum squared distances of real data from expected values
+  //real fit_new = 0; // sum squared distances of new data from expected values
  
   // Occupancy
   //int<lower=0,upper=1> psi[n_species,n_sites,n_intervals]; // expected occupancy  
@@ -401,73 +401,73 @@ generated quantities {
   //real fit_occupancy_new = 0; // sum squared distances of new data from expected values
  
   // Initialize E and E_new
-  for(l in 1:n_visits){
+  //for(l in 1:n_visits){
         
-    E[1,1,1,l] = 0;
-    E_new[1,1,1,l] = 0;
+    //E[1,1,1,l] = 0;
+    //E_new[1,1,1,l] = 0;
     
     //E_occupancy[1,1,1,l] = 0;
     //E_occupancy_new[1,1,1,l] = 0;
     
-  } 
+  //} 
   
-  for (i in 2:n_species){
-    for(j in 2:n_sites){
-      for(k in 2:n_intervals){
+  //for (i in 2:n_species){
+    //for(j in 2:n_sites){
+      //for(k in 2:n_intervals){
         
-        E[i,j,k] = E[i-1,j-1,k-1];
-        E_new[i,j,k] = E_new[i-1,j-1,k-1];
+        //E[i,j,k] = E[i-1,j-1,k-1];
+        //E_new[i,j,k] = E_new[i-1,j-1,k-1];
         
         //[i,j,k] = E_occupancy[i-1,j-1,k-1];
         //E_occupancy_new[i,j,k] = E_occupancy_new[i-1,j-1,k-1];
         
-      }
-    }
-  }
+      //}
+    //}
+  //}
   
   // Generare expected values for abundance and occupancy
   // Considering that sites are unoccupied if outside of the species' range, and
   // sites have abundance > 0 only if the site is occupied.
   // Further, will need to settle a discrete abundance state using categorical_rng(softmax(lp))
-  for (i in 1:n_species){ // loop across species
-    for(j in 1:n_sites){ // loop across sites
-      for(k in 1:n_intervals){ // loop across intervals
+  //for (i in 1:n_species){ // loop across species
+    //for(j in 1:n_sites){ // loop across sites
+      //for(k in 1:n_intervals){ // loop across intervals
         
         // if the site is in range and is predicted to be occupied
-        if(sum(ranges[i,j,k]) > 0){ 
+        //if(sum(ranges[i,j,k]) > 0){ 
         
-        vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
+        //vector[K[i,j,k] - max_y[i,j,k] + 1] lp; // lp vector of length of possible abundances 
             // (abundance is at least as big as the max observed count but may range up to K)
             // add +1 to also include possibility that max_y is the actual true abundance
           
           // for each possible abundance in max observed abundance through K:
-          for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ 
+          //for(abundance in 1:(K[i,j,k] - max_y[i,j,k] + 1)){ 
             
             // max_y[i,j,k] + abundance - 1 starts the search at max_y
-            lp[abundance] = 
-              neg_binomial_2_log_lpmf(max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi)
-              - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
-                exp(log_eta[i,j,k]), phi)
-              + binomial_logit_lpmf(V_citsci[i,j,k] | // and some observed data with a detection rate p
-                max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k])
-              + binomial_logit_lpmf( // binary, species-level detecion, museums
+            //lp[abundance] = 
+              //neg_binomial_2_log_lpmf(max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi)
+              //- neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
+                //exp(log_eta[i,j,k]), phi)
+              //+ binomial_logit_lpmf(V_citsci[i,j,k] | // and some observed data with a detection rate p
+                //max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k])
+              //+ binomial_logit_lpmf( // binary, species-level detecion, museums
               // (given the number of community sampling events that occurred)
-              sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
+              //sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
           
-          }
+          //}
           
           // N is the most likely latent discrete state from the truncated count distribution
-          N[i,j,k] = categorical_rng(softmax(lp));
+          //N[i,j,k] = categorical_rng(softmax(lp));
         
-        } else { // else the site is not in range
+        //} else { // else the site is not in range
             
           // and the latent discrete abundance is zero
-          N[i,j,k] = 0;
+          //N[i,j,k] = 0;
             
-        } // end if/else site is in range and is occupied
+        //} // end if/else site is in range and is occupied
         
         // Expected abundance is abundance*occupancy state (if not occupied, then abundance is 0)
-        N[i,j,k] = N[i,j,k] * bernoulli_logit_rng(omega[i,j,k]);
+        //N[i,j,k] = N[i,j,k] * bernoulli_logit_rng(omega[i,j,k]);
         
         // Occupancy state is 1 only if site is both in range and bernoulli_logit_rng() = 1
         //if(N[i,j,k] == 0){
@@ -480,50 +480,50 @@ generated quantities {
           
         //}
   
-      } // end loop across intervals
-    } // end loop acros sites
-  } // end loop across species
+      //} // end loop across intervals
+    //} // end loop acros sites
+  //} // end loop across species
   
   
-  for (i in 1:n_species){ // loop across all species
-    for (j in 1:n_sites){ // loop across all sites
-      for(k in 1:n_intervals){ // loop across all intervals
-        for(l in 1:n_visits){ // loop across all visits
+  //for (i in 1:n_species){ // loop across all species
+    //for (j in 1:n_sites){ // loop across all sites
+      //for(k in 1:n_intervals){ // loop across all intervals
+        //for(l in 1:n_visits){ // loop across all visits
           
           // create a temporary count variable, since the distribution needs to be truncated
-          int w[n_species,n_sites,n_intervals];
+          //int w[n_species,n_sites,n_intervals];
                       
           // Assess model fit using Chi-squared discrepancy
           // Compute fit statistic E for observed data
           
           // The sum of the NA indicator vector ranges == 0 if site is not in range
-          if(sum(ranges[i,j,k]) > 0){ 
+          //if(sum(ranges[i,j,k]) > 0){ 
             
             // Cit sci count data
             // expected count is... 
-            eval[i,j,k,l] =
-              N[i,j,k] // value of the latent abundance state with highest probability
-              * inv_logit(logit_p_citsci[i,j,k]); // times the estimate for detection rate
+            //eval[i,j,k,l] =
+              //N[i,j,k] // value of the latent abundance state with highest probability
+              //* inv_logit(logit_p_citsci[i,j,k]); // times the estimate for detection rate
 
             // Compute fit statistic E_new for real data (V_citsci)
-            E[i,j,k,l] = square(V_citsci[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+            //E[i,j,k,l] = square(V_citsci[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
             
             // Generate new replicate count data and
 
-            w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+            //w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
             
             // the count is from a truncated distr., and must be greater than 0.
-            while(w[i,j,k] == 0){
-              w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
-            }
+            //while(w[i,j,k] == 0){
+              //w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+            //}
             
-            y_new[i,j,k,l] = 
-              bernoulli_logit_rng(omega[i,j,k])
-              * binomial_rng(w[i,j,k],
-                inv_logit(logit_p_citsci[i,j,k]));
+            //y_new[i,j,k,l] = 
+              //bernoulli_logit_rng(omega[i,j,k])
+              //* binomial_rng(w[i,j,k],
+                //inv_logit(logit_p_citsci[i,j,k]));
             
             // Compute fit statistic E_new for replicate data
-            E_new[i,j,k,l] = square(y_new[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
+            //E_new[i,j,k,l] = square(y_new[i,j,k,l] - eval[i,j,k,l]) / (eval[i,j,k,l] + 0.5);
             
             // Musuem detections of occupancy
             // expected detection is...
@@ -540,28 +540,28 @@ generated quantities {
             // Compute fit statistic E_new for replicate data
             //E_occupancy_new[i,j,k,l] = square(y_occupancy_new[i,j,k,l] - eval_binary_detection[i,j,k,l]) / (eval_binary_detection[i,j,k,l] + 0.5);
             
-          } else { // end if site is in range and should not be considered
+          //} else { // end if site is in range and should not be considered
           
           // do not contribute to the sum squared distance from expected value
           // if the site is not in the species range
-          E[i,j,k,l] = 0; // for real data
-          E_new[i,j,k,l] = 0; // or for new data
+          //E[i,j,k,l] = 0; // for real data
+          //E_new[i,j,k,l] = 0; // or for new data
           
           //E_occupancy[i,j,k,l] = 0; // for real data
           //E_occupancy_new[i,j,k,l] = 0; // or for new data
           
-          } // end if/else site in range
+          //} // end if/else site in range
       
-        } // end loop across all visits
+        //} // end loop across all visits
     
-        fit = fit + sum(E[i,j,k]); // descrepancies for real data
-        fit_new = fit_new + sum(E_new[i,j,k]); // descrepancies for generated data
+        //fit = fit + sum(E[i,j,k]); // descrepancies for real data
+        //fit_new = fit_new + sum(E_new[i,j,k]); // descrepancies for generated data
         
         //fit_occupancy = fit_occupancy + sum(E_occupancy[i,j,k]); // descrepancies for real data
         //fit_occupancy_new = fit_occupancy_new + sum(E_occupancy_new[i,j,k]); // descrepancies for generated data
                                       
-      } // loop across all intervals
-    } // loop across all sites
-  } // loop across all species
+      //} // loop across all intervals
+    //} // loop across all sites
+  //} // loop across all species
   
-} // end generated quantities
+//} // end generated quantities
