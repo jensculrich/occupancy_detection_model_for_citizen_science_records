@@ -181,17 +181,17 @@ transformed parameters {
           logit_p_citsci[i,j,k] =  // logit scaled individual-level detection rate
             mu_p_citsci_0 + // a baseline intercept
             p_citsci_species[species[i]] + // a species specific intercept
-            p_citsci_site[sites[j]] //+ // a spatially specific intercept
-            //p_citsci_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
-            //p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
+            p_citsci_site[sites[j]] + // a spatially specific intercept
+            p_citsci_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
+            p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
           logit_p_museum[i,j,k] = // logit scaled species-level detection rate
             mu_p_museum_0 + // a baseline intercept
             p_museum_species[species[i]] + // a species specific intercept
-            p_museum_site[sites[j]] //+ // a spatially specific intercept
-            //p_museum_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
-            //p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
+            p_museum_site[sites[j]] + // a spatially specific intercept
+            p_museum_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
+            p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_museum[i,j,k]
            
       } // end loop across all intervals
@@ -207,12 +207,12 @@ model {
   
   // Abundance (Ecological Process)
   
-  gamma_0 ~ normal(0, 1); // occupancy-abundance relationship intercept
-  gamma_1 ~ normal(0, 1); // effect of expected abundance on occupancy rate
+  gamma_0 ~ normal(0, 2); // occupancy-abundance relationship intercept
+  gamma_1 ~ normal(0, 2); // effect of expected abundance on occupancy rate
   
   phi ~ normal(0, 2); // abundance overdispersion scale parameter
   
-  mu_eta_0 ~ normal(0, 2); // global intercept for abundance rate
+  mu_eta_0 ~ normal(0, 4); // global intercept for abundance rate
   
   eta_species ~ normal(0, sigma_eta_species); 
   // occupancy intercept for each species drawn from the community
@@ -253,11 +253,11 @@ model {
   sigma_p_citsci_site ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
   
   // Random slope for site-specfic effect of time on detection
-  //p_citsci_interval ~ normal(mu_p_citsci_interval, sigma_p_citsci_interval);
-  //mu_p_citsci_interval ~ normal(0, 2); // community mean
-  //sigma_p_citsci_interval ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  p_citsci_interval ~ normal(mu_p_citsci_interval, sigma_p_citsci_interval);
+  mu_p_citsci_interval ~ normal(0, 2); // community mean
+  sigma_p_citsci_interval ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
   
-  //p_citsci_pop_density ~ normal(0, 2); // effect of population density on detection
+  p_citsci_pop_density ~ normal(0, 2); // effect of population density on detection
 
   // MUSEUM records
   mu_p_museum_0 ~ normal(0, 2); // global intercept for (museum) detection
@@ -273,11 +273,11 @@ model {
   sigma_p_museum_site ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
   
   // Random slope for site-specfic effect of time on detection
-  //p_museum_interval ~ normal(mu_p_museum_interval, sigma_p_museum_interval);
-  //mu_p_museum_interval ~ normal(0, 2); // community mean
-  //sigma_p_museum_interval ~ normal(0, 1); // community variance
+  p_museum_interval ~ normal(mu_p_museum_interval, sigma_p_museum_interval);
+  mu_p_museum_interval ~ normal(0, 2); // community mean
+  sigma_p_museum_interval ~ normal(0, 1); // community variance
   
-  //p_museum_pop_density ~ normal(0, 2); // effect of population density on detection
+  p_museum_pop_density ~ normal(0, 2); // effect of population density on detection
 
   
   // LIKELIHOOD

@@ -193,18 +193,18 @@ simulate_data <- function(
           
           p_matrix_citsci[species, site, interval, visit] <-  # detection is equal to 
             mu_p_citsci_0 + # a baseline intercept
-              p_citsci_species[species] + # a species-specific intercept
-              p_citsci_site[site] #+ # a spatiotemporally specific intercept
-              #p_citsci_interval[site]*intervals[interval] + # an overall effect of time on detection
-              #p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
+            p_citsci_species[species] + # a species-specific intercept
+            p_citsci_site[site] + # a spatiotemporally specific intercept
+            p_citsci_interval[site]*intervals[interval] + # an overall effect of time on detection
+            p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           
           p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
             mu_p_museum_0 + # a baseline intercept
             p_museum_species[species] + # a species-specific intercept            
-            p_museum_site[site] #+ # a spatiotemporally specific intercept
-            #p_museum_interval[site]*intervals[interval] + # an overall effect of time on detection
-            #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
+            p_museum_site[site] + # a spatiotemporally specific intercept
+            p_museum_interval[site]*intervals[interval] + # an overall effect of time on detection
+            p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
           
           
         } # for each visit
@@ -483,8 +483,8 @@ simulate_data <- function(
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 18 ## number of species
-n_sites = 18 ## number of sites
+n_species = 20 ## number of species
+n_sites = 20 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
@@ -522,7 +522,7 @@ sigma_p_museum_interval = 0.5
 p_museum_pop_density = 0.75
 
 # introduce NAs (visits that did not survey entire community)?
-sites_missing = 0.5*n_sites 
+sites_missing = 0.25*n_sites 
 intervals_missing = 2
 visits_missing = 2
 
@@ -640,16 +640,16 @@ params <- c(
             "mu_p_citsci_0",
             "sigma_p_citsci_species",
             "sigma_p_citsci_site",
-            #"mu_p_citsci_interval",
-            #"sigma_p_citsci_interval",
-            #"p_citsci_pop_density",
+            "mu_p_citsci_interval",
+            "sigma_p_citsci_interval",
+            "p_citsci_pop_density",
             
             "mu_p_museum_0",
             "sigma_p_museum_species",
-            "sigma_p_museum_site"#,
-            #"mu_p_museum_interval",
-            #"sigma_p_museum_interval",
-            #"p_museum_pop_density",
+            "sigma_p_museum_site",
+            "mu_p_museum_interval",
+            "sigma_p_museum_interval",
+            "p_museum_pop_density"#,
             
             # posterior predictive check
             #"fit",
@@ -675,16 +675,16 @@ parameter_value <- c(
                      mu_p_citsci_0,
                      sigma_p_citsci_species,
                      sigma_p_citsci_site,
-                     #mu_p_citsci_interval,
-                     #sigma_p_citsci_interval,
-                     #p_citsci_pop_density,
+                     mu_p_citsci_interval,
+                     sigma_p_citsci_interval,
+                     p_citsci_pop_density,
                      
                      mu_p_museum_0,
                      sigma_p_museum_species,
-                     sigma_p_museum_site#,
-                     #mu_p_museum_interval,
-                     #sigma_p_museum_interval,
-                     #p_museum_pop_density,
+                     sigma_p_museum_site,
+                     mu_p_museum_interval,
+                     sigma_p_museum_interval,
+                     p_museum_pop_density#,
                      
                      #NA, # posterior predictive check
                      #NA, # posterior predictive check
@@ -723,16 +723,16 @@ inits <- lapply(1:n_chains, function(i)
        mu_p_citsci_0 = runif(1, -1, 1),
        sigma_p_citsci_species = runif(1, 0, 1),
        sigma_p_citsci_site = runif(1, 0, 1),
-       #mu_p_citsci_interval = runif(1, -1, 1),
-       #sigma_p_citsci_interval = runif(1, 0, 1),
-       #p_citsci_pop_density = runif(1, -1, 1),
+       mu_p_citsci_interval = runif(1, -1, 1),
+       sigma_p_citsci_interval = runif(1, 0, 1),
+       p_citsci_pop_density = runif(1, -1, 1),
        
        mu_p_museum_0 = runif(1, -1, 1),
        sigma_p_museum_species = runif(1, 0, 1),
-       sigma_p_museum_site = runif(1, 0, 1)#,
-       #mu_p_museum_interval = runif(1, -1, 1),
-       #sigma_p_museum_interval = runif(1, 0, 1),
-       #p_museum_pop_density = runif(1, -1, 1)
+       sigma_p_museum_site = runif(1, 0, 1),
+       mu_p_museum_interval = runif(1, -1, 1),
+       sigma_p_museum_interval = runif(1, 0, 1),
+       p_museum_pop_density = runif(1, -1, 1)
        
   )
 )
@@ -778,12 +778,11 @@ traceplot(stan_out_sim, pars = c(
 # pairs plot
 pairs(stan_out_sim, pars = c(
   "mu_eta_0",
-  "eta_site_area",
   "mu_p_citsci_0",
   "mu_p_museum_0",
-  "phi",
-  "gamma_0",
-  "gamma_1"
+  "phi"#,
+  #"gamma_0",
+  #"gamma_1"
 ))
 
 # Posterior predictive check
