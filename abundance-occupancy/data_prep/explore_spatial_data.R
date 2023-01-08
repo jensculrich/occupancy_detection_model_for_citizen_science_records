@@ -313,14 +313,55 @@ ggplot() +
 
 # The ## code below should be used if you want to reaggregate the raster data.
 
-# project the grid to the raster
+# project the raster to the first raster used (population density - "r3")
 crs_imp <- sf::st_crs(raster::crs(imp))
-prj2 <- st_transform(grid_pop_dens, crs_imp)
+crs_raster <- sf::st_crs(raster::crs(r3))
+
+# this is too costly for my computer
+# imp2 <- projectRaster(from=imp, to=r3)
+
+# try reducing extent first
+# aggregate at scale x (to a coarser scale to speed the processing and save comp load)
+# 1/30meters = x/500 meters -> x = 16.7
+# 1/30meters = x/300 meters -> x = 10
+imp_agg <- aggregate(imp, 10, fun=mean)
+
+writeRaster(imp_agg, 
+            "D:/urban_spatial_data/nlcd_2016_impervious_l48_20210604/300m_aggregate_nlcd_2016_impervious_35km_CONUS.tif",
+            overwrite=TRUE)
+
+# crop to smaller bounding box to make more manageable 
+extent(imp_agg)
+new_extent <- extent(-2400000, -1100000, 950000, 3200000)
+imp_agg_cropped <- crop(x = imp_agg, y = new_extent)
+
+writeRaster(imp_agg_cropped, 
+            "D:/urban_spatial_data/nlcd_2016_impervious_l48_20210604/300m_aggregate_crop_nlcd_2016_impervious_35km_CONUS.tif",
+            overwrite=TRUE)
+
+# now let's try this again with the smaller file
+imp2 <- projectRaster(from=imp_agg_cropped, to=r3)
+
+# project the grid to the raster
+crs_raster <- sf::st_crs(raster::crs(imp2))
+prj1 <- st_transform(grid, crs_raster)
+
+plot(imp2)
+plot(prj1, colour = NA, add = TRUE)
+
+
+# imp2[imp2 == 127] <- NA
+
+
+# project the grid to the raster
 
 # originally was: crop, aggregate, mask
+crs_imp <- sf::st_crs(raster::crs(imp))
+prj2 <- st_transform(grid_pop_dens, crs_imp)
+extent(prj2)
 
 # try.. crop extent to western us, mask to sites, crop extent, aggregate
-# these are all taking a long time.. pick back uo later.
+# these are all taking a long time.. pick back up later.
 imp <- mask(imp, prj2)
 imp2 <- crop(imp, prj2)
 
