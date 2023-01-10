@@ -187,6 +187,34 @@ pre code {
 <div id="data" class="section level3">
 <h3>./data/</h3>
 <p>Includes the occurrence and spatial data used in the analysis. As of now, this file is ignored in git commits, because the spatial data files are too big to transfer back and forth between a local computer and github. Eventually I will prep all of the data into a zip file that could be included as a supplement to the manuscript that could be downloaded and then unzipped here so that others can run the analysis from remote computers.</p>
+<div id="get_occurrence_data.r" class="section level4">
+<h4>get_occurrence_data.R</h4>
+<p>Prepare a request for NHC data from GBIF. The download will be stored in the data folder. To limit the requests from GBIF, this call was only used once, and is not included in the model building/running process. The file also enables visualization and summary of the downloaded data. This second half of the file is not called in the model building/running process and is purely for visualization.</p>
+</div>
+<div id="spatial_data" class="section level4">
+<h4>./spatial_data/</h4>
+</div>
+<div id="impervious_surface" class="section level4">
+<h4>./impervious_surface/</h4>
+</div>
+<div id="m_aggregate_crop_nlcd_2016_impervious.tif" class="section level4">
+<h4>300m_aggregate_crop_nlcd_2016_impervious.tif</h4>
+<p>2016 urban imp surface cover from <a href="https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus" class="uri">https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus</a>. The data was originally at a 30m x 30m grain. I aggregated the dataset up to averages at 300m x 300m to speed downstream processing times.</p>
+</div>
+<div id="population_density" class="section level4">
+<h4>./population_density/</h4>
+</div>
+<div id="gpw_v4_population_density_rev11_2015_30_sec.tif" class="section level4">
+<h4>gpw_v4_population_density_rev11_2015_30_sec.tif</h4>
+<p>2015 population density from MRLC data <a href="https://www.mrlc.gov/data" class="uri">https://www.mrlc.gov/data</a> 30 arc second grain, extent is across all of world</p>
+</div>
+<div id="time_integrated_ndvi" class="section level4">
+<h4>./time_integrated_ndvi</h4>
+</div>
+<div id="tin2014_wusaem250m_v2.tif" class="section level4">
+<h4>TIN2014_wUSAeM250m_v2.tif</h4>
+<p>2014 NDVI metric from <a href="https://earthexplorer.usgs.gov/" class="uri">https://earthexplorer.usgs.gov/</a> &gt; Vegetation Monitoring &gt; Phenology &gt; eMODIS Phenology &gt; 250m res - 2014 - Western NA V2</p>
+</div>
 </div>
 <div id="methods" class="section level3">
 <h3>./methods/</h3>
@@ -228,10 +256,6 @@ pre code {
 <div id="explore_spatial_data.r" class="section level4">
 <h4>explore_spatial_data.R</h4>
 <p>A data exploration file. Use to view plots of the spatial land cover data and the spatial NHC records overlayed on the landscape. This file is not called in the model building/running process and is purely for visualization.</p>
-</div>
-<div id="get_occurrence_data.r" class="section level4">
-<h4>get_occurrence_data.R</h4>
-<p>Prepare a request for NHC data from GBIF. The download will be stored in the data folder. To limit the requests from GBIF, this call was only used once, and is not included in the model building/running process. The file also enables visualization and summary of the downloaded data. This second half of the file is not called in the model building/running process and is purely for visualization.</p>
 </div>
 <div id="get_spatial_data.r" class="section level4">
 <h4>get_spatial_data.R</h4>
@@ -279,21 +303,21 @@ pre code {
 <div id="bombus" class="section level3">
 <h3>./bombus/</h3>
 </div>
-<div id="spatial_data" class="section level3">
+<div id="spatial_data-1" class="section level3">
 <h3>./spatial_data/</h3>
 </div>
-<div id="population_density" class="section level3">
+<div id="population_density-1" class="section level3">
 <h3>./population_density/</h3>
-<div id="gpw_v4_population_density_rev11_2015_30_sec.tif" class="section level4">
+<div id="gpw_v4_population_density_rev11_2015_30_sec.tif-1" class="section level4">
 <h4>gpw_v4_population_density_rev11_2015_30_sec.tif</h4>
-<p>Human population density. Dataset obtained from the <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">NASA Socioeconomic Data and Applications Center</a> was collected in 2015. Data are at a resolution of 30 seconds (about 500m by 500m), and are stored in the WGS84 geographic coordinate system.</p>
+<p>Human population density. Dataset obtained from the <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">NASA Socioeconomic Data and Applications Center</a> was collected in 2015. Data are at a resolution of 30 seconds (about 500m by 500m), and are stored in the WGS84 latitude/longitude (EPSG:4326) geographic coordinate system.</p>
 </div>
 </div>
-<div id="impervious_surface" class="section level3">
+<div id="impervious_surface-1" class="section level3">
 <h3>./impervious_surface/</h3>
 <div id="nlcd_2016_impervious_aggregated_300m.tif" class="section level4">
 <h4>nlcd_2016_impervious_aggregated_300m.tif</h4>
-<p>Impervious surface across the study extent. File was pre-cropped to match the extent and then aggregated to average value per 300m. The aggregation is to speed up the site variable extraction (and save energy and computing resources) when the spatial and temporal grains are adjusted across a loop for the sensitivity analysis. The original dataset obtained from the <a href="https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus">the USGS National Landcover Database</a> has an extent across western United States. The Dataset was collected in 2016 and represents the percent of developed surface over every 30-meter pixel in the extent, and are stored in the _ geographic coordinate system.</p>
+<p>Impervious surface across the study extent. File was pre-cropped to match the extent and then aggregated to average value per 300m. The aggregation is to speed up the site variable extraction (and save energy and computing resources) when the spatial and temporal grains are adjusted across a loop for the sensitivity analysis. The original dataset obtained from the <a href="https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus">the USGS National Landcover Database</a> has an extent across western United States. The Dataset was collected in 2016 and represents the percent of developed surface over every 30-meter pixel in the extent, and are stored in the Albers Conical Equal Area (EPSG:9822) geographic coordinate system.</p>
 </div>
 </div>
 <div id="plant_cover" class="section level3">

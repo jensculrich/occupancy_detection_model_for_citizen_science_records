@@ -20,6 +20,36 @@ Prior to constructing the abundance-occupancy model, I constructed a more straig
 ### ./data/
 Includes the occurrence and spatial data used in the analysis. As of now, this file is ignored in git commits, because the spatial data files are too big to transfer back and forth between a local computer and github. Eventually I will prep all of the data into a zip file that could be included as a supplement to the manuscript that could be downloaded and then unzipped here so that others can run the analysis from remote computers.
 
+#### get_occurrence_data.R
+Prepare a request for NHC data from GBIF. The download will be stored in the data folder. To limit the requests from GBIF, this call was only used once, and is not included in the model building/running process. The file also enables visualization and summary of the downloaded data. This second half of the file is not called in the model building/running process and is purely for visualization.   
+
+### ./occurrence_data/
+
+#### ./syrphidae/
+
+#### ./bombus/
+
+### ./spatial_data/
+The spatially explicit environmental data
+
+#### ./impervious_surface/
+#### 300m_aggregate_crop_nlcd_2016_impervious.tif
+2016 urban imp surface cover from https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus.
+The data was originally at a 30m x 30m grain. I aggregated the dataset up to averages at 300m x 300m to speed downstream processing times.
+
+#### ./population_density/
+#### gpw_v4_population_density_rev11_2015_30_sec.tif
+2015 population density from
+MRLC data https://www.mrlc.gov/data
+30 arc second grain, extent is across all of world
+
+#### ./time_integrated_ndvi
+#### TIN2014_wUSAeM250m_v2.tif
+2014 NDVI metric from 
+https://earthexplorer.usgs.gov/ 
+> Vegetation Monitoring > Phenology > eMODIS Phenology > 250m res - 2014 - Western NA V2
+
+
 ### ./methods/
 Includes a detailed word document ("methods.doc") outlining my methods for data collection and analysis.
 
@@ -51,8 +81,6 @@ A saved model fit output that can be assessed at a later time, or used for figur
 #### explore_spatial_data.R
 A data exploration file. Use to view plots of the spatial land cover data and the spatial NHC records overlayed on the landscape. This file is not called in the model building/running process and is purely for visualization.
 
-#### get_occurrence_data.R
-Prepare a request for NHC data from GBIF. The download will be stored in the data folder. To limit the requests from GBIF, this call was only used once, and is not included in the model building/running process. The file also enables visualization and summary of the downloaded data. This second half of the file is not called in the model building/running process and is purely for visualization.   
 
 #### get_spatial_data.R
 Contains a function to prepare the spatial data based on the study design dimensions chosen in run_analysis.R. Function will also then match NHC records to spatial sites. 
