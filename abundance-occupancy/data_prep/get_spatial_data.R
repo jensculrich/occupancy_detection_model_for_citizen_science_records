@@ -27,10 +27,11 @@
 # like grid size and minimum urbanization intensity to include a site
 # shape the data that we will analyze with our model
 
-library(tidyverse)
+library(tidyverse) # data carpentry
 library(tigris) # get state shapefile
 library(sf) # spatial data processing
 library(raster) # process pop dens raster
+library(exactextractr) # quick extraction of raster data
 
 get_spatial_data <- function(
   grid_size,

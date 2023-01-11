@@ -57,16 +57,13 @@ crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
 min_population_size <- 300 
 
-min_site_area = 100000000
+# minimum site area 
+# if sites are super tiny, the observation process could likely be very unstable
+min_site_area = 0.10
 
-# taxon = "syrphidae"
-#taxon = "bombus"
+#taxon = "syrphidae"
+taxon = "bombus"
 
-## --------------------------------------------------
-# occurrence data
-
-# read either the syrphidae data or the bombus data
-df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data.csv"))
 
 ## --------------------------------------------------
 # Spatial extent and urban areas
@@ -74,12 +71,12 @@ df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data.csv"))
 # spatial data - California state shapefile
 states <- tigris::states() %>%
   filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
+
 str(states)
 st_crs(states)
-crs(states)
 
 ## --------------------------------------------------
-# ecological rasters 
+# Environmental rasters 
 
 # human pop density raster
 # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
@@ -94,28 +91,6 @@ crs(pop_raster)
 # 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus
 # land=raster::raster("D:/urban_spatial_data/land_cover/nlcd_2016_land_cover_l48_20210604.img")
 #raster::crs(land)
-
-# not currently using any of those below
-
-# DO NOT READ IF USING THE AGGREGATED/CROPPED FILE PRODUCED ONE TIME ONLY BELOW
-# impervious surface raster
-# 2016 urban imp surface cover https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus
-#imp=raster::raster("D:/urban_spatial_data/nlcd_2016_impervious_l48_20210604/nlcd_2016_impervious_l48_20210604.img")
-#raster::crs(imp)
-
-# TIN raster
-# 2014 TIN surface cover (Time-Integrated NDVI)
-# https://earthexplorer.usgs.gov/ 
-# > Vegetation Monitoring > Phenology > eMODIS Phenology > 250m res - 2014 - Western NA V2
-# tin=raster::raster("./data/spatial_data/time_integrated_ndvi/TIN2014_wUSAeM250m_v2.tif")
-#raster::crs(tin)
-
-# MAX NDVI raster
-# 2014MAX NDVI surface cover (Time-Integrated NDVI)
-# https://earthexplorer.usgs.gov/ 
-# > Vegetation Monitoring > Phenology > eMODIS Phenology > 250m res - 2014 - Western NA V2
-# maxn=raster::raster("D:/urban_spatial_data/PHEMUSW2014V02_TIF/MAXN2014_wUSAeM250m_v2.tif")
-#raster::crs(maxn)
 
 ## --------------------------------------------------
 # Data Aggregation IMPERVIOUS SURFACE
@@ -157,36 +132,11 @@ land=raster::raster("./data/spatial_data/land_use/land_use.tif")
 # Extract raster variables from sites
 
 ## --------------------------------------------------
-# Prep the data
+# Overlay spatial polygons with grid 
 
 ## transform
 # transform state shapefile to crs
 states_trans <- st_transform(states, 26910) # NAD83 / UTM Zone 10N
-
-# make the df into a spatial file
-(df_sf <- st_as_sf(df,
-                   coords = c("decimalLongitude", "decimalLatitude"), 
-                   crs = 4326))
-
-# and then transform it to the crs
-df_trans <- st_transform(df_sf, crs = crs)
-
-#ggplot() +
-#  geom_sf(data=states)
-
-# let's just plot 100 points to get a picture of the data and shapefile
-#df_trans_100 <- df_trans %>%
-#  sample_n(500)
-
-#ggplot() +
-#  geom_sf(data=states) + 
-#  geom_sf(data = df_trans_100, 
-#          aes(fill = species), 
-#          size = 4, alpha = 0.5, shape = 23) +
-#  theme(legend.position="none")
-
-## --------------------------------------------------
-# Overlay spatial polygons with grid 
 
 # create _km grid - here you can substitute by specifying grid_size above
 grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>% 
@@ -230,27 +180,14 @@ plot(log(pop_raster+1),
 plot(prj_states, colour = NA, add = TRUE)
 # plot(prj1, colour = NA, add = TRUE)
 
-# Extract raster values to list object
-# this takes a while since there are many raster cells with their own values
-# in each grid cell.
-r.vals <- raster::extract(pop_raster, prj1)
+# Extract raster values to list object and then summarize by the mean value
+r.vals <- exactextractr::exact_extract(pop_raster, prj1, 'mean')
 
-# Use list apply to calculate mean raster value for each grid cell
-r.mean <- lapply(r.vals, FUN=mean, na.rm=TRUE)
+## --------------------------------------------------
+# filter sites to urban areas using the r.vals for pop density
 
-# this takes a long long time to plot
-# much easier to just plot the raster directly rather than as df with ggplot
-#pop_raster_df <- as.data.frame(pop_raster, xy = TRUE) %>%
-#  rename("pop_dens" = "gpw_v4_population_density_rev11_2015_30_sec") %>%
-#  mutate(logp1_pop_dens = log(pop_dens + 1))
-#ggplot(pop_raster_df) +
-#  geom_tile(aes(x=x, y=y, fill=gpw_v4_population_density_rev11_2015_30_sec))
-#plot(pop_raster)
-
-# Join mean values to the sites
-grid_pop_dens <- cbind(grid, unlist(r.mean)) %>% 
-  rename("pop_density_per_km2" = "unlist.r.mean.")
-
+grid_pop_dens <- cbind(grid, r.vals) %>% 
+  rename("pop_density_per_km2" = "r.vals")
 # now filter out the non-urban areas (areas below our pop density threshold)
 # and make a scaled response variable
 grid_pop_dens <- grid_pop_dens %>%
@@ -258,126 +195,7 @@ grid_pop_dens <- grid_pop_dens %>%
 
 
 ## --------------------------------------------------
-# Calculate land area of grid cells 
-# some cells might partially be outside of the area where we are getting records from
-# e.g. a cell half in California and half in Mexico or a cell that is along the
-# coastline and only overlaps slightly with land
-# we would expect fewer species to occur in these smaller areas and therefore should
-# account for site area (extent of grid cell intersection w/ shapefile) in our analysis
-
-# THE VECTOR 'scaled_grid_area' is the output that lists scaled site area 
-# in order from lowest site number to highest.
-
-# intersect - note that sf is intelligent with attribute data!
-grid_intersect <- st_intersection(states_trans, grid_pop_dens)
-
-plot(states_trans$geometry, axes = TRUE, 
-     xlab = " x pixel", ylab = "y pixel")
-plot(grid_pop_dens$., add = TRUE)
-plot(grid_intersect$geometry, add = TRUE, col = 'red')
-title("Site x Land Area Intersection")
-
-# add in areas in m2
-attArea <- grid_intersect %>% 
-  mutate(area = st_area(.) %>% 
-           as.numeric()) %>%
-  # for each field, get area overlapping with admin area
-  as_tibble() %>% 
-  group_by(grid_id) %>% 
-  summarize(area = sum(area)) 
-
-grid_pop_dens <- grid_pop_dens %>%
-  left_join(., attArea, by="grid_id") %>%
-  # remove tiny sites
-  filter(area > 100000000) %>%
-  # add scaled variables
-  mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2)) %>%
-  mutate(scaled_site_area = center_scale(area)) 
-
-# view sites only with population density
-ggplot() +
-  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid_pop_dens, aes(fill = pop_density_per_km2), lwd = 0.3) +
-  scale_fill_gradient2(name = expression("Population/km"^2)) +
-  #geom_text(data = urban_grid_lab, 
-  #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Population density in urban areas") +
-  labs(x = "Longitude") +
-  labs(y = "Latitude") 
-
-# view sites only with scaled population density
-ggplot() +
-  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid_pop_dens, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
-  scale_fill_gradient2(name = expression("Scaled population/km"^2)) +
-  #geom_text(data = urban_grid_lab, 
-  #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Population density in urban areas") +
-  labs(x = "Longitude") +
-  labs(y = "Latitude") 
-
-# view sites only with scaled site area data
-ggplot() +
-  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid_pop_dens, aes(fill = scaled_site_area), lwd = 0.3) +
-  scale_fill_gradient2(name = "Scaled site area") +
-  #geom_text(data = urban_grid_lab, 
-  #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Within-extent land area of urban sites") +
-  labs(x = "Longitude") +
-  labs(y = "Latitude") 
-# coord_sf(datum = NA)
-
-## --------------------------------------------------
-# Now tag records with site ID's based on spatial intersection
-
-# which grid square is each point in?
-df_id_dens_syrphidae <- df_trans %>% 
-  st_join(grid_pop_dens, join = st_intersects) %>% as.data.frame %>%
-  # filter out records from outside of the urban grid
-  filter(!is.na(grid_id)) %>%
-  left_join(., dplyr::select(
-    df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
-
-# which grid square is each point in?
-df_id_dens_bombus <- df_trans %>% 
-  st_join(grid_pop_dens, join = st_intersects) %>% as.data.frame %>%
-  # filter out records from outside of the urban grid
-  filter(!is.na(grid_id)) %>%
-  left_join(., dplyr::select(
-    df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
-
-
-## --------------------------------------------------
-# plot the spatial data
-
-# Reproject the occurrence data if you want to plot random sample of NHC records
-#df_w_dens_sf <- st_as_sf(df_id_dens,
-#                         coords = c("decimalLongitude", "decimalLatitude"), 
-#                         crs = 4326)
-
-# and then transform it to the crs again
-#df_w_dens_trans <- st_transform(df_w_dens_sf, crs = crs)
-
-# create labels for each grid_id
-# urban_grid_lab <- st_centroid(grid_pop_dens) %>% cbind(st_coordinates(.))
-
-# view sampled points transposed to the grid on the polygon
-#ggplot() +
-#  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-#  geom_sf(data = grid_pop_dens, lwd = 0.3) +
-#  geom_sf(data = sample_n(df_w_dens_trans, 500), 
-#          aes(fill = species), 
-#          size = 4, alpha = 0.5, shape = 23) +
-#geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
-#  labs(x = "Longitude") +
-#  labs(y = "Latitude") +
-#  ggtitle("Random sample of 500 Syrphidae NHC records from urban site areas", 
-#          subtitle = "(coloured by species)") +
-# theme(legend.position = "none")
-
-## --------------------------------------------------
-# Calculate grass/herb and shrub/scrub surface cover value of each grid cell
+# Exract environmnetal variables from each remaining site
 
 # project the raster to the first raster used (population density - "pop_raster")
 crs_land <- sf::st_crs(raster::crs(land))
@@ -410,9 +228,27 @@ r.vals_land <- exactextractr::exact_extract(land, prj1)
 # want to reclassify open water as NA
 r.vals_land_NA <- lapply(r.vals_land, function(x) na_if(x$value, 0))
 r.vals_land_NA <- lapply(r.vals_land_NA, function(x) na_if(x,11))
-r.vals_land_NA <- lapply(r.vals_land_NA,na.omit)
+
+# first find out the proportion of rows that are NA's 
+# (this will be our site area)
+r.site_area <- lapply(r.vals_land_NA, 
+                            function(x) { 
+                              # which rows are not NAs (are not masked or coded as open water)
+                              # divided by the number of rows
+                              # yields a site area
+                              (length(which(!is.na(x))) / length(x))
+                            } 
+) 
+
+
+# now drop NA values so that the below estimates are the proportion of cover
+# of all land cover in the administrative area
+r.vals_land_NA <- lapply(r.vals_land_NA, na.omit)
 
 # now pull out site proportion of each type
+# for legend of category number codes see: 
+# https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description
+
 r.mean_herb_shrub <- lapply(r.vals_land_NA, 
               function(x) { 
                 (length(which(x %in% c(52,71))) / length(x))
@@ -437,22 +273,65 @@ r.mean_forest <- lapply(r.vals_land_NA,
                           } 
 ) 
 
-grid_pop_dens <- cbind(grid_pop_dens, 
+grid_pop_dens <- cbind(grid_pop_dens,
+                       unlist(r.site_area),
                        unlist(r.mean_herb_shrub),
                        unlist(r.mean_dev_open),
                        unlist(r.mean_high_dev),
                        unlist(r.mean_forest)) %>%
-  rename("herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
+  rename("site_area" = "unlist.r.site_area.",
+         "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
          "developed_open" = "unlist.r.mean_dev_open.",
          "developed_med_high" = "unlist.r.mean_high_dev.",
          "forest" = "unlist.r.mean_forest.") %>%
-  mutate(scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+  # remove sites below filter for minimum site area
+  filter(site_area > min_site_area) %>%
+  mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
+         scaled_site_area = center_scale(site_area),
+         scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
          scaled_developed_open = center_scale(developed_open),
          scaled_developed_med_high = center_scale(developed_med_high),
          scaled_forest = center_scale(forest)
          )
 
-# view sites only with scaled data
+## --------------------------------------------------
+# Visualize the data
+
+# view sites only with population density
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = pop_density_per_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("Population/km"^2)) +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Population density in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# view sites only with scaled population density
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("Scaled population/km"^2)) +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Population density in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# scaled site area data
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_site_area), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled site area") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Within-extent land area of urban sites") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+# coord_sf(datum = NA)
+
+# scaled shrub and herb cover
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_cover), lwd = 0.3) +
@@ -463,7 +342,7 @@ ggplot() +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
-# view sites only with scaled data
+# scaled open developed area
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_developed_open), lwd = 0.3) +
@@ -474,7 +353,7 @@ ggplot() +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
-# view sites only with scaled data
+# scaled medium/high developed
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_developed_med_high), lwd = 0.3) +
@@ -485,7 +364,7 @@ ggplot() +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
-# view sites only with scaled data
+# sclaed forest cover
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_forest), lwd = 0.3) +
@@ -495,8 +374,6 @@ ggplot() +
   ggtitle("Forest Cover in Urban Areas") +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
-
-
 
 
 ## --------------------------------------------------
@@ -525,14 +402,75 @@ rownames(variable_correlations) <- c("scaled_pop_den_km2",
                                      "scaled_herb_shrub_cover",
                                      "scaled_forest")
  
+(variable_correlations)
+
+## --------------------------------------------------
+# Occurrence data
+
+# read either the syrphidae data or the bombus data
+df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data.csv"))
+
+## --------------------------------------------------
+# Prep the data
+
+# make the df into a spatial file
+(df_sf <- st_as_sf(df,
+                   coords = c("decimalLongitude", "decimalLatitude"), 
+                   crs = 4326))
+
+# and then transform it to the crs
+df_trans <- st_transform(df_sf, crs = crs)
+
+
+## --------------------------------------------------
+# plot the spatial data
+
+# Reproject the occurrence data if you want to plot random sample of NHC records
+#df_w_dens_sf <- st_as_sf(df_id_dens,
+#                         coords = c("decimalLongitude", "decimalLatitude"), 
+#                         crs = 4326)
+
+# and then transform it to the crs again
+#df_w_dens_trans <- st_transform(df_w_dens_sf, crs = crs)
+
+# create labels for each grid_id
+# urban_grid_lab <- st_centroid(grid_pop_dens) %>% cbind(st_coordinates(.))
+
+# view sampled points transposed to the grid on the polygon
+#ggplot() +
+#  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+#  geom_sf(data = grid_pop_dens, lwd = 0.3) +
+#  geom_sf(data = sample_n(df_w_dens_trans, 500), 
+#          aes(fill = species), 
+#          size = 4, alpha = 0.5, shape = 23) +
+#geom_text(data = urban_grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
+#  labs(x = "Longitude") +
+#  labs(y = "Latitude") +
+#  ggtitle("Random sample of 500 Syrphidae NHC records from urban site areas", 
+#          subtitle = "(coloured by species)") +
+# theme(legend.position = "none")
+
+## --------------------------------------------------
+# Now tag records with site ID's based on spatial intersection
+
+# which grid square is each point in?
+df_id_dens <- df_trans %>% 
+  st_join(grid_pop_dens, join = st_intersects) %>% as.data.frame %>%
+  # filter out records from outside of the urban grid
+  filter(!is.na(grid_id)) %>%
+  left_join(., dplyr::select(
+    df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
+
 
 ## --------------------------------------------------
 # save RDS for easy access later
 
-# saveRDS(as.data.frame(grid_pop_dens), "./preprocessed_data/site_data_30km_200minpop_.RDS")
+#saveRDS(as.data.frame(grid_pop_dens), "./preprocessed_data/site_data_30km_200minpop_.RDS")
 
-#saveRDS(as.data.frame(df_id_dens_syrphidae), "preprocessed_data/syrphidae_occurrence_records_30km_200minpop_.RDS") 
-#saveRDS(as.data.frame(df_id_dens_bombus), "preprocessed_data/bombus_occurrence_records_30km_200minpop_.RDS") 
+#saveRDS(as.data.frame(df_id_dens), paste0(
+#  "preprocessed_data/",
+#  taxon,
+#  "_occurrence_records_30km_200minpop_.RDS")) 
 
 
 
