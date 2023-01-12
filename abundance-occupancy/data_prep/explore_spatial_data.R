@@ -61,8 +61,8 @@ min_population_size <- 300
 # if sites are super tiny, the observation process could likely be very unstable
 min_site_area = 0.10
 
-#taxon = "syrphidae"
-taxon = "bombus"
+taxon = "syrphidae"
+#taxon = "bombus"
 
 
 ## --------------------------------------------------
@@ -88,7 +88,7 @@ crs(pop_raster)
 
 # DO NOT READ IF USING THE AGGREGATED/CROPPED FILE PRODUCED ONE TIME ONLY BELOW
 # land cover raster 30m x 30m
-# 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus
+# 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
 # land=raster::raster("D:/urban_spatial_data/land_cover/nlcd_2016_land_cover_l48_20210604.img")
 #raster::crs(land)
 
@@ -195,17 +195,13 @@ grid_pop_dens <- grid_pop_dens %>%
 
 
 ## --------------------------------------------------
-# Exract environmnetal variables from each remaining site
-
-# project the raster to the first raster used (population density - "pop_raster")
-crs_land <- sf::st_crs(raster::crs(land))
-crs_raster <- sf::st_crs(raster::crs(pop_raster))
+# Extract environmental variables from each remaining site
 
 # make sure that the grid is still projected to the raster
 crs_raster <- sf::st_crs(raster::crs(land))
 prj1 <- st_transform(grid_pop_dens, crs_raster)
 
-# project the states to the raster and then crop so we cut off the ocean
+# project the states to the raster
 crs_raster <- sf::st_crs(raster::crs(land))
 prj_states <- st_transform(states_trans, crs_raster)
 
@@ -219,9 +215,6 @@ plot(prj1, colour = NA, add = TRUE) +
 
 # then extract values and cbind with the grid_pop_dens
 # extract raster values to list object
-# this takes a while since there are many raster cells with their own values
-# in each grid cell.
-# Use list apply to calculate mean raster value for each grid cell
 
 r.vals_land <- exactextractr::exact_extract(land, prj1)
 
@@ -472,6 +465,7 @@ df_id_dens <- df_trans %>%
 #  taxon,
 #  "_occurrence_records_30km_200minpop_.RDS")) 
 
+# end file
 
 
 
@@ -485,8 +479,7 @@ df_id_dens <- df_trans %>%
 
 
 
-
-# below in development
+# below was used in earlier versions, keeping temporarily for now
 ## --------------------------------------------------
 
 test <- raster("D:/urban_spatial_data/Herbaceous_2009_2021/Herbaceous_2009_2021/rcmap_herbaceous_2009.tif")
