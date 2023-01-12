@@ -33,6 +33,11 @@ min_site_area = 0.10
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
 remove_unidentified_species = TRUE
 
+# set an upper limit on maximum possible abundance
+# (take max count of a species*site from any time period, add K_addition and multiply by K_multiplier)
+K_addition = 5
+K_multiplier = 4
+
 
 source("./abundance-occupancy/data_prep/prep_data.R")
 
@@ -77,7 +82,8 @@ site_names <- my_data$sites
 species_names <- my_data$species
 
 pop_densities <- my_data$pop_densities
-impervious_cover <- my_data$impervious_cover
+open_developed <- my_data$open_developed
+herb_shrub <- my_data$herb_shrub_cover
 site_areas <- my_data$site_areas
 
 # check correlation between variables
@@ -93,7 +99,7 @@ species <- seq(1, n_species, by=1)
 
 # Get K values
 source("./abundance-occupancy/data_prep/get_K.R")
-K <- get_K(V_citsci)
+K <- get_K(V_citsci, K_addition, K_multiplier)
 
 # sum(V_museum_NA) # number of species sampling events by museums
 # c <- which(V_museum>V_museum_NA) # this will give you numerical value
@@ -102,79 +108,95 @@ stan_data <- c("V_citsci", "V_museum",
                "V_citsci_NA", "V_museum_NA", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites",
-               "pop_densities", "site_areas"
+               "K",
+               "pop_densities", "site_areas",
+               "open_developed", "herb_shrub"
               )
-               # add correct variables
 
 # Parameters monitored
-params <- c("mu_psi_0",
-            "psi_species",
-            "sigma_psi_species",
-            "sigma_psi_site",
-            "psi_pop_density",
-            "mu_psi_pop_density",
-            "sigma_psi_pop_density",
-            "psi_interval",
-            "mu_psi_interval",
-            "sigma_psi_interval",
-            "psi_site_area",
-            
-            "mu_p_citsci_0",
-            "p_citsci_species",
-            "sigma_p_citsci_species",
-            "sigma_p_citsci_site",
-            "p_citsci_interval",
-            "p_citsci_pop_density", 
-            
-            "mu_p_museum_0",
-            "p_museum_species",
-            "sigma_p_museum_species",
-            "sigma_p_museum_site",
-            "p_museum_interval",
-            "p_museum_pop_density"
+params <- c(
+  "gamma_0",
+  "gamma_1",
+  "phi",
+  
+  "mu_eta_0",
+  "sigma_eta_species",
+  "sigma_eta_site",
+  "mu_eta_open_developed",
+  "sigma_eta_open_developed",
+  "mu_eta_herb_shrub",
+  "sigma_eta_herb_shrub",
+  "eta_site_area",
+  
+  "mu_p_citsci_0",
+  "sigma_p_citsci_species",
+  "sigma_p_citsci_site",
+  "mu_p_citsci_interval",
+  "sigma_p_citsci_interval",
+  "p_citsci_pop_density",
+  
+  "mu_p_museum_0",
+  "sigma_p_museum_species",
+  "sigma_p_museum_site",
+  "mu_p_museum_interval",
+  "sigma_p_museum_interval",
+  "p_museum_pop_density",
+  
+  # posterior predictive check
+  "fit",
+  "fit_new",
+  "fit_occupancy",
+  "fit_occupancy_new"
 )
 
 
 # MCMC settings
-n_iterations <- 1000
-n_thin <- 2
-n_burnin <- 500
+n_iterations <- 300
+n_thin <- 1
+n_burnin <- 150
 n_chains <- 3
-n_cores <- n_chains
-delta = 0.9
+n_cores <- 4
+delta = 0.85
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
 # otherwise sometimes they have a hard time starting to sample
 inits <- lapply(1:n_chains, function(i)
-  
-  list(mu_psi_0 = runif(1, -1, 1),
-       sigma_psi_species = runif(1, 0, 0.5),
-       sigma_psi_site = runif(1, 0, 0.5),
-       mu_psi_interval = runif(1, -0.1, 0.1),
-       sigma_psi_interval = runif(1, 0, 0.1),
-       mu_psi_pop_density = runif(1, -1, 1),
-       sigma_psi_pop_density = runif(1, 0, 1),
-       psi_site_area = runif(1, -1, 1),
-       
-       mu_p_citsci_0 = runif(1, -1, 1),
-       sigma_p_citsci_species = runif(1, 0, 1),
-       sigma_p_citsci_site = runif(1, 0, 1),
-       p_citsci_interval = runif(1, -1, 1),
-       p_citsci_pop_density = runif(1, -1, 1),
-       
-       mu_p_museum_0 = runif(1, -1, 1),
-       sigma_p_museum_species = runif(1, 0, 1),
-       sigma_p_museum_site = runif(1, 0, 1),
-       p_museum_interval = runif(1, -1, 1),
-       p_museum_pop_density = runif(1, -1, 1)
+  list(
+    
+    gamma_0 = runif(1, -0.25, 0.25),
+    gamma_1 = runif(1, 0, 1),
+    phi = runif(1, 0, 1),
+    
+    mu_eta_0 = runif(1, -1, 1),
+    sigma_eta_species = runif(1, 0, 1),
+    sigma_eta_site = runif(1, 0, 1),
+    mu_eta_open_developed = runif(1, -1, 1),
+    sigma_eta_open_developed = runif(1, 0, 1),
+    mu_eta_herb_shrub = runif(1, -1, 1),
+    sigma_eta_herb_shrub = runif(1, 0, 1),
+    eta_site_area = runif(1, -1, 1),
+    
+    mu_p_citsci_0 = runif(1, -1, 1),
+    sigma_p_citsci_species = runif(1, 0, 1),
+    sigma_p_citsci_site = runif(1, 0, 1),
+    mu_p_citsci_interval = runif(1, -1, 1),
+    sigma_p_citsci_interval = runif(1, 0, 1),
+    p_citsci_pop_density = runif(1, -1, 1),
+    
+    mu_p_museum_0 = runif(1, -1, 1),
+    sigma_p_museum_species = runif(1, 0, 1),
+    sigma_p_museum_site = runif(1, 0, 1),
+    mu_p_museum_interval = runif(1, -1, 1),
+    sigma_p_museum_interval = runif(1, 0, 1),
+    p_museum_pop_density = runif(1, -1, 1)
        
   )
 )
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./models/model.stan"
+stan_model <- "./abundance-occupancy/models/model_abundance.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -188,45 +210,73 @@ stan_out <- stan(stan_model,
                  open_progress = FALSE,
                  cores = n_cores)
 
+
+saveRDS(stan_out, paste0(
+  "./abundance-occupancy/model_outputs/", taxon, "_", grid_size / 1000,
+  "km_", min_population_size, "minpop_.RDS"
+)
+)
+
+stan_out <- readRDS(paste0(
+  "./abundance-occupancy/model_outputs/", taxon, "_", grid_size / 1000,
+  "km_", min_population_size, "minpop_.RDS"
+)
+)
+
+## --------------------------------------------------
+### Simple diagnostic plots
+
 # print main effects
 print(stan_out, digits = 3, pars=
-        c("mu_psi_0",
-          "sigma_psi_species",
-          "sigma_psi_site",
-          "mu_psi_pop_density",
-          "sigma_psi_pop_density",
-          "mu_psi_interval",
-          "sigma_psi_interval",
-          "psi_site_area",
+        c("gamma_0",
+          "gamma_1",
+          "phi",
+          
+          "mu_eta_0",
+          "sigma_eta_species",
+          "sigma_eta_site",
+          "mu_eta_open_developed",
+          "sigma_eta_open_developed",
+          "mu_eta_herb_shrub",
+          "sigma_eta_herb_shrub",
+          "eta_site_area",
           
           "mu_p_citsci_0",
           "sigma_p_citsci_species",
           "sigma_p_citsci_site",
-          "p_citsci_interval",
-          "p_citsci_pop_density", 
+          "mu_p_citsci_interval",
+          "sigma_p_citsci_interval",
+          "p_citsci_pop_density",
           
           "mu_p_museum_0",
           "sigma_p_museum_species",
           "sigma_p_museum_site",
-          "p_museum_interval",
-          "p_museum_pop_density"))
+          "mu_p_museum_interval",
+          "sigma_p_museum_interval",
+          "p_museum_pop_density",
+          
+          # posterior predictive check
+          "fit",
+          "fit_new",
+          "fit_occupancy",
+          "fit_occupancy_new"))
 
 # print sampled random effects
 print(stan_out, digits = 3, pars=
-        c("psi_pop_density"))
+        c("eta_herb_shrub"))
 
 print(stan_out, digits = 3, pars=
-        c("psi_species[8]",
-          "psi_species[36]",
-          "psi_species[41]",
-          "psi_species[12]",
-          "psi_species[23]",
+        c("eta_species[8]",
+          "eta_species[36]",
+          "eta_species[41]",
+          "eta_species[12]",
+          "eta_species[23]",
           
-          "psi_pop_density[8]",
-          "psi_pop_density[36]",
-          "psi_pop_density[41]",
-          "psi_pop_density[12]",
-          "psi_pop_density[23]",
+          "eta_herb_shrub[8]",
+          "eta_herb_shrub[36]",
+          "eta_herb_shrub[41]",
+          "eta_herb_shrub[12]",
+          "eta_herb_shrub[23]",
           
           "p_citsci_species[8]",
           "p_citsci_species[36]",
@@ -240,11 +290,6 @@ print(stan_out, digits = 3, pars=
           "p_museum_species[12]",
           "p_museum_species[23]"))
 
-
-
-saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_200_35km_25records.rds")
-# stan_out <- readRDS("./model_outputs/stan_out_model_integrated_ranges_200_35km_25records.rds")
-
 ## --------------------------------------------------
 ### Simple diagnostic plots
 
@@ -252,7 +297,8 @@ saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_200_35km_25r
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_interval",
-  "mu_psi_pop_density",
+  "mu_psi_open_developed",
+  "mu_eta_herb_shrub",
   "psi_site_area",
   
   "mu_p_citsci_0",
@@ -288,5 +334,3 @@ pairs(stan_out, pars = c(
   "p_museum_interval"
   # "p_museum_pop_density"
 ))
-
-# should now also write a posterior predictive check into the model

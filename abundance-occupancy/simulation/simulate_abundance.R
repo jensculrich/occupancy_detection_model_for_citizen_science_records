@@ -40,10 +40,10 @@ simulate_data <- function(
   mu_eta_0,
   sigma_eta_species,
   sigma_eta_site,
-  mu_eta_impervious_surface,
-  sigma_eta_impervious_surface,
-  mu_eta_perennial_plants,
-  sigma_eta_perennial_plants,
+  mu_eta_open_developed,
+  sigma_eta_open_developed,
+  mu_eta_herb_shrub,
+  sigma_eta_herb_shrub,
   eta_site_area,
   
   ## Detection process
@@ -100,16 +100,16 @@ simulate_data <- function(
   #  A correlates with B corMat[1,2], and A with C with corMat[1,3], and B with C with corMat[2,3]
   mu <- c(0, 0, 0)
   stddev <- c(1, 1, 1)
-  corMat <- matrix(c(1, -.3, -.2,
-                     -.3, 1, .4,
-                     -.2, .4, 1),
+  corMat <- matrix(c(1, 0, -0.25,
+                     0, 1, -0.1,
+                     -0.25, -0.1, 1),
                    ncol = 3)
   covMat <- stddev %*% t(stddev) * corMat
   correlated_data <- MASS::mvrnorm(n = n_sites, mu = mu, Sigma = covMat, empirical = FALSE)
   
-  perennial_plant_cover <- correlated_data[,1]
-  impervious_surfaces <- correlated_data[,2]
-  pop_density <- correlated_data[,3]
+  pop_density <- correlated_data[,1]
+  open_developed <- correlated_data[,2]
+  herb_shrub <- correlated_data[,3]
   
   ## --------------------------------------------------
   ### specify species-specific abundance rates
@@ -125,12 +125,12 @@ simulate_data <- function(
   # species specific variation defined by sigma_eta_sp
   
   ## species-specific random intercepts
-  eta_impervious_surface <- rnorm(n=n_species, mean=mu_eta_impervious_surface, sd=sigma_eta_impervious_surface)
+  eta_open_developed <- rnorm(n=n_species, mean=mu_eta_open_developed, sd=sigma_eta_open_developed)
   # species baseline abundance is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma_eta
   
   ## species-specific random intercepts
-  eta_perennial_plant_cover <- rnorm(n=n_species, mean=mu_eta_perennial_plants, sd=sigma_eta_perennial_plants)
+  eta_herb_shrub <- rnorm(n=n_species, mean=mu_eta_herb_shrub, sd=sigma_eta_herb_shrub)
   # species baseline abundance is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma_eta
   
@@ -185,8 +185,8 @@ simulate_data <- function(
           mu_eta_0 + # a baseline intercept
           eta_species[species] + # a species-specific intercept  
           eta_site[site] + # a site specific intercept
-          eta_impervious_surface[species]*impervious_surfaces[site] + # a species specific temporal change
-          #eta_perennial_plant_cover[species]*perennial_plant_cover[site] + # a fixed effect of population density 
+          eta_open_developed[species]*open_developed[site] + # a species specific temporal change
+          eta_herb_shrub[species]*herb_shrub[site] + # a fixed effect of population density 
           eta_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -471,8 +471,8 @@ simulate_data <- function(
     n_intervals = n_intervals, # number of surveys 
     n_visits = n_visits, # number of visits
     pop_density = pop_density, # vector of pop densities
-    impervious_surfaces = impervious_surfaces, # vector of impervious surface covers
-    perennial_plant_cover = perennial_plant_cover, # vector of perennial plant covers
+    open_developed = open_developed, # vector of impervious surface covers
+    herb_shrub = herb_shrub, # vector of perennial plant covers
     site_area = site_area, # vector of site areas
     K = K # upper limit search area
   ))
@@ -498,10 +498,10 @@ phi = 2
 mu_eta_0 = 1.5
 sigma_eta_species = 0.75
 sigma_eta_site = 0.75
-mu_eta_impervious_surface = -1
-sigma_eta_impervious_surface = 0.5
-mu_eta_perennial_plants = 1
-sigma_eta_perennial_plants = 0.5
+mu_eta_open_developed = 0.5
+sigma_eta_open_developed = 0.5
+mu_eta_herb_shrub = 2
+sigma_eta_herb_shrub = 0.5
 eta_site_area = 1
 
 ## detection
@@ -550,10 +550,10 @@ my_simulated_data <- simulate_data(
         mu_eta_0,
         sigma_eta_species,
         sigma_eta_site,
-        mu_eta_impervious_surface,
-        sigma_eta_impervious_surface,
-        mu_eta_perennial_plants,
-        sigma_eta_perennial_plants,
+        mu_eta_open_developed,
+        sigma_eta_open_developed,
+        mu_eta_herb_shrub,
+        sigma_eta_herb_shrub,
         eta_site_area,
         
         ## Detection process
@@ -609,8 +609,8 @@ species <- seq(1, n_species, by=1)
 
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
-impervious_surfaces <- my_simulated_data$impervious_surfaces
-perennial_plant_cover <- my_simulated_data$perennial_plant_cover
+open_developed <- my_simulated_data$open_developed
+herb_shrub <- my_simulated_data$herb_shrub
 
 stan_data <- c("V_citsci", 
                "V_museum",
@@ -620,7 +620,7 @@ stan_data <- c("V_citsci",
                "K",
                "intervals", "species", "sites",
                "pop_densities", "site_areas",
-               "impervious_surfaces", "perennial_plant_cover") 
+               "open_developed", "herb_shrub") 
 
 # Parameters monitored
 params <- c(
@@ -666,10 +666,10 @@ parameter_value <- c(
                      mu_eta_0,
                      sigma_eta_species,
                      sigma_eta_site,
-                     mu_eta_impervious_surface,
-                     sigma_eta_impervious_surface,
-                     #mu_eta_perennial_plants,
-                     #sigma_eta_perennial_plants,
+                     mu_eta_open_developed,
+                     sigma_eta_open_developed,
+                     mu_eta_herb_shrub,
+                     sigma_eta_herb_shrub,
                      eta_site_area,
                      
                      mu_p_citsci_0,
@@ -706,7 +706,7 @@ n_cores <- 4
 # 0 to 1 (positive values only) for all variance terms
 inits <- lapply(1:n_chains, function(i)
   
-  list(#omega = runif(1, 0, 1),
+  list(
        gamma_0 = runif(1, -0.25, 0.25),
        gamma_1 = runif(1, 0, 1),
        phi = runif(1, 0, 1),
@@ -714,10 +714,10 @@ inits <- lapply(1:n_chains, function(i)
        mu_eta_0 = runif(1, -1, 1),
        sigma_eta_species = runif(1, 0, 1),
        sigma_eta_site = runif(1, 0, 1),
-       mu_eta_impervious_surface = runif(1, -1, 1),
-       sigma_eta_impervious_surface = runif(1, 0, 1),
-       #mu_eta_perennial_plants = runif(1, -1, 1),
-       #sigma_eta_perennial_plants = runif(1, 0, 1),
+       mu_eta_open_developed = runif(1, -1, 1),
+       sigma_eta_open_developed = runif(1, 0, 1),
+       mu_eta_herb_shrub = runif(1, -1, 1),
+       sigma_eta_herb_shrub = runif(1, 0, 1),
        eta_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),

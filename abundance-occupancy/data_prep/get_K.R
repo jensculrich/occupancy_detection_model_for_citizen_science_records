@@ -1,7 +1,7 @@
 ## get K (max search values for binomial N-mixture model component)
 # jcu; started jan 11, 2023
 
-get_K <- function(V_citsci){
+get_K <- function(V_citsci, K_addition, K_multiplier){
 
 ## --------------------------------------------------
 # Max search range for each species*site*interval
@@ -12,7 +12,7 @@ for(i in 1:n_species){
     for(k in 1:n_intervals){
       
       # make K the same across all intervals in case detection changes too muh through time
-      K[i,j,k] <- 3*(max(V_citsci[i,j,,])+5)
+      K[i,j,k] <- K_multiplier * (max(V_citsci[i,j,,]) + K_addition)
       
     }
   }
