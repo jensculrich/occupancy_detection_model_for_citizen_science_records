@@ -1,5 +1,5 @@
 ## run_model_integrated.R
-### Run occupancy model (model_integrated.stan) using real pollinator occurrence data from GBIF
+### Run abundance-occupancy model (model_abundance.stan) using real pollinator occurrence data from GBIF
 # jcu; started nov 24, 2022
 
 library(rstan)
@@ -35,6 +35,7 @@ remove_unidentified_species = TRUE
 
 
 source("./abundance-occupancy/data_prep/prep_data.R")
+
 my_data <- prep_data(era_start = era_start, # must define start date of the GBIF dataset
                      era_end = era_end, # must define start date of the GBIF dataset
                      n_intervals = n_intervals, # must define number of intervals to break up the era into
@@ -89,6 +90,10 @@ intervals_raw <- as.vector(seq(1, n_intervals, by=1))
 intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
+
+# Get K values
+source("./abundance-occupancy/data_prep/get_K.R")
+K <- get_K(V_citsci)
 
 # sum(V_museum_NA) # number of species sampling events by museums
 # c <- which(V_museum>V_museum_NA) # this will give you numerical value
