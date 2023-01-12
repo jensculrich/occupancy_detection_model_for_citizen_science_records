@@ -2,20 +2,18 @@
 ### Run abundance-occupancy model (model_abundance.stan) using real pollinator occurrence data from GBIF
 # jcu; started nov 24, 2022
 
-library(rstan)
-
 ## --------------------------------------------------
-# input data preparation choices
+# input data preparation choices - SYRPHIDAE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
-era_start = 2008 # must define start date of the GBIF dataset
+era_start = 2014 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 5 # must define number of intervals to break up the era into
+n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 15 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 30 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
+grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 300 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
@@ -33,10 +31,34 @@ min_site_area = 0.10
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
 remove_unidentified_species = TRUE
 
-# set an upper limit on maximum possible abundance
-# (take max count of a species*site from any time period, add K_addition and multiply by K_multiplier)
-K_addition = 5
-K_multiplier = 4
+## --------------------------------------------------
+# input data preparation choices - BOMBUS
+# be careful that the (era_end - era_start) is evenly divisible by the n_intervals
+era_start = 2008 # must define start date of the GBIF dataset
+era_end = 2022 # must define start date of the GBIF dataset
+n_intervals = 3 # must define number of intervals to break up the era into
+n_visits = 5 # must define the number of repeat obs years within each interval
+# note, should introduce throw error if..
+# (era_end - era_start) / n_intervals has a remainder > 0,
+min_records_per_species = 15 # filters species with less than this many records (total between both datasets)..
+# within the time span defined above
+grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 300 # min pop density in the grid cell (per km^2)
+# for reference, 38people/km^2 is ~100people/mile^2
+# 100/km^2 is about 250/mile^sq
+min_species_for_community_sampling_event = 2 # community sampling inferred if..
+# species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
+# min records_for_community_sampling_event sets a minimum threshold, if the number
+# of records for the taxonomic group within a site within a year is 
+min_year_for_species_ranges = 2000 # use all data from after this year to infer species ranges
+taxon = "bombus" # taxon to analyze, either "syrphidae" or "bombus"
+# minimum site area (proportion of grid_sizeXgrid_size that is in the admin area mask and not open water)
+# if sites are super tiny, the observation process could likely be very unstable
+min_site_area = 0.10
+# remove specimens lacking species-level id before calculating summary statistics?
+# Note, they will get removed before sending to the model either way, but this turns on/off
+# whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
+remove_unidentified_species = TRUE
 
 
 source("./abundance-occupancy/data_prep/prep_data.R")
@@ -62,15 +84,25 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
 
 # save the data in case you want to make tweaks to the model run
 # without redoing the data prep
-# saveRDS(my_data, "./abundance-occupancy/analysis/prepped_data_list.rds")
-my_data <- readRDS("./analysis/prepped_data_list.rds")
+saveRDS(my_data, paste("./abundance-occupancy/analysis/prepped_data/", 
+                       taxon, grid_size / 1000, 
+                       "km", min_population_size, "minpop", n_intervals, n_visits,
+                       ".rds", sep = "_"))
+
+my_data <- readRDS(paste0("./abundance-occupancy/analysis/prepped_data/_",
+                         taxon, "_", grid_size / 1000, "_",
+                         "km", "_", min_population_size, "_", "minpop", "_",
+                         n_intervals, "_", n_visits, "_",
+                         ".rds"))
 
 gc()
+
+library(rstan)
 
 # data to feed to the model
 V_citsci <- my_data$V_citsci # citizen science detection data
 V_museum <- my_data$V_museum # museum detection data
-V_citsci_NA <- my_data$V_citsci_NA # cit science NA indicator array
+ranges <- my_data$V_citsci_NA # cit science NA indicator array
 V_museum_NA <- my_data$V_museum_NA # museum data NA indicator array
 n_species <- my_data$n_species # number of species
 n_sites <- my_data$n_sites # number of sites
@@ -82,12 +114,14 @@ site_names <- my_data$sites
 species_names <- my_data$species
 
 pop_densities <- my_data$pop_densities
-open_developed <- my_data$open_developed
+open_developed <- my_data$developed_open
 herb_shrub <- my_data$herb_shrub_cover
 site_areas <- my_data$site_areas
 
 # check correlation between variables
 correlation_matrix <- my_data$correlation_matrix
+
+species_counts <- my_data$species_counts
 
 # intervals will cause issues if you try to run on only 1 interval
 # since it's no longer sent in as a vector of intervals (can you force a single
@@ -98,14 +132,19 @@ sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
 
 # Get K values
+# set an upper limit on maximum possible abundance
+# (take max count of a species*site from any time period, add K_addition and multiply by K_multiplier)
+K_addition = 5
+K_multiplier = 4
+
 source("./abundance-occupancy/data_prep/get_K.R")
 K <- get_K(V_citsci, K_addition, K_multiplier)
 
 # sum(V_museum_NA) # number of species sampling events by museums
-# c <- which(V_museum>V_museum_NA) # this will give you numerical value
+# c <- which(V_museum>V_museum_NA) # this will tell you whether any sampling occurred where it shouldn;t have
 
 stan_data <- c("V_citsci", "V_museum",
-               "V_citsci_NA", "V_museum_NA", 
+               "ranges", "V_museum_NA", 
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites",
                "K",
@@ -177,14 +216,14 @@ inits <- lapply(1:n_chains, function(i)
     sigma_eta_herb_shrub = runif(1, 0, 1),
     eta_site_area = runif(1, -1, 1),
     
-    mu_p_citsci_0 = runif(1, -1, 1),
+    mu_p_citsci_0 = runif(1, -1, 0), # start at a negative
     sigma_p_citsci_species = runif(1, 0, 1),
     sigma_p_citsci_site = runif(1, 0, 1),
     mu_p_citsci_interval = runif(1, -1, 1),
     sigma_p_citsci_interval = runif(1, 0, 1),
     p_citsci_pop_density = runif(1, -1, 1),
     
-    mu_p_museum_0 = runif(1, -1, 1),
+    mu_p_museum_0 = runif(1, -1, 0), # start at a negative
     sigma_p_museum_species = runif(1, 0, 1),
     sigma_p_museum_site = runif(1, 0, 1),
     mu_p_museum_interval = runif(1, -1, 1),
@@ -206,8 +245,9 @@ stan_out <- stan(stan_model,
                  chains = n_chains, iter = n_iterations, 
                  warmup = n_burnin, thin = n_thin,
                  control=list(adapt_delta=delta),
-                 seed = 12,
+                 # seed = 12,
                  open_progress = FALSE,
+                 save_warmup = FALSE,
                  cores = n_cores)
 
 

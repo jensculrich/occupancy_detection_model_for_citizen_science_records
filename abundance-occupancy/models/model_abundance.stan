@@ -207,12 +207,12 @@ model {
   
   // Abundance (Ecological Process)
   
-  gamma_0 ~ normal(0, 2); // occupancy-abundance relationship intercept
-  gamma_1 ~ normal(0, 2); // effect of expected abundance on occupancy rate
+  gamma_0 ~ normal(0, 1); // occupancy-abundance relationship intercept
+  gamma_1 ~ normal(0, 1); // effect of expected abundance on occupancy rate
   
-  phi ~ normal(0, 2); // abundance overdispersion scale parameter
+  phi ~ normal(0, 1); // abundance overdispersion scale parameter
   
-  mu_eta_0 ~ normal(0, 4); // global intercept for abundance rate
+  mu_eta_0 ~ normal(0, 3); // global intercept for abundance rate
   
   eta_species ~ normal(0, sigma_eta_species); 
   // occupancy intercept for each species drawn from the community
@@ -240,7 +240,7 @@ model {
   
   // CITIZEN SCIENCE records
   
-  mu_p_citsci_0 ~ normal(0, 2); // global intercept for (citizen science) detection
+  mu_p_citsci_0 ~ normal(-1, 2); // global intercept for (citizen science) detection
   
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
@@ -260,7 +260,7 @@ model {
   p_citsci_pop_density ~ normal(0, 2); // effect of population density on detection
 
   // MUSEUM records
-  mu_p_museum_0 ~ normal(0, 2); // global intercept for (museum) detection
+  mu_p_museum_0 ~ normal(-1, 2); // global intercept for (museum) detection
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community

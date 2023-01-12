@@ -99,7 +99,7 @@ get_spatial_data <- function(
     
     # take this chunk out
     # CRS for NAD83 / UTM Zone 10N
-    # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
+    crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
     
     # spatial data - California state shapefile
     states <- tigris::states() %>%
@@ -133,8 +133,6 @@ get_spatial_data <- function(
     
     pop_raster <- crop(pop_raster, states)
     pop_raster <- mask(pop_raster, states)
-    
-    crs_raster <- sf::st_crs(raster::crs(pop_raster))
     
     # project the grid to the raster
     crs_raster <- sf::st_crs(raster::crs(pop_raster))
