@@ -11,10 +11,10 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 30 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 50 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
 grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 300 # min pop density in the grid cell (per km^2)
+min_population_size = 500 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -135,13 +135,13 @@ species <- seq(1, n_species, by=1)
 # set an upper limit on maximum possible abundance
 # (take max count of a species*site from any time period, add K_addition and multiply by K_multiplier)
 K_addition = 5
-K_multiplier = 4
+K_multiplier = 3
 
 source("./abundance-occupancy/data_prep/get_K.R")
 K <- get_K(V_citsci, K_addition, K_multiplier)
 
 # sum(V_museum_NA) # number of species sampling events by museums
-# c <- which(V_museum>V_museum_NA) # this will tell you whether any sampling occurred where it shouldn;t have
+#c <- which(V_museum>V_museum_NA) # this will tell you whether any sampling occurred where it shouldn;t have
 
 stan_data <- c("V_citsci", "V_museum",
                "ranges", "V_museum_NA", 
@@ -154,17 +154,17 @@ stan_data <- c("V_citsci", "V_museum",
 
 # Parameters monitored
 params <- c(
-  "gamma_0",
-  "gamma_1",
-  "phi",
+  #"gamma_0",
+  #"gamma_1",
+  "log_phi",
   
   "mu_eta_0",
   "sigma_eta_species",
   "sigma_eta_site",
   "mu_eta_open_developed",
   "sigma_eta_open_developed",
-  "mu_eta_herb_shrub",
-  "sigma_eta_herb_shrub",
+  #"mu_eta_herb_shrub",
+  #"sigma_eta_herb_shrub",
   "eta_site_area",
   
   "mu_p_citsci_0",
@@ -174,26 +174,26 @@ params <- c(
   "sigma_p_citsci_interval",
   "p_citsci_pop_density",
   
-  "mu_p_museum_0",
-  "sigma_p_museum_species",
-  "sigma_p_museum_site",
-  "mu_p_museum_interval",
-  "sigma_p_museum_interval",
-  "p_museum_pop_density",
+  #"mu_p_museum_0",
+  #"sigma_p_museum_species",
+  #"sigma_p_museum_site",
+  #"mu_p_museum_interval",
+  #"sigma_p_museum_interval",
+  #"p_museum_pop_density",
   
   # posterior predictive check
   "fit",
-  "fit_new",
-  "fit_occupancy",
-  "fit_occupancy_new"
+  "fit_new"
+  #"fit_occupancy",
+  #"fit_occupancy_new"
 )
 
 
 # MCMC settings
-n_iterations <- 300
+n_iterations <- 400
 n_thin <- 1
-n_burnin <- 150
-n_chains <- 3
+n_burnin <- 200
+n_chains <- 4
 n_cores <- 4
 delta = 0.85
 
@@ -203,17 +203,17 @@ delta = 0.85
 inits <- lapply(1:n_chains, function(i)
   list(
     
-    gamma_0 = runif(1, -0.25, 0.25),
-    gamma_1 = runif(1, 0, 1),
-    phi = runif(1, 0, 1),
+    #gamma_0 = runif(1, -0.25, 0.25),
+    #gamma_1 = runif(1, 0, 1),
+    log_phi = runif(1, 0, 1),
     
     mu_eta_0 = runif(1, -1, 1),
     sigma_eta_species = runif(1, 0, 1),
     sigma_eta_site = runif(1, 0, 1),
     mu_eta_open_developed = runif(1, -1, 1),
     sigma_eta_open_developed = runif(1, 0, 1),
-    mu_eta_herb_shrub = runif(1, -1, 1),
-    sigma_eta_herb_shrub = runif(1, 0, 1),
+    #mu_eta_herb_shrub = runif(1, -1, 1),
+    #sigma_eta_herb_shrub = runif(1, 0, 1),
     eta_site_area = runif(1, -1, 1),
     
     mu_p_citsci_0 = runif(1, -1, 0), # start at a negative
@@ -221,21 +221,21 @@ inits <- lapply(1:n_chains, function(i)
     sigma_p_citsci_site = runif(1, 0, 1),
     mu_p_citsci_interval = runif(1, -1, 1),
     sigma_p_citsci_interval = runif(1, 0, 1),
-    p_citsci_pop_density = runif(1, -1, 1),
+    p_citsci_pop_density = runif(1, -1, 1)#,
     
-    mu_p_museum_0 = runif(1, -1, 0), # start at a negative
-    sigma_p_museum_species = runif(1, 0, 1),
-    sigma_p_museum_site = runif(1, 0, 1),
-    mu_p_museum_interval = runif(1, -1, 1),
-    sigma_p_museum_interval = runif(1, 0, 1),
-    p_museum_pop_density = runif(1, -1, 1)
+    #mu_p_museum_0 = runif(1, -1, 0), # start at a negative
+    #sigma_p_museum_species = runif(1, 0, 1),
+    #sigma_p_museum_site = runif(1, 0, 1),
+    #mu_p_museum_interval = runif(1, -1, 1),
+    #sigma_p_museum_interval = runif(1, 0, 1),
+    #p_museum_pop_density = runif(1, -1, 1)
        
   )
 )
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./abundance-occupancy/models/model_abundance.stan"
+stan_model <- "./abundance-occupancy/models/model_abundance_2.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -253,7 +253,7 @@ stan_out <- stan(stan_model,
 
 saveRDS(stan_out, paste0(
   "./abundance-occupancy/model_outputs/", taxon, "_", grid_size / 1000,
-  "km_", min_population_size, "minpop_.RDS"
+  "km_", min_population_size, "minpop", n_intervals, "_", n_visits, ".RDS"
 )
 )
 

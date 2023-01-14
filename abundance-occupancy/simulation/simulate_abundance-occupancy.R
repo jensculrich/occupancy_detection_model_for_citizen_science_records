@@ -31,7 +31,9 @@ simulate_data <- function(
   n_visits,
   
   ## Ecological process
-  # dispersion
+  # dispersion and occupancy
+  gamma_0,
+  gamma_1,
   log_phi,
   
   # abundance
@@ -57,9 +59,6 @@ simulate_data <- function(
   mu_p_museum_0,
   sigma_p_museum_species,
   sigma_p_museum_site,
-  #mu_p_museum_interval,
-  #sigma_p_museum_interval,
-  #p_museum_pop_density,
   
   ## Range dynamics
   sites_in_range_beta1,
@@ -245,6 +244,38 @@ simulate_data <- function(
   #     col = "Red")
   
   ## --------------------------------------------------
+  # Generate species*site*interval suitability
+  
+  omega <- array(dim = c(n_species, n_sites, n_intervals), NA)
+  
+  for(species in 1:n_species){
+    for(site in 1:n_sites){
+      for(interval in 1:n_intervals){
+        
+        # if the site is in range then it has some chance to be occupied
+        if(ranges[species,site,1,1] == 1){
+          
+          # rep across visits so the site is open to a species or closed to a species
+          # across all visits 1:n_visits
+          omega[species,site,interval] <- 
+            rbinom(1, 1, inv_logit(gamma_0 + gamma_1 * log_eta_matrix[species, site, interval]))
+                 
+        } else{ # the site is not in range so must not be occupied
+          # these one count for or against omega estimation since the range indicator will
+          # tell STAN to skip over these species*site combinations
+          
+          omega[species,site,interval] <- 0
+        
+        } # end if/else
+      }
+    }
+  }
+  
+  # 1 are occupied sites, 0 are unoccupied sites
+  #log_eta_matrix[1:n_species, 1:n_sites,1]
+  #omega[1:n_species, 1:n_sites,2]
+  
+  ## --------------------------------------------------
   ## Generate abundance data given means eta and dispersion phi
   
   N_matrix <- array(NA, dim=c(n_species=n_species,
@@ -254,48 +285,39 @@ simulate_data <- function(
   for(species in 1:n_species){
     for(site in 1:n_sites){
       for(interval in 1:n_intervals){
-          
-        if(ranges[species,site,1,1] == 1){
         
-            # eta for species, site, interval
-            T <- exp(log_eta_matrix[species,site,interval])
-            N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=exp(log_phi))
+        # if site is in the species's range, 
+        # and is also suitable
+        # then sample abundance with some prob eta from a trunctated (>0) count distribution
+        # else abundance state is 0
+        if(omega[species,site,interval] == 1){
           
+          # eta for species, site, interval
+          T <- exp(log_eta_matrix[species,site,interval])
+          N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=exp(log_phi)) 
+          Y0 <- N_matrix[species,site,interval][N_matrix[species,site,interval]>0] 
+          r <- (1 - length(Y0))
+          # to create a truncated count distr we reject any 0 values and continue sampling
+          while(r>0){
+            N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=exp(log_phi)) 
+            Y0 <- c(Y0,
+                    N_matrix[species,site,interval][N_matrix[species,site,interval]>0])
+            r <- (1 - length(Y0))
+          }
+          
+
         } else{
-        
+          
           N_matrix[species,site,interval] <- 0
+          
+       }
         
-        }
       }
     }
   }
   
-  ## --------------------------------------------------
-  ## Generate presence absence data given abundance
-  
-  Z <- array(NA, dim=c(n_species=n_species,
-                              n_sites=n_sites,
-                              n_intervals=n_intervals))
-  
-  for(species in 1:n_species){
-    for(site in 1:n_sites){
-      for(interval in 1:n_intervals){
-        
-        if(N_matrix[species,site,interval] >= 1){
-          
-          Z[species,site,interval] <- 1 
-          
-        } else{
-          
-          Z[species,site,interval] <- 0
-          
-        }
-      }
-    }
-  }
-  
-  # preview Z
-  Z[1:n_species,1:n_sites,1]
+  # preview N_matrix
+  N_matrix[1:n_species,1:n_sites,1]
   
   ## --------------------------------------------------
   ## Generate detection non detection data 
@@ -342,7 +364,7 @@ simulate_data <- function(
             # Z[species,site,interval] * # occupancy state * detection prob
             # N_matrix[species,site,interval]
             rbinom(n = 1, 
-                   size =  Z[species,site,interval], 
+                   size = omega[species,site,interval], 
                    prob = inv_logit(p_matrix_museum[species,site,interval,visit]))
           
           } else{
@@ -458,21 +480,24 @@ simulate_data <- function(
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 18 ## number of species
-n_sites = 18 ## number of sites
+n_species = 20 ## number of species
+n_sites = 20 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
 ## ecological process
-log_phi = 0.5
+#omega = 0.8
+gamma_0 = 0.25
+gamma_1 = 0.75
+log_phi = 0
 
 # abundance
-mu_eta_0 = 0.25
+mu_eta_0 = 0.5
 sigma_eta_species = 0.75
 sigma_eta_site = 0.75
 mu_eta_open_developed = 0
 sigma_eta_open_developed = 0.5
-mu_eta_herb_shrub = 0.75
+mu_eta_herb_shrub = 1
 sigma_eta_herb_shrub = 0.5
 eta_site_area = 0.5
 
@@ -489,9 +514,6 @@ p_citsci_pop_density = 1
 mu_p_museum_0 = -1
 sigma_p_museum_species = 0.5
 sigma_p_museum_site = 0.5
-#mu_p_museum_interval = 0
-#sigma_p_museum_interval = 0.5 
-#p_museum_pop_density = 0.75
 
 # introduce NAs (visits that did not survey entire community)?
 sites_missing = 0.25*n_sites 
@@ -503,7 +525,7 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(12)
+set.seed(1)
 my_simulated_data <- simulate_data(
   
         ## Study design
@@ -513,8 +535,10 @@ my_simulated_data <- simulate_data(
         n_visits,
         
         ## Ecological process
-        # dispersion
-        phi,
+        # dispersion and occupancy
+        gamma_0,
+        gamma_1,
+        log_phi,
         
         # abundance
         mu_eta_0,
@@ -539,9 +563,6 @@ my_simulated_data <- simulate_data(
         mu_p_museum_0,
         sigma_p_museum_species,
         sigma_p_museum_site,
-        #mu_p_museum_interval,
-        #sigma_p_museum_interval,
-        #p_museum_pop_density,
         
         ## Range dynamics
         sites_in_range_beta1,
@@ -594,6 +615,8 @@ stan_data <- c("V_citsci",
 
 # Parameters monitored
 params <- c(
+            "gamma_0",
+            "gamma_1",
             "log_phi",
             
             "mu_eta_0",
@@ -614,17 +637,18 @@ params <- c(
             
             "mu_p_museum_0",
             "sigma_p_museum_species",
-            "sigma_p_museum_site"#,
-            
+            "sigma_p_museum_site",
             
             # posterior predictive check
-            #"fit",
-            #"fit_new"# ,
+            "fit",
+            "fit_new"#,
             #"fit_occupancy",
             #"fit_occupancy_new"
 )
 
 parameter_value <- c(
+                     gamma_0,
+                     gamma_1,
                      log_phi,
                      
                      mu_eta_0,
@@ -645,17 +669,17 @@ parameter_value <- c(
                      
                      mu_p_museum_0,
                      sigma_p_museum_species,
-                     sigma_p_museum_site#,
+                     sigma_p_museum_site,
                      
-                     #NA, # posterior predictive check
-                     #NA#, # posterior predictive check
+                     NA, # posterior predictive check
+                     NA#, # posterior predictive check
                      #NA, # posterior predictive check
                      #NA # posterior predictive check
 )
 
 # MCMC settings
 n_iterations <- 300
-n_thin <- 3
+n_thin <- 1
 n_burnin <- 150
 n_chains <- 3
 n_cores <- 4
@@ -668,7 +692,9 @@ n_cores <- 4
 inits <- lapply(1:n_chains, function(i)
   
   list(
-      log_phi = runif(1, -1, 1),
+       gamma_0 = runif(1, -0.25, 0.25),
+       gamma_1 = runif(1, 0, 1),
+       log_phi = runif(1, 0, 1),
        
        mu_eta_0 = runif(1, -1, 1),
        sigma_eta_species = runif(1, 0, 1),
@@ -689,6 +715,9 @@ inits <- lapply(1:n_chains, function(i)
        mu_p_museum_0 = runif(1, -1, 1),
        sigma_p_museum_species = runif(1, 0, 1),
        sigma_p_museum_site = runif(1, 0, 1)
+       #mu_p_museum_interval = runif(1, -1, 1),
+       #sigma_p_museum_interval = runif(1, 0, 1),
+       #p_museum_pop_density = runif(1, -1, 1)
        
   )
 )
@@ -698,10 +727,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 
-# model abundance 2 would be the appropritae one, it truncates the response
-# to not include 0 when the species is observed at least once at the site in the interval
-# by either data set
-stan_model <- "./abundance-occupancy/models/model_abundance_2.stan"
+stan_model <- "./abundance-occupancy/models/model_abundance-occupancy.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -710,6 +736,7 @@ stan_out_sim <- stan(stan_model,
                      pars = params,
                      chains = n_chains, iter = n_iterations, 
                      warmup = n_burnin, thin = n_thin,
+                     seed = 1,
                      open_progress = FALSE,
                      save_warmup = FALSE,
                      cores = n_cores)
@@ -717,13 +744,8 @@ stan_out_sim <- stan(stan_model,
 print(stan_out_sim, digits = 3)
 View(targets)
 
-# really there is trouble with the museum records process;
-# if not using occupancy it may be best to include museums to help indicate
-# whether something is present or absent but not include museum detection rates
-# just base it solely on abundance detection in cit sci: model_abundance_citsci
-
-saveRDS(stan_out_sim, "./abundance-occupancy/simulation/sim_abundance.rds")
-stan_out_sim <- readRDS("./abundance-occupancy/simulation/sim_abundance.rds")
+saveRDS(stan_out_sim, "./abundance-occupancy/model_outputs/stan_out_sim_abundance.rds")
+stan_out_sim <- readRDS("./abundance-occupancy/model_outputs/stan_out_sim_abundance.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
@@ -734,7 +756,9 @@ traceplot(stan_out_sim, pars = c(
   "eta_site_area",
   "mu_p_citsci_0",
   "mu_p_museum_0",
-  "log_phi"
+  "phi",
+  "gamma_0",
+  "gamma_1"
 ))
 
 # pairs plot

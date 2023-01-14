@@ -34,9 +34,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size, taxon, min_site_area)
   
-  # save the data in case you want to make tweaks to the model run
-  # without redoing the data prep
-  # saveRDS(my_spatial_data, "./analysis/spatial_data_list.rds")
+  # save the data in case you want to make tweaks to the prep data
+  # without redoing the raster extractions
+  # saveRDS(my_spatial_data, "./abundance-occupancy/analysis/prepped_data/spatial_data_list.rds")
   # my_spatial_data <- readRDS("./analysis/spatial_data_list.rds")
   gc()
   
@@ -530,17 +530,16 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # i.e., keep the data for the singletons and doubletons, while not inferring abscense for the rest of the community
   df_museum <- df_museum %>%
     # if the species was sampled than at least that species was sampled (may also be a comm sample)
-    mutate(non_comm_sample = 1) %>%
-    dplyr::select(-occ_year)
+    mutate(non_comm_sample = 1) 
   
   # sampled for each row if either a community sample or a non comm sample
   all_visits_museum_visits_joined <- left_join(all_visits_museum_visits_joined, df_museum) %>%
-    mutate(non_comm_sample = replace_na(non_comm_sample, 0))  %>%
+    mutate(non_comm_sample = replace_na(non_comm_sample, 0)) %>%
     mutate(any_sampled = ifelse(non_comm_sample == 1, 1, sampled))
   
   # now spread into 4 dimensions
-  V_museum_NA <- array(data = all_visits_museum_visits_joined$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
-  # check <- which(V_museum>V_museum_NA) # this will give you numerical value
+  V_museum_NA <- array(data = all_visits_museum_visits_joined$any_sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
+  check <- which(V_museum>V_museum_NA) # this will give you numerical value
   # thus check should be empty
   
   ## --------------------------------------------------
