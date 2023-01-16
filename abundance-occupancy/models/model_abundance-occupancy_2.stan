@@ -86,14 +86,14 @@ parameters {
   real<lower=0> sigma_eta_site; // variance in species intercepts
   
   // random slope for species-specific open_developed land effects on abundance
-  vector[n_species] eta_open_developed; // vector of species specific slope estimates
+  //vector[n_species] eta_open_developed; // vector of species specific slope estimates
   real mu_eta_open_developed; // community mean of species specific slopes
-  real<lower=0> sigma_eta_open_developed; // variance in species slopes
+  //real<lower=0> sigma_eta_open_developed; // variance in species slopes
   
   // random slope for species-specific herb and shrub habitat effects on abundance
-  vector[n_species] eta_herb_shrub; // vector of species specific slope estimates
+  //vector[n_species] eta_herb_shrub; // vector of species specific slope estimates
   real mu_eta_herb_shrub; // community mean of species specific slopes
-  real<lower=0> sigma_eta_herb_shrub; // variance in species slopes
+  //real<lower=0> sigma_eta_herb_shrub; // variance in species slopes
   
   real eta_site_area; // fixed effect of site area on abundance
   
@@ -113,9 +113,9 @@ parameters {
   real<lower=0> sigma_p_citsci_site; // variance in site intercepts
   
   // random intercept for site-specific temporal effects on detection
-  vector[n_sites] p_citsci_interval; // vector of species specific slope estimates
+  //vector[n_sites] p_citsci_interval; // vector of species specific slope estimates
   real mu_p_citsci_interval; // community mean of species specific slopes
-  real<lower=0> sigma_p_citsci_interval; // variance in species slopes
+  //real<lower=0> sigma_p_citsci_interval; // variance in species slopes
   
   real p_citsci_pop_density; // fixed effect of population on detection probability
   
@@ -129,8 +129,8 @@ parameters {
   
   // site-specific intercept allows some sites to have higher detection rates than others, 
   // but with overall estimates for detection partially informed by the data pooled across all species.
-  vector[n_sites] p_museum_site; // vector of spatially specific slope estimates
-  real<lower=0> sigma_p_museum_site; // variance in site intercepts
+  //vector[n_sites] p_museum_site; // vector of spatially specific slope estimates
+  //real<lower=0> sigma_p_museum_site; // variance in site intercepts
   
   // random intercept for site-specific temporal effects on detection
   //vector[n_sites] p_museum_interval; // vector of species specific slope estimates
@@ -159,8 +159,10 @@ transformed parameters {
             mu_eta_0 + // a baseline intercept
             eta_species[species[i]] + // a species-specific intercept
             eta_site[sites[j]] + // a site specific intercept
-            eta_open_developed[species[i]]*open_developed[j] + // an effect of open developed
-            eta_herb_shrub[species[i]]*herb_shrub[j] + // an effect of herb/srhub
+            mu_eta_open_developed*open_developed[j] + // an effect of open developed
+            mu_eta_herb_shrub*herb_shrub[j] + // an effect of herb/srhub
+            //eta_open_developed[species[i]]*open_developed[j] + // an effect of open developed
+            //eta_herb_shrub[species[i]]*herb_shrub[j] + // an effect of herb/srhub
             eta_site_area*site_areas[j] // an effect of spatial area of the site 
             ; // end lambda[i,j,k]
           
@@ -182,14 +184,15 @@ transformed parameters {
             mu_p_citsci_0 + // a baseline intercept
             p_citsci_species[species[i]] + // a species specific intercept
             p_citsci_site[sites[j]] + // a spatially specific intercept
-            p_citsci_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
+            mu_p_citsci_interval*intervals[k] +
+            //p_citsci_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
           logit_p_museum[i,j,k] = // logit scaled species-level detection rate
-            mu_p_museum_0 + // a baseline intercept
-            p_museum_species[species[i]] + // a species specific intercept
-            p_museum_site[sites[j]] //+ // a spatially specific intercept
+            mu_p_museum_0 //+ // a baseline intercept
+            //p_museum_species[species[i]] + // a species specific intercept
+            //p_museum_site[sites[j]] //+ // a spatially specific intercept
             //p_museum_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
             //p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_museum[i,j,k]
@@ -207,8 +210,8 @@ model {
   
   // Abundance (Ecological Process)
   
-  gamma_0 ~ normal(0, 0.5); // occupancy-abundance relationship intercept
-  gamma_1 ~ normal(0, 0.5); // effect of expected abundance on occupancy rate
+  gamma_0 ~ normal(0, 1); // occupancy-abundance relationship intercept
+  gamma_1 ~ normal(0, 1); // effect of expected abundance on occupancy rate
   
   phi ~ normal(0, 1); // abundance overdispersion scale parameter
   
@@ -225,14 +228,14 @@ model {
   sigma_eta_site ~ normal(0, 1); // weakly informative prior (for strong pooling across species)
   
   // Random slope for species-specfic effect of impervious surfaces on abundance
-  eta_open_developed ~ normal(mu_eta_open_developed, sigma_eta_open_developed);
+  //eta_open_developed ~ normal(mu_eta_open_developed, sigma_eta_open_developed);
   mu_eta_open_developed ~ normal(0, 2); // community mean
-  sigma_eta_open_developed ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  //sigma_eta_open_developed ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
 
   // Random slope for species-specfic effect of perennial plant cover on abundance
-  eta_herb_shrub ~ normal(mu_eta_herb_shrub, sigma_eta_herb_shrub);
+  //eta_herb_shrub ~ normal(mu_eta_herb_shrub, sigma_eta_herb_shrub);
   mu_eta_herb_shrub ~ normal(0, 2); // community mean
-  sigma_eta_herb_shrub ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  //sigma_eta_herb_shrub ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
   
   eta_site_area ~ normal(0, 1); // effect of site area on abundance rate
   
@@ -245,33 +248,33 @@ model {
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_species ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  sigma_p_citsci_species ~ normal(0, 0.5); // community variance // weakly informative prior (for strong pooling across species)
   
   p_citsci_site ~ normal(0, sigma_p_citsci_site); 
   // detection intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_site ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  sigma_p_citsci_site ~ normal(0, 0.5); // community variance // weakly informative prior (for strong pooling across species)
   
   // Random slope for site-specfic effect of time on detection
-  p_citsci_interval ~ normal(mu_p_citsci_interval, sigma_p_citsci_interval);
+  //p_citsci_interval ~ normal(mu_p_citsci_interval, sigma_p_citsci_interval);
   mu_p_citsci_interval ~ normal(0, 2); // community mean
-  sigma_p_citsci_interval ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  //sigma_p_citsci_interval ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
   
   p_citsci_pop_density ~ normal(0, 2); // effect of population density on detection
 
   // MUSEUM records
   // strong priors on museum 
-  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for (museum) detection
+  mu_p_museum_0 ~ normal(0, 1); // global intercept for (museum) detection
   
-  p_museum_species ~ normal(0, sigma_p_museum_species); 
+  //p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ normal(0, 0.25); // community variance // strongly informative prior (for strong pooling across species)
+  //sigma_p_museum_species ~ normal(0, 0.5); // community variance // strongly informative prior (for strong pooling across species)
   
-  p_museum_site ~ normal(0, sigma_p_museum_site); 
+  //p_museum_site ~ normal(0, sigma_p_museum_site); 
   // detection intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_site ~ normal(0, 0.25); // community variance // strongly informative prior (for strong pooling across species)
+  //sigma_p_museum_site ~ normal(0, 0.5); // community variance // strongly informative prior (for strong pooling across species)
   
   // Random slope for site-specfic effect of time on detection
   //p_museum_interval ~ normal(mu_p_museum_interval, sigma_p_museum_interval);

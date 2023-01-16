@@ -71,8 +71,6 @@ parameters {
   real<lower=0> gamma_1; // relationship between abundance and occupancy 
   // lower=0 is an informative prioring that forces the abundance-occupancy relationship to be positive
   
-  real<lower=0> phi; // abundance overdispersion parameter
-  
   real mu_eta_0; // global intercept for occupancy
   
   // species-specific intercept allows some species abundance at higher rates than others, 
@@ -113,9 +111,9 @@ parameters {
   real<lower=0> sigma_p_citsci_site; // variance in site intercepts
   
   // random intercept for site-specific temporal effects on detection
-  vector[n_sites] p_citsci_interval; // vector of species specific slope estimates
+  //vector[n_sites] p_citsci_interval; // vector of species specific slope estimates
   real mu_p_citsci_interval; // community mean of species specific slopes
-  real<lower=0> sigma_p_citsci_interval; // variance in species slopes
+  //real<lower=0> sigma_p_citsci_interval; // variance in species slopes
   
   real p_citsci_pop_density; // fixed effect of population on detection probability
   
@@ -159,6 +157,8 @@ transformed parameters {
             mu_eta_0 + // a baseline intercept
             eta_species[species[i]] + // a species-specific intercept
             eta_site[sites[j]] + // a site specific intercept
+            //mu_eta_open_developed*open_developed[j] + // an effect of open developed
+            //mu_eta_herb_shrub*herb_shrub[j] + // an effect of herb/srhub
             eta_open_developed[species[i]]*open_developed[j] + // an effect of open developed
             eta_herb_shrub[species[i]]*herb_shrub[j] + // an effect of herb/srhub
             eta_site_area*site_areas[j] // an effect of spatial area of the site 
@@ -182,7 +182,8 @@ transformed parameters {
             mu_p_citsci_0 + // a baseline intercept
             p_citsci_species[species[i]] + // a species specific intercept
             p_citsci_site[sites[j]] + // a spatially specific intercept
-            p_citsci_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
+            mu_p_citsci_interval*intervals[k] +
+            //p_citsci_interval[sites[j]]*intervals[k] + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
@@ -210,29 +211,27 @@ model {
   gamma_0 ~ normal(0, 0.5); // occupancy-abundance relationship intercept
   gamma_1 ~ normal(0, 0.5); // effect of expected abundance on occupancy rate
   
-  phi ~ normal(0, 1); // abundance overdispersion scale parameter
-  
   mu_eta_0 ~ normal(0, 2); // global intercept for abundance rate
   
   eta_species ~ normal(0, sigma_eta_species); 
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_eta_species ~ normal(0, 1); // weakly informative prior (for strong pooling across species)
+  sigma_eta_species ~ normal(0, 0.5); // weakly informative prior (for strong pooling across species)
   
   eta_site ~ normal(0, sigma_eta_site); 
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_eta_site ~ normal(0, 1); // weakly informative prior (for strong pooling across species)
+  sigma_eta_site ~ normal(0, 0.5); // weakly informative prior (for strong pooling across species)
   
   // Random slope for species-specfic effect of impervious surfaces on abundance
   eta_open_developed ~ normal(mu_eta_open_developed, sigma_eta_open_developed);
-  mu_eta_open_developed ~ normal(0, 2); // community mean
-  sigma_eta_open_developed ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  mu_eta_open_developed ~ normal(0, 1); // community mean
+  sigma_eta_open_developed ~ normal(0, 0.5); // community variance // weakly informative prior (for strong pooling across species)
 
   // Random slope for species-specfic effect of perennial plant cover on abundance
   eta_herb_shrub ~ normal(mu_eta_herb_shrub, sigma_eta_herb_shrub);
-  mu_eta_herb_shrub ~ normal(0, 2); // community mean
-  sigma_eta_herb_shrub ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  mu_eta_herb_shrub ~ normal(0, 1); // community mean
+  sigma_eta_herb_shrub ~ normal(0, 0.5); // community variance // weakly informative prior (for strong pooling across species)
   
   eta_site_area ~ normal(0, 1); // effect of site area on abundance rate
   
@@ -245,33 +244,33 @@ model {
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_species ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  sigma_p_citsci_species ~ normal(0, 0.5); // community variance // weakly informative prior (for strong pooling across species)
   
   p_citsci_site ~ normal(0, sigma_p_citsci_site); 
   // detection intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_site ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  sigma_p_citsci_site ~ normal(0, 0.5); // community variance // weakly informative prior (for strong pooling across species)
   
   // Random slope for site-specfic effect of time on detection
-  p_citsci_interval ~ normal(mu_p_citsci_interval, sigma_p_citsci_interval);
-  mu_p_citsci_interval ~ normal(0, 2); // community mean
-  sigma_p_citsci_interval ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
+  //p_citsci_interval ~ normal(mu_p_citsci_interval, sigma_p_citsci_interval);
+  mu_p_citsci_interval ~ normal(0, 1); // community mean
+  //sigma_p_citsci_interval ~ normal(0, 1); // community variance // weakly informative prior (for strong pooling across species)
   
-  p_citsci_pop_density ~ normal(0, 2); // effect of population density on detection
+  p_citsci_pop_density ~ normal(0, 1); // effect of population density on detection
 
   // MUSEUM records
-  // strong priors on museum 
-  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for (museum) detection
+  // strong informative priors on museum 
+  mu_p_museum_0 ~ normal(0, 1); // global intercept for (museum) detection
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ normal(0, 0.25); // community variance // strongly informative prior (for strong pooling across species)
+  sigma_p_museum_species ~ normal(0, 0.5); // community variance // strongly informative prior (for strong pooling across species)
   
   p_museum_site ~ normal(0, sigma_p_museum_site); 
   // detection intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_site ~ normal(0, 0.25); // community variance // strongly informative prior (for strong pooling across species)
+  sigma_p_museum_site ~ normal(0, 0.5); // community variance // strongly informative prior (for strong pooling across species)
   
   // Random slope for site-specfic effect of time on detection
   //p_museum_interval ~ normal(mu_p_museum_interval, sigma_p_museum_interval);
@@ -307,10 +306,10 @@ model {
           
             // lp of abundance given ecological model and observational model
             lp[abundance] = 
-              neg_binomial_2_log_lpmf( // generation of abundance given count distribution
-                max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi)  
-              - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
-                exp(log_eta[i,j,k]), phi)
+              poisson_log_lpmf( // generation of abundance given count distribution
+                max_y[i,j,k] + abundance - 1 | log_eta[i,j,k])  
+              - poisson_lccdf(0 | // with that count distribution truncated to be greater than zero
+                exp(log_eta[i,j,k]))
               // with abundance detections vectorized over n visits..
               
               // plus outcome of site being available, given the 
@@ -347,10 +346,10 @@ model {
             
             // start at abundance = 1 so that the search has a floor of 1
             lp[2] = lp[2] 
-             + neg_binomial_2_log_lpmf( // generation of abundance given count distribution
-                abundance | log_eta[i,j,k], phi) 
-             - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
-                exp(log_eta[i,j,k]), phi)
+             + poisson_log_lpmf( // generation of abundance given count distribution
+                abundance | log_eta[i,j,k]) 
+             - poisson_lccdf(0 | // with that count distribution truncated to be greater than zero
+                exp(log_eta[i,j,k]))
              
              + binomial_logit_lpmf( // but getting 0 individual-level detections, citizen science
                 0 | abundance, logit_p_citsci[i,j,k]) 
@@ -450,15 +449,15 @@ generated quantities {
             
             // max_y[i,j,k] + abundance - 1 starts the search at max_y
             lp[abundance] = 
-              neg_binomial_2_log_lpmf(max_y[i,j,k] + abundance - 1 | log_eta[i,j,k], phi)
-              - neg_binomial_2_lccdf(0 | // with that count distribution truncated to be greater than zero
-                exp(log_eta[i,j,k]), phi)
+              poisson_log_lpmf(max_y[i,j,k] + abundance - 1 | log_eta[i,j,k])
+              - poisson_lccdf(0 | // with that count distribution truncated to be greater than zero
+                exp(log_eta[i,j,k]))
               + binomial_logit_lpmf(V_citsci[i,j,k] | // and some observed data with a detection rate p
                 max_y[i,j,k] + abundance - 1, logit_p_citsci[i,j,k])
               + binomial_logit_lpmf( // binary, species-level detecion, museums
               // (given the number of community sampling events that occurred)
               sum(V_museum[i,j,k]) | sum(V_museum_NA[i,j,k]), logit_p_museum[i,j,k]);
-          
+            
           }
           
           // N is the most likely latent discrete state from the truncated count distribution
@@ -515,11 +514,11 @@ generated quantities {
             
             // Generate new replicate count data and
 
-            w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+            w[i,j,k] = poisson_rng(exp(log_eta[i,j,k]));
             
             // the count is from a truncated distr., and must be greater than 0.
             while(w[i,j,k] == 0){
-              w[i,j,k] = neg_binomial_2_rng(exp(log_eta[i,j,k]), phi);
+              w[i,j,k] = poisson_rng(exp(log_eta[i,j,k]));
             }
             
             y_new[i,j,k,l] = 

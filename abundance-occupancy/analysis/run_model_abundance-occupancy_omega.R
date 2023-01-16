@@ -11,9 +11,9 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 400 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 25 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
+grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 300 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
@@ -86,15 +86,12 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
 # without redoing the data prep
 saveRDS(my_data, paste("./abundance-occupancy/analysis/prepped_data/", 
                        taxon, grid_size / 1000, 
-                       "km", min_population_size, "minpop", 
-                       min_records_per_species, "minpersp",
-                       n_intervals, n_visits,
+                       "km", min_population_size, "minpop", n_intervals, n_visits,
                        ".rds", sep = "_"))
 
 my_data <- readRDS(paste0("./abundance-occupancy/analysis/prepped_data/_",
                          taxon, "_", grid_size / 1000, "_",
                          "km", "_", min_population_size, "_", "minpop", "_",
-                         min_records_per_species, "_", "minpersp", "_",
                          n_intervals, "_", n_visits, "_",
                          ".rds"))
 
@@ -138,7 +135,7 @@ species <- seq(1, n_species, by=1)
 # set an upper limit on maximum possible abundance
 # (take max count of a species*site from any time period, add K_addition and multiply by K_multiplier)
 K_addition = 5
-K_multiplier = 4
+K_multiplier = 3
 
 source("./abundance-occupancy/data_prep/get_K.R")
 K <- get_K(V_citsci, K_addition, K_multiplier)
@@ -157,18 +154,19 @@ stan_data <- c("V_citsci", "V_museum",
 
 # Parameters monitored
 params <- c(
-  "gamma_0",
-  "gamma_1",
-
+  "omega",
+  #"gamma_0",
+  #"gamma_1",
+  "phi",
+  
   "mu_eta_0",
   "sigma_eta_species",
   "sigma_eta_site",
   "mu_eta_open_developed",
-  "sigma_eta_open_developed",
+  #"sigma_eta_open_developed",
   "mu_eta_herb_shrub",
-  "sigma_eta_herb_shrub",
+  #"sigma_eta_herb_shrub",
   "eta_site_area",
-  "epsilon",
   
   "mu_p_citsci_0",
   "sigma_p_citsci_species",
@@ -179,7 +177,7 @@ params <- c(
   
   "mu_p_museum_0",
   "sigma_p_museum_species",
-  "sigma_p_museum_site",
+  #"sigma_p_museum_site",
   #"mu_p_museum_interval",
   #"sigma_p_museum_interval",
   #"p_museum_pop_density",
@@ -193,12 +191,12 @@ params <- c(
 
 
 # MCMC settings
-n_iterations <- 300
+n_iterations <- 400
 n_thin <- 1
-n_burnin <- 150
+n_burnin <- 200
 n_chains <- 4
-n_cores <- parallel::detectCores()
-delta = 0.95
+n_cores <- 4
+delta = 0.85
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -206,9 +204,10 @@ delta = 0.95
 inits <- lapply(1:n_chains, function(i)
   list(
     
-    gamma_0 = runif(1, -0.25, 0.25),
-    gamma_1 = runif(1, 0, 0.5),
-    #phi = runif(1, 0, 1),
+    omega = runif(1, 0, 1),
+    #gamma_0 = runif(1, -0.25, 0.25),
+    #gamma_1 = runif(1, 0, 0.5),
+    phi = runif(1, 0, 3),
     
     mu_eta_0 = runif(1, -1, 1),
     sigma_eta_species = runif(1, 0, 0.5),
@@ -226,9 +225,9 @@ inits <- lapply(1:n_chains, function(i)
     #sigma_p_citsci_interval = runif(1, 0, 0.5),
     p_citsci_pop_density = runif(1, -1, 1),
     
-    mu_p_museum_0 = runif(1, -1, 0)#,
-    #sigma_p_museum_species = runif(1, 0, 0.25),
-    #sigma_p_museum_site = runif(1, 0, 0.25),
+    mu_p_museum_0 = runif(1, -1, 1),
+    sigma_p_museum_species = runif(1, 0, 0.5),
+    sigma_p_museum_site = runif(1, 0, 0.5)#,
     #mu_p_museum_interval = runif(1, -1, 1),
     #sigma_p_museum_interval = runif(1, 0, 1),
     #p_museum_pop_density = runif(1, -1, 1)
@@ -238,7 +237,7 @@ inits <- lapply(1:n_chains, function(i)
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./abundance-occupancy/models/model_abundance-occupancy_poisson.stan"
+stan_model <- "./abundance-occupancy/models/model_abundance-occupancy_omega.stan"
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
