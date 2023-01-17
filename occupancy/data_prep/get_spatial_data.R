@@ -27,14 +27,17 @@
 # like grid size and minimum urbanization intensity to include a site
 # shape the data that we will analyze with our model
 
-library(tidyverse)
+library(tidyverse) # data carpentry
 library(tigris) # get state shapefile
 library(sf) # spatial data processing
 library(raster) # process pop dens raster
+library(exactextractr) # quick extraction of raster data
 
 get_spatial_data <- function(
-  grid_size,
-  min_population_size
+  grid_size, # square edge dimensions of a site, in meters
+  min_population_size, # minimum pop density of a site to be considered "urban"
+  taxon, # prepare data for syrphidae or bombus
+  min_site_area # min land area (in the state admin areas) of a site to be included
 ){
   
   ## --------------------------------------------------
@@ -44,240 +47,270 @@ get_spatial_data <- function(
     (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
   }
   
-  # if using the default choices, just read in the preprocessed data
-  # else the study dimension choices have been altered then the site variables will need 
-  # to be re-extracted and the NHC records will need to be tagged to the corresponding sites
-  # This step saves time and computing power if the model is simply being run at 
-  # these default values.
-  
-  if(min_population_size == 200 && grid_size == 35000){
+  ## To save time and computing power, if study dimensions match preprocessing reqts.
+  ## then use the preprocessed data to save time, 
+  if(grid_size == 30000 && min_population_size == 300 && min_site_area == 0.10){
     
-    site_data <- read.csv(
-      "./preprocessed_data/site_data_35km_200minpop_.RDS")
+    # read the occurrence data for the given taxon
+    df_id_dens <- readRDS(paste0(
+      "./preprocessed_data/",
+      taxon,
+      "_occurrence_records_30km_300minpop_.RDS"))
     
-    df_id_dens <- read.csv(
-      "./preprocessed_data/occurrence_records_35km_200minpop_.RDS")
+    grid_pop_dens <- readRDS("./preprocessed_data/site_data_30km_300minpop_.RDS")
+    
+    ## --------------------------------------------------
+    # Extract variables
+    
+    scaled_pop_density <- grid_pop_dens %>% 
+      pull(scaled_pop_den_km2)
+    
+    scaled_site_area <- grid_pop_dens %>% 
+      pull(scaled_site_area)
+    
+    scaled_developed_open <- grid_pop_dens %>% 
+      pull(scaled_developed_open)
+    
+    scaled_herb_shrub_cover <- grid_pop_dens %>% 
+      pull(scaled_herb_shrub_cover)
+    
+    scaled_forest <- grid_pop_dens %>% 
+      pull(scaled_forest)
+    
+    scaled_developed_med_high <- grid_pop_dens %>% 
+      pull(scaled_developed_med_high)
+    
+    ## --------------------------------------------------
+    # Calculate correlations between variables 
+    
+    my_variables <- as.data.frame(cbind(scaled_pop_density, 
+                                        scaled_site_area, 
+                                        scaled_developed_open,
+                                        scaled_developed_med_high,
+                                        scaled_herb_shrub_cover, 
+                                        scaled_forest))
+    
+    correlation_matrix <- cor(my_variables)
     
   } else{
     
-  
-  
-  ## --------------------------------------------------
-  # occurrence data
-  df <- read.csv("./data/data_unfiltered.csv") 
-  
-  ## --------------------------------------------------
-  # Spatial extent and urban areas
-  
-  # CRS for NAD83 / UTM Zone 10N
-  crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
-  
-  # spatial data - California state shapefile
-  CA <- tigris::states() %>%
-    filter(NAME == "California")
-  
-  CA_nad83 <- CA  %>% 
-    st_transform(., 26910) # NAD83 / UTM Zone 10N
-  
-  ## --------------------------------------------------
-  # Environmental data rasters
-  
-  # pop density raster
-  # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
-  # 2015 pop density at 1km resolution
-  pop_raster=raster("./data/pden2010_block/pden2010_block/gpw_v4_population_density_rev11_2015_30_sec.tif")
-  
-  # impervious surface cover raster
-  # https://www.mrlc.gov/data/nlcd-2016-percent-developed-imperviousness-conus
-  # note this impervious surface cover has already been aggregated from 30mx30m to 300mx300m
-  imp <- raster::raster(
-    "./data/impervious_surface/nlcd_2016_impervious_aggregated_300m.tif")
-  
-  ## --------------------------------------------------
-  # Overlay the shapefile with a grid of sites of size == 'grid_size' 
-  
-  # create _km grid - here you can substitute by specifying grid_size above
-  grid <- st_make_grid(CA_nad83, cellsize = c(grid_size, grid_size)) %>% 
-    st_sf(grid_id = 1:length(.))
-  
-  # Determine which grid cell (site) each occurrence record is from 
-  df_id <- df %>%
-    # spatial projection of the occurrence data
-    st_as_sf(.,
-             coords = c("decimalLongitude", "decimalLatitude"), 
-             crs = 4326) %>%
-    # transformed to projection of the CA shapefile
-    st_transform(., crs = crs) %>%
-    st_join(grid, join = st_intersects) %>% as.data.frame
-  
-  ## --------------------------------------------------
-  # Extract mean population density in each grid cell
-  
-  crs_raster <- sf::st_crs(raster::crs(pop_raster))
-  
-  # Join mean values to the grid cell data
-  grid_pop_dens <- cbind(grid, 
+    ## --------------------------------------------------
+    # Envrionmental raster data
     
-    # Use list apply to calculate mean raster value for each grid cell
-    # ignore na's (values where the grid cell does not overlap with land area)                       
-    unlist(lapply(
-      raster::extract(raster::mask( # extract values from 
-        raster::crop(pop_raster, CA), CA), # the cropped and masked population density raster
-          st_transform(grid, crs_raster)), # for each grid cell that has been transformed to the crs of the raster
+    # take this chunk out
+    # CRS for NAD83 / UTM Zone 10N
+    crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
     
-    FUN=mean, na.rm=TRUE) # and calculate the mean from all values extracted from a grid cell
-    )) 
-  
-  grid_pop_dens$unlist.lapply.raster..extract.raster..mask.raster..crop.pop_raster..[
-    grid_pop_dens$unlist.lapply.raster..extract.raster..mask.raster..crop.pop_raster.. == "NaN"] <- NA
+    # spatial data - California state shapefile
+    states <- tigris::states() %>%
+      filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
     
-  grid_pop_dens <- grid_pop_dens %>%
-    # and rename the extracted variable
-    rename("pop_density_per_km2" = "unlist.lapply.raster..extract.raster..mask.raster..crop.pop_raster..") %>%
+    states_trans <- states  %>% 
+      st_transform(., 26910) # NAD83 / UTM Zone 10N
     
-    # and scale the population density
-    mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2))
-  
-  # free unused space
-  rm(pop_raster)
-  gc(verbose = FALSE)
-  
-  ## --------------------------------------------------
-  # add pop density covariate data to the occurrence data
-  # AND simultaneously filter out all the associated occurrence data
-  # from the sites that are NOT CONSIDERED URBAN AREAS
-  # so that we can make comparisons about insect populations among cities
-  
-  # Join the pop dens data back with the df that now also has grid (site) names
-  # We also filter out non-urban sites 
-  # (and sites that are outside of the admin area and thus have NA population density)
-  # and add a scaled density variable
-  df_id_dens <- left_join(df_id, grid_pop_dens) %>%
-    left_join(., dplyr::select(df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") %>%
-    # Filter to the sites that are actually 'urban' 
-    filter(pop_density_per_km2 > min_population_size)
-  
-  # free unused space
-  rm(df, df_id)
-  gc(verbose = FALSE)
-  
-  ## --------------------------------------------------
-  # Now give just one row per grid cell, with columns including
-  # the grid cell name, the pop density and scaled pop density, and the geometry
-  
-  # first project the data again using the lat and long colums
-  urban_grid_prepped <- grid_pop_dens %>%
-    filter(pop_density_per_km2 > min_population_size) %>%
-    # this will hold a geometry for both the grid AND an intersecting records
-    # but we specifically need the grid geometry for the site area calculation below
-    dplyr::select(grid_id, 
-                  pop_density_per_km2, scaled_pop_den_km2)
-  
-  ## --------------------------------------------------
-  # Pull vector data from the urban grid cells
-  
-  scaled_pop_density <- urban_grid_prepped %>%
-    pull(scaled_pop_den_km2)
-  
-  site_name_vector <- as.character(
-    urban_grid_prepped %>%
-      group_by(grid_id) %>%
-      slice(1) %>% # take one row per site (the name of each site)
-      ungroup() %>%
-      dplyr::select(grid_id) %>% # extract species names column as vector
-      pull(grid_id)
-  )
-  
-  ## --------------------------------------------------
-  # Now get impervious surface cover from each grid cell
-  
-  # project the urban sites to the impervious surface cover raster
-  crs_imp <- sf::st_crs(raster::crs(imp))
-  prj2 <- st_transform(urban_grid_prepped, crs_imp)
-  
-  # Extract raster values to list object
-  # this takes a while since there are many raster cells with their own values
-  # in each grid cell.
-  # Use list apply to calculate mean raster value for each grid cell
-  r.vals_imp <- raster::extract(
-    imp <- mask(imp, prj2), # mask the impervious surface cover to these sites
-    prj2) # before extracting from these sites
-  
-  # values of 127 are values of water or outside the mask
-  # for i in 1: the number of sites
-  for(i in 1:length(r.vals_imp)){
-    # go through and replace 127's with NA's
-    r.vals_imp[[i]][r.vals_imp[[i]]==127] <- NA
+    ## --------------------------------------------------
+    # Environmental data rasters
+    
+    # pop density raster
+    # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
+    # 2015 pop density at 1km resolution
+    pop_raster=raster("./data/spatial_data/population_density/gpw_v4_population_density_rev11_2015_30_sec.tif")
+    
+    # land cover raster 30m x 30m
+    # https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
+    # land cover data from 2016 
+    land=raster::raster("./data/spatial_data/land_use/land_use.tif")
+    
+    ## --------------------------------------------------
+    # Overlay the shapefile with a grid of sites of size == 'grid_size' 
+    
+    # create _km grid - here you can substitute by specifying grid_size above
+    grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>% 
+      st_sf(grid_id = 1:length(.))
+    
+    ## --------------------------------------------------
+    # Extract mean population density in each grid cell
+    
+    pop_raster <- crop(pop_raster, states)
+    pop_raster <- mask(pop_raster, states)
+    
+    # project the grid to the raster
+    crs_raster <- sf::st_crs(raster::crs(pop_raster))
+    prj1 <- st_transform(grid, crs_raster)
+    
+    # Extract raster values to list object, and then summarize by the mean value
+    r.vals <- exactextractr::exact_extract(pop_raster, prj1, 'mean')
+    
+    ## --------------------------------------------------
+    # filter sites to urban areas using the r.vals for pop density
+    
+    grid_pop_dens <- cbind(grid, r.vals) %>% 
+      rename("pop_density_per_km2" = "r.vals")
+    # now filter out the non-urban areas (areas below our pop density threshold)
+    # and make a scaled response variable
+    grid_pop_dens <- grid_pop_dens %>%
+      filter(pop_density_per_km2 > min_population_size) 
+    
+    # free unused space
+    rm(pop_raster, prj1, r.vals, crs_raster)
+    gc(verbose = FALSE)
+    
+    ## --------------------------------------------------
+    # Extract environmental variables from each remaining site
+    
+    # make sure that the grid is still projected to the raster
+    crs_raster <- sf::st_crs(raster::crs(land))
+    prj1 <- st_transform(grid_pop_dens, crs_raster)
+    
+    # then extract values and cbind with the grid_pop_dens
+    # extract raster values to list object
+    
+    r.vals_land <- exactextractr::exact_extract(land, prj1)
+    
+    # want to reclassify open water as NA
+    r.vals_land_NA <- lapply(r.vals_land, function(x) na_if(x$value, 0))
+    r.vals_land_NA <- lapply(r.vals_land_NA, function(x) na_if(x,11))
+    
+    # first find out the proportion of rows that are NA's 
+    # (this will be our site area)
+    r.site_area <- lapply(r.vals_land_NA, 
+                          function(x) { 
+                            # which rows are not NAs (are not masked or coded as open water)
+                            # divided by the number of rows
+                            # yields a site area
+                            (length(which(!is.na(x))) / length(x))
+                          } 
+    ) 
+    
+    
+    # now drop NA values so that the below estimates are the proportion of cover
+    # of all land cover in the administrative area
+    r.vals_land_NA <- lapply(r.vals_land_NA, na.omit)
+    
+    # now pull out site proportion of each type
+    # for legend of category number codes see: 
+    # https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description
+    
+    r.mean_herb_shrub <- lapply(r.vals_land_NA, 
+                                function(x) { 
+                                  (length(which(x %in% c(52,71))) / length(x))
+                                } 
+    ) 
+    
+    r.mean_dev_open <- lapply(r.vals_land_NA, 
+                              function(x) { 
+                                (length(which(x %in% c(21))) / length(x))
+                              } 
+    ) 
+    
+    r.mean_high_dev <- lapply(r.vals_land_NA, 
+                              function(x) { 
+                                (length(which(x %in% c(23,24))) / length(x))
+                              } 
+    ) 
+    
+    r.mean_forest <- lapply(r.vals_land_NA, 
+                            function(x) { 
+                              (length(which(x %in% c(41,42,43))) / length(x))
+                            } 
+    ) 
+    
+    grid_pop_dens <- cbind(grid_pop_dens,
+                           unlist(r.site_area),
+                           unlist(r.mean_herb_shrub),
+                           unlist(r.mean_dev_open),
+                           unlist(r.mean_high_dev),
+                           unlist(r.mean_forest)) %>%
+      rename("site_area" = "unlist.r.site_area.",
+             "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
+             "developed_open" = "unlist.r.mean_dev_open.",
+             "developed_med_high" = "unlist.r.mean_high_dev.",
+             "forest" = "unlist.r.mean_forest.") %>%
+      # remove sites below filter for minimum site area
+      filter(site_area > min_site_area) %>%
+      # center-scale the variables
+      mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
+             scaled_site_area = center_scale(site_area),
+             scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+             scaled_developed_open = center_scale(developed_open),
+             scaled_developed_med_high = center_scale(developed_med_high),
+             scaled_forest = center_scale(forest)
+      )
+    
+    rm(crs_raster, grid, land, prj1, 
+       r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev,
+       r.site_area, r.vals_land, r.vals_land_NA, states, states_trans)
+    gc()
+    
+    
+    
+    ## --------------------------------------------------
+    # Occurrence data
+    
+    # read either the syrphidae data or the bombus data
+    df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data.csv"))
+    
+    ## --------------------------------------------------
+    # Prep the data
+    
+    # make the df into a spatial file
+    (df_sf <- st_as_sf(df,
+                       coords = c("decimalLongitude", "decimalLatitude"), 
+                       crs = 4326))
+    
+    # and then transform it to the crs
+    df_trans <- st_transform(df_sf, crs = crs)
+    
+    ## --------------------------------------------------
+    # Now tag records with site ID's based on spatial intersection
+    
+    # which grid square is each point in?
+    df_id_dens <- df_trans %>% 
+      st_join(grid_pop_dens, join = st_intersects) %>% as.data.frame %>%
+      # filter out records from outside of the urban grid
+      filter(!is.na(grid_id)) %>%
+      left_join(., dplyr::select(
+        df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
+    
+    # free unused space
+    rm(df, df_sf, df_trans)
+    gc()
+    
+    
+    ## --------------------------------------------------
+    # Calculate correlations between variables
+    
+    correlation_matrix <- cor(as.data.frame(cbind(grid_pop_dens$scaled_pop_den_km2,
+                                                  grid_pop_dens$scaled_site_area,
+                                                  grid_pop_dens$scaled_developed_open,
+                                                  grid_pop_dens$scaled_developed_med_high,
+                                                  grid_pop_dens$scaled_herb_shrub_cover,
+                                                  grid_pop_dens$scaled_forest)))
+    
+    colnames(correlation_matrix) <- c("scaled_pop_den_km2", 
+                                      "scaled_site_area", 
+                                      "scaled_developed_open",
+                                      "scaled_developed_med_high",
+                                      "scaled_herb_shrub_cover",
+                                      "scaled_forest")
+    
+    rownames(correlation_matrix) <- c("scaled_pop_den_km2", 
+                                      "scaled_site_area", 
+                                      "scaled_developed_open",
+                                      "scaled_developed_med_high",
+                                      "scaled_herb_shrub_cover",
+                                      "scaled_forest")
+    
   }
   
-  # now calculate the mean value per grid cell
-  r.mean_imp <- lapply(r.vals_imp, FUN=mean, na.rm=TRUE)
-  
-  impervious_cover <- unlist(r.mean_imp) 
-  
-  scaled_impervious_cover <- center_scale(impervious_cover)
-  
-  # free unused space
-  rm(imp, prj2, r.vals_imp, r.mean_imp, impervious_cover)
-  gc(verbose = FALSE)
-  
-  ## --------------------------------------------------
-  # Add raster extraction for any additional spatial covariates here...
-  
-  ## --------------------------------------------------
-  # Calculate land area of grid cells 
-  # some cells might partially be outside of the area where we are getting records from
-  # e.g. a cell half in California and half in Mexico or a cell that is along the
-  # coastline and only overlaps slightly with land
-  # we would expect fewer species to occur in these smaller areas and therefore should
-  # account for site area (extent of grid cell intersection w/ shapefile) in our analysis
-  
-  # THE VECTOR 'scaled_grid_area' is the output that lists scaled site area 
-  # in order from lowest site number to highest.
-  
-  # intersect between administrative area and the grid
-  grid_intersect <- st_intersection(CA_nad83, urban_grid_prepped)
-  #plot(CA_nad83$geometry, axes = TRUE)
-  #plot(urban_grid_prepped$geometry, add = TRUE)
-  #plot(grid_intersect$geometry, add = TRUE, col = 'red')
-    
-  # for each field, get area overlapping with admin area
-  scaled_grid_area <- grid_intersect %>% 
-    # add in areas in m2
-    mutate(area = st_area(.) %>% as.numeric()) %>% 
-    # if you have multiple administrative areas, say we add another state
-    # we'd want to summarize the total area across these admin areas
-    as_tibble() %>% 
-    group_by(grid_id) %>% 
-    summarize(area = sum(area)) %>%
-    # create a scaled variable
-    mutate(scaled_site_area = center_scale(area)) %>%
-    pull(scaled_site_area)
-  
-  # free unused space
-  rm(grid_intersect)
-  gc(verbose = FALSE)
-  
-  }
-  
-  ## --------------------------------------------------
-  # Calculate correlations between variables 
-  my_variables <- as.data.frame(cbind(scaled_pop_density, 
-                                      scaled_impervious_cover, 
-                                      scaled_grid_area))
-  
-  correlation_matrix <- cor(my_variables)
   
   ## --------------------------------------------------
   # Return stuff
   return(list(
     
     df_id_urban_filtered = df_id_dens,
-    scaled_pop_density = scaled_pop_density,
-    scaled_impervious_cover = scaled_impervious_cover,
-    scaled_grid_area = scaled_grid_area,
-    site_name_vector = site_name_vector,
-    urban_grid = urban_grid_prepped,
-    correlation_matrix = correlation_matrix))
-  
+    urban_grid = grid_pop_dens,
+    correlation_matrix = correlation_matrix
+    
+  ))
 }

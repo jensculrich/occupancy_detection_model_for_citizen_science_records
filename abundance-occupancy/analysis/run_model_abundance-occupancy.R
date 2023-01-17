@@ -11,7 +11,7 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 400 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 100 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
 grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 300 # min pop density in the grid cell (per km^2)
@@ -168,7 +168,6 @@ params <- c(
   "mu_eta_herb_shrub",
   "sigma_eta_herb_shrub",
   "eta_site_area",
-  "epsilon",
   
   "mu_p_citsci_0",
   "sigma_p_citsci_species",
@@ -186,9 +185,9 @@ params <- c(
   
   # posterior predictive check
   "fit",
-  "fit_new"#,
-  #"fit_occupancy",
-  #"fit_occupancy_new"
+  "fit_new",
+  "fit_occupancy",
+  "fit_occupancy_new"
 )
 
 
@@ -208,8 +207,7 @@ inits <- lapply(1:n_chains, function(i)
     
     gamma_0 = runif(1, -0.25, 0.25),
     gamma_1 = runif(1, 0, 0.5),
-    #phi = runif(1, 0, 1),
-    
+
     mu_eta_0 = runif(1, -1, 1),
     sigma_eta_species = runif(1, 0, 0.5),
     sigma_eta_site = runif(1, 0, 0.5),
@@ -226,9 +224,9 @@ inits <- lapply(1:n_chains, function(i)
     #sigma_p_citsci_interval = runif(1, 0, 0.5),
     p_citsci_pop_density = runif(1, -1, 1),
     
-    mu_p_museum_0 = runif(1, -1, 0)#,
-    #sigma_p_museum_species = runif(1, 0, 0.25),
-    #sigma_p_museum_site = runif(1, 0, 0.25),
+    mu_p_museum_0 = runif(1, -1, 0),
+    sigma_p_museum_species = runif(1, 0, 0.25),
+    sigma_p_museum_site = runif(1, 0, 0.25)#,
     #mu_p_museum_interval = runif(1, -1, 1),
     #sigma_p_museum_interval = runif(1, 0, 1),
     #p_museum_pop_density = runif(1, -1, 1)

@@ -22,43 +22,72 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       min_records_per_species,
                       grid_size, min_population_size, 
                       min_records_for_community_sampling_event,
-                      min_year_for_species_ranges) {
+                      min_year_for_species_ranges,
+                      taxon,
+                      min_site_area,
+                      remove_unidentified_species
+) {
   
-  source("./data/get_spatial_data.R")
+  source("./occupancy/data_prep/get_spatial_data.R")
   
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
-    grid_size, min_population_size)
+    grid_size, min_population_size, taxon, min_site_area)
   
-  # save the data in case you want to make tweaks to the model run
-  # without redoing the data prep
-  # saveRDS(my_spatial_data, "./analysis/spatial_data_list.rds")
-  # my_spatial_data <- readRDS("./analysis/spatial_data_list.rds")
+  # save the data in case you want to make tweaks to the prep data
+  # without redoing the raster extractions
+  # saveRDS(my_spatial_data, "./occupancy/analysis/prepped_data/spatial_data_list.rds")
+  # my_spatial_data <- readRDS("./occupancy/analysis/prepped_data/spatial_data_list.rds")
   gc()
   
   df_id_urban_filtered <- as.data.frame(my_spatial_data$df_id_urban_filtered)
   
+  # remove specimens with no species level identification
+  if(remove_unidentified_species == TRUE) {
+    
+    df_id_urban_filtered <- df_id_urban_filtered %>%
+      filter(species != "")
+    
+  }
+  
   # spatial covariate data to pass to run model
-  pop_density_vector <- my_spatial_data$scaled_pop_density
-  impervious_cover_vector <- my_spatial_data$scaled_impervious_cover
-  site_area_vector <- my_spatial_data$scaled_grid_area
-  site_name_vector <- my_spatial_data$site_name_vector
   urban_grid <- my_spatial_data$urban_grid
+  
+  pop_density_vector <- urban_grid$scaled_pop_den_km2
+  site_area_vector <- urban_grid$scaled_site_area
+  developed_open_vector <- urban_grid$scaled_developed_open
+  herb_shrub_vector <- urban_grid$scaled_herb_shrub_cover
+  # add any new environmental variavle vectors here (forest and med/high dev are already held in urban_grid)
+  
+  site_name_vector <- urban_grid$grid_id
+  
+  # correlation matrix
+  correlation_matrix <- my_spatial_data$correlation_matrix
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
-  correlation_matrix <- my_spatial_data$correlation_matrix
+  
   # total records from time period
-  total_records <- nrow(df_id_urban_filtered)
+  total_records_since_2000 <- nrow(df_id_urban_filtered)
+  
+  total_records_since_study <- df_id_urban_filtered %>%
+    filter(year > era_start) %>%
+    nrow()
+  
   # citsci and museum records from time period
   citsci_records <- df_id_urban_filtered %>%
     filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(year >= era_start) %>%
     nrow()
+  
   museum_records <- df_id_urban_filtered %>%
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(year >= era_start) %>%
     nrow()
+  
   # species counts
   species_counts <- df_id_urban_filtered %>%
+    filter(year > era_start) %>%
     group_by(species) %>%
     count()
   
@@ -104,10 +133,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(n >= min_records_per_species) %>%
     ungroup() %>%
     
-    # one unique row per site*species*occ_interval*visit combination
-    group_by(grid_id, species, occ_interval, visit) %>% 
-    slice(1) %>%
-    ungroup() %>%
+    # # one unique row per site*species*occ_interval*visit combination
+    # group_by(grid_id, species, occ_interval, visit) %>% 
+    # slice(1) %>%
+    # ungroup() %>%
     
     # for now, reducing down to mandatory data columns
     dplyr::select(species, grid_id, occ_interval, occ_year, visit) %>%
@@ -149,6 +178,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(basisOfRecord == "HUMAN_OBSERVATION") %>% 
     
     # one unique row per site*species*occ_interval*visit combination
+    # contrast this line with the abundance models!
     group_by(grid_id, species, occ_interval, visit) %>% 
     slice(1) %>%
     ungroup() %>%
@@ -199,7 +229,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # within a site
     group_by(institutionCode, year, grid_id) %>%
     mutate(n_species_sampled = n_distinct(species)) %>%
-    filter(n_species_sampled >= min_species_for_community_sampling_event) %>%
+    # filter(n_species_sampled >= min_species_for_community_sampling_event) %>%
     
     # one unique row per site*species*occ_interval*visit combination
     group_by(grid_id, species, occ_interval, visit) %>% 
@@ -209,6 +239,60 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # for now, reducing down to mandatory data columns
     dplyr::select(species, grid_id, occ_interval, occ_year, visit) %>%
     arrange((occ_year))
+  # end pipe
+  
+  ## --------------------------------------------------
+  # museum community samples
+  
+  community_samples <- df_id_urban_filtered %>%
+    
+    # remove records (if any) missing species level identification
+    filter(species != "") %>%
+    
+    # assign year as - year after era_start
+    mutate(occ_year = (year - era_start)) %>%
+    
+    # remove years before the start date
+    filter(occ_year >= 0) %>%
+    # remove years after end date
+    filter(occ_year < total_years) %>%
+    
+    # now assign the years into 1:n_intervals
+    mutate(occ_interval = occ_year %/% n_visits) %>%
+    
+    # add a sampling round (1:n)
+    mutate(visit = (occ_year %% n_visits)) %>%
+    
+    # remove species with total observations (n) < min_records_per_species
+    # these are records across all citizen science AND preserved specimen records
+    group_by(species) %>%
+    add_tally() %>%
+    filter(n >= min_records_per_species) %>%
+    ungroup() %>%
+    
+    # filter to citizen science data only
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
+    
+    # determine whether a community sampling event occurred
+    # using collector name might be overly conservative because for example
+    # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
+    # instead grouping by collections housed in the same institution from the same year
+    # within a site
+    group_by(institutionCode, year, grid_id) %>%
+    mutate(n_species_sampled = n_distinct(species)) %>%
+    ungroup() %>%
+    dplyr::select(grid_id, occ_interval, occ_year, visit, species, n_species_sampled) %>%
+    group_by(grid_id, occ_interval, occ_year, visit) %>%
+    # slice max in case there are multiple institutions collecting from a site in a year
+    slice_max(n_species_sampled) %>%
+    # then take one per year
+    slice(1) %>%
+    mutate(community_sampled = ifelse(
+      n_species_sampled >= min_species_for_community_sampling_event,
+      1, 0)) %>%
+    dplyr::select(-species, -n_species_sampled) %>%
+    mutate(occ_interval = as.character(occ_interval),
+           visit = as.character(visit))
   # end pipe
   
   ## --------------------------------------------------
@@ -235,7 +319,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   site_vector <- site_name_vector
   
   site_list <- as.data.frame(site_vector) %>%
-    rename("grid_id" = "site_vector")
+    rename("grid_id" = "site_vector") %>%
+    mutate(grid_id = as.character(grid_id))
   
   interval_vector <- as.vector(levels(as.factor(df_filtered$occ_interval)))
   
@@ -377,13 +462,15 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   ## --------------------------------------------------
   # Get species ranges
-  source("./data/get_species_ranges.R")
+  source("./occupancy/data_prep/get_species_ranges.R")
+  
   species_ranges <- get_species_ranges(urban_grid,
                                        site_name_vector,
                                        n_sites,
                                        species_vector,
                                        n_species,
-                                       min_year_for_species_ranges)
+                                       min_year_for_species_ranges,
+                                       taxon)
   
   gc()
   
@@ -397,10 +484,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # this is the only condition considered to effect whether a species could potentially
   # be detected by a citizen science survey effort (compare with museum records)
   
-   df_citsci_visits <- as.data.frame(cbind(rep(species_vector, each=n_sites),
-                rep(site_vector, times = n_species),
-                rep(1, times = n_species*n_sites),
-    unlist(species_ranges))) %>%
+  df_citsci_visits <- as.data.frame(cbind(rep(species_vector, each=n_sites),
+                                          rep(site_vector, times = n_species),
+                                          rep(1, times = n_species*n_sites),
+                                          unlist(species_ranges))) %>%
     rename("species" = "V1",
            "grid_id" = "V2",
            "community_sample" = "V3",
@@ -421,47 +508,43 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # whether or not a community sampling event has occurred
   # be detected by a citizen science survey effort (compare with museum records)
   
-  # remove extra species rows, just one for each species per site per unique visit
-  # keep in mind that we've already removed visits that did not pass our
-  # minimum threshold for a community sample
-  # so all site visits here have min_species_for_community_sampling_event or more species in the visit
-  df_museum_visits <- df_museum %>%
-    group_by(grid_id, occ_year, visit) %>%
-    slice(1) %>% # take one row per species (the name of each species)
-    ungroup() %>%
-    dplyr::select(-species) %>%
-    mutate(community_sample = 1) %>%
-    mutate(occ_interval = as.character(occ_interval),
-           occ_year = as.character(occ_year),
-           visit = as.character(visit))
+  # want to keep detections for species that were detected in isolation
+  # but not infer that other species could be detected if we just have a few records
   
-  all_visits_museum_visits_joined <- left_join(all_species_site_visits, df_museum_visits, 
-                    by=c("grid_id", "occ_interval", "visit")) %>%
+  all_visits_museum_visits_joined <- left_join(all_species_site_visits, community_samples, 
+                                               by=c("grid_id", "occ_interval", "visit")) %>%
     # create an indicator if the site visit was a sample or not
-    mutate(community_sample = replace_na(community_sample, 0),
+    mutate(community_sampled = replace_na(community_sampled, 0),
            occ_interval = as.integer(occ_interval),
            visit = as.integer(visit)) %>%
     dplyr::select(-occ_year)
   
   ranges <- as.data.frame(cbind(rep(species_vector, each=n_sites),
-                      rep(site_vector, times = n_species),
-                      unlist(species_ranges))) %>%
+                                rep(site_vector, times = n_species),
+                                unlist(species_ranges))) %>%
     rename("species" = "V1",
            "grid_id" = "V2",
            "in_range" = "V3") %>%
     mutate(grid_id = as.integer(grid_id))
   
   all_visits_museum_visits_joined <- left_join(all_visits_museum_visits_joined, ranges) %>%
-    mutate(sampled = as.numeric(community_sample)*
+    mutate(sampled = as.numeric(community_sampled)*
              as.numeric(in_range))
   
-  # now would be appropriate to replace those records for the species collected at the museums 
   # for < min_species_for_community_sampling_event with a sampled indicator
   # i.e., keep the data for the singletons and doubletons, while not inferring abscense for the rest of the community
+  df_museum <- df_museum %>%
+    # if the species was sampled than at least that species was sampled (may also be a comm sample)
+    mutate(non_comm_sample = 1) 
+  
+  # sampled for each row if either a community sample or a non comm sample
+  all_visits_museum_visits_joined <- left_join(all_visits_museum_visits_joined, df_museum) %>%
+    mutate(non_comm_sample = replace_na(non_comm_sample, 0)) %>%
+    mutate(any_sampled = ifelse(non_comm_sample == 1, 1, sampled))
   
   # now spread into 4 dimensions
-  V_museum_NA <- array(data = all_visits_museum_visits_joined$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
-  # check <- which(V_museum>V_museum_NA) # this will give you numerical value
+  V_museum_NA <- array(data = all_visits_museum_visits_joined$any_sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
+  check <- which(V_museum>V_museum_NA) # this will give you numerical value
   # thus check should be empty
   
   ## --------------------------------------------------
@@ -482,11 +565,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     species = species_vector,
     
     pop_densities = pop_density_vector,
-    impervious_cover = impervious_cover_vector,
     site_areas = site_area_vector,
+    herb_shrub_cover = herb_shrub_vector,
+    developed_open = developed_open_vector,
     
     correlation_matrix = correlation_matrix,
-    total_records = total_records,
+    
+    total_records = total_records_since_2000,
+    total_records_since_study = total_records_since_2000,
     citsci_records = citsci_records,
     museum_records = museum_records,
     species_counts = species_counts

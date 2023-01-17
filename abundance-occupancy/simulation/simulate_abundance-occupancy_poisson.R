@@ -44,7 +44,7 @@ simulate_data <- function(
   mu_eta_herb_shrub,
   sigma_eta_herb_shrub,
   eta_site_area,
-  epsilon,
+  sigma_abundance,
   
   ## Detection process
   # citizen science observation process
@@ -54,6 +54,7 @@ simulate_data <- function(
   mu_p_citsci_interval,
   sigma_p_citsci_interval,
   p_citsci_pop_density,
+  delta,
   
   # museum record observation process
   mu_p_museum_0,
@@ -70,6 +71,7 @@ simulate_data <- function(
   visits_missing
   
 ){
+  
   
   ## ilogit and logit functions
   inv_logit <- function(x) exp(x)/(1+exp(x))
@@ -132,15 +134,14 @@ simulate_data <- function(
   # species specific variation defined by sigma_eta
   
   ## over dispersion in abundance
-  epsilon_matrix <- array(nrow=n_species, ncol=n_sites)
+  epsilon <- array(NA, dim=c(n_species, n_sites, n_intervals))
   for(site in 1:n_sites){
     for(interval in 1:n_intervals){
       
-      epsilon_matrix[1:n_species, site, interval] = rnorm(n=n_species, mean=0, sigma=epsilon)
+      epsilon[1:n_species, site, interval] = rnorm(n=n_species, mean=0, sd=sigma_abundance)
       
     }
   }
-  
   
   ## --------------------------------------------------
   ### specify species-specific detection probabilities
@@ -159,6 +160,16 @@ simulate_data <- function(
   p_citsci_interval  <- rnorm(n=n_sites, mean = mu_p_citsci_interval, sd=sigma_p_citsci_interval)
   # species baseline detection probability is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma_p
+  
+  ## over dispersion in abundance
+  delta <- array(NA, dim=c(n_species, n_sites, n_intervals))
+  for(site in 1:n_sites){
+    for(interval in 1:n_intervals){
+      
+      delta[1:n_species, site, interval] = rnorm(n=n_species, mean=0, sd=sigma_detection)
+      
+    }
+  }
   
   ## species-specific random intercepts
   p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
@@ -195,7 +206,8 @@ simulate_data <- function(
           eta_site[site] + # a site specific intercept
           eta_open_developed[species]*open_developed[site] + # a species specific temporal change
           eta_herb_shrub[species]*herb_shrub[site] + # a fixed effect of population density 
-          eta_site_area*site_area[site] # a fixed effect of site area
+          eta_site_area*site_area[site] + # a fixed effect of site area
+          epsilon[species, site, interval]
         
         for(visit in 1:n_visits) { # for each visit
           
@@ -203,17 +215,16 @@ simulate_data <- function(
             mu_p_citsci_0 + # a baseline intercept
             p_citsci_species[species] + # a species-specific intercept
             p_citsci_site[site] + # a spatiotemporally specific intercept
-            p_citsci_interval*intervals[interval] + # an overall effect of time on detection
-            # p_citsci_interval[site]*intervals[interval] + # an overall effect of time on detection
+            p_citsci_interval[site]*intervals[interval] + # an overall effect of time on detection
             p_citsci_pop_density*pop_density[site] + # an effect of population density on detection ability
-            epsilon[species, site, interval]
+            delta[species, site, interval]
           
           p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
             mu_p_museum_0 + # a baseline intercept
             p_museum_species[species] + # a species-specific intercept            
             p_museum_site[site] #+ # a spatiotemporally specific intercept
-            #p_museum_interval[site]*intervals[interval] + # an overall effect of time on detection
-            #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
+          #p_museum_interval[site]*intervals[interval] + # an overall effect of time on detection
+          #p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
           
           
         } # for each visit
@@ -306,12 +317,12 @@ simulate_data <- function(
           
           # eta for species, site, interval
           T <- exp(log_eta_matrix[species,site,interval])
-          N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=exp(log_phi)) 
+          N_matrix[species,site,interval] <- rpois(n=1, lambda=T) 
           Y0 <- N_matrix[species,site,interval][N_matrix[species,site,interval]>0] 
           r <- (1 - length(Y0))
           # to create a truncated count distr we reject any 0 values and continue sampling
           while(r>0){
-            N_matrix[species,site,interval] <- rnbinom(n=1, mu=T, size=exp(log_phi)) 
+            N_matrix[species,site,interval] <- rpois(n=1, lambda=T) 
             Y0 <- c(Y0,
                     N_matrix[species,site,interval][N_matrix[species,site,interval]>0])
             r <- (1 - length(Y0))
@@ -492,8 +503,8 @@ simulate_data <- function(
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
-n_sites = 20 ## number of sites
+n_species = 18 ## number of species
+n_sites = 18 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 5 ## number of samples per year
 
@@ -501,7 +512,6 @@ n_visits = 5 ## number of samples per year
 #omega = 0.8
 gamma_0 = 0.25
 gamma_1 = 0.75
-log_phi = 0
 
 # abundance
 mu_eta_0 = 0.5
@@ -512,6 +522,7 @@ sigma_eta_open_developed = 0.5
 mu_eta_herb_shrub = 1
 sigma_eta_herb_shrub = 0.5
 eta_site_area = 0.5
+sigma_abundance = 0
 
 ## detection
 # citizen science observation process
@@ -521,6 +532,7 @@ sigma_p_citsci_site = 0.5
 mu_p_citsci_interval = 2
 sigma_p_citsci_interval = 0.5 
 p_citsci_pop_density = 1
+sigma_detection = 0
 
 # museum record observation process
 mu_p_museum_0 = -1
@@ -560,7 +572,7 @@ my_simulated_data <- simulate_data(
         mu_eta_herb_shrub,
         sigma_eta_herb_shrub,
         eta_site_area,
-        epsilon,
+        sigma_abundance,
         
         ## Detection process
         # citizen science observation process
@@ -570,6 +582,7 @@ my_simulated_data <- simulate_data(
         mu_p_citsci_interval,
         sigma_p_citsci_interval,
         p_citsci_pop_density,
+        delta,
         
         # museum record observation process
         mu_p_museum_0,
@@ -638,7 +651,7 @@ params <- c(
   "mu_eta_herb_shrub",
   "sigma_eta_herb_shrub",
   "eta_site_area",
-  "epsilon",
+  "sigma_abundance",
   
   "mu_p_citsci_0",
   "sigma_p_citsci_species",
@@ -646,6 +659,7 @@ params <- c(
   "mu_p_citsci_interval",
   #"sigma_p_citsci_interval",
   "p_citsci_pop_density",
+  #"delta",
   
   "mu_p_museum_0",
   "sigma_p_museum_species",
@@ -656,9 +670,9 @@ params <- c(
   
   # posterior predictive check
   "fit",
-  "fit_new"#,
-  #"fit_occupancy",
-  #"fit_occupancy_new"
+  "fit_new",
+  "fit_occupancy",
+  "fit_occupancy_new"
 )
 
 parameter_value <- c(
@@ -673,30 +687,31 @@ parameter_value <- c(
                      mu_eta_herb_shrub,
                      sigma_eta_herb_shrub,
                      eta_site_area,
-                     epsilon,
+                     sigma_abundance,
                      
                      mu_p_citsci_0,
                      sigma_p_citsci_species,
                      sigma_p_citsci_site,
                      mu_p_citsci_interval,
                      p_citsci_pop_density,
+                     #delta,
                      
                      mu_p_museum_0,
                      sigma_p_museum_species,
                      sigma_p_museum_site,
                      
                      NA, # posterior predictive check
-                     NA#, # posterior predictive check
-                     #NA, # posterior predictive check
-                     #NA # posterior predictive check
+                     NA, # posterior predictive check
+                     NA, # posterior predictive check
+                     NA # posterior predictive check
 )
 
 # MCMC settings
 n_iterations <- 300
 n_thin <- 1
 n_burnin <- 150
-n_chains <- 3
-n_cores <- 4
+n_chains <- 4
+n_cores <- 8
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -717,6 +732,7 @@ inits <- lapply(1:n_chains, function(i)
        mu_eta_herb_shrub = runif(1, -1, 1),
        sigma_eta_herb_shrub = runif(1, 0, 1),
        eta_site_area = runif(1, -1, 1),
+       sigma_abundance = runif(1, 0, 0.1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
        sigma_p_citsci_species = runif(1, 0, 1),
@@ -724,6 +740,7 @@ inits <- lapply(1:n_chains, function(i)
        mu_p_citsci_interval = runif(1, -1, 1),
        sigma_p_citsci_interval = runif(1, 0, 1),
        p_citsci_pop_density = runif(1, -1, 1),
+       #delta = runif(1, 0, 0.1),
        
        mu_p_museum_0 = runif(1, -1, 1),
        sigma_p_museum_species = runif(1, 0, 1),
@@ -740,7 +757,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 
-stan_model <- "./abundance-occupancy/models/model_abundance-occupancy.stan"
+stan_model <- "./abundance-occupancy/models/model_abundance-occupancy_poisson.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,

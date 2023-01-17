@@ -117,6 +117,8 @@ parameters {
   
   real p_citsci_pop_density; // fixed effect of population on detection probability
   
+  //real<lower=0> delta; // detection overdispersion parameter
+  
   // museum records observation process
   real mu_p_museum_0; // global detection intercept for citizen science records
   
@@ -392,17 +394,17 @@ generated quantities {
   real fit_new = 0; // sum squared distances of new data from expected values
  
   // Occupancy
-  //int<lower=0,upper=1> psi[n_species,n_sites,n_intervals]; // expected occupancy  
+  int<lower=0,upper=1> psi[n_species,n_sites,n_intervals]; // expected occupancy  
 
-  //real eval_binary_detection[n_species,n_sites,n_intervals,n_visits]; // expected values
+  real eval_binary_detection[n_species,n_sites,n_intervals,n_visits]; // expected values
   
-  //int y_occupancy_new[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
+  int y_occupancy_new[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
     
-  //real E_occupancy[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
-  //real E_occupancy_new[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
+  real E_occupancy[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
+  real E_occupancy_new[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
   
-  //real fit_occupancy = 0; // sum squared distances of real data from expected values
-  //real fit_occupancy_new = 0; // sum squared distances of new data from expected values
+  real fit_occupancy = 0; // sum squared distances of real data from expected values
+  real fit_occupancy_new = 0; // sum squared distances of new data from expected values
  
   // Initialize E and E_new
   for(l in 1:n_visits){
@@ -410,8 +412,8 @@ generated quantities {
     E[1,1,1,l] = 0;
     E_new[1,1,1,l] = 0;
     
-    //E_occupancy[1,1,1,l] = 0;
-    //E_occupancy_new[1,1,1,l] = 0;
+    E_occupancy[1,1,1,l] = 0;
+    E_occupancy_new[1,1,1,l] = 0;
     
   } 
   
@@ -422,8 +424,8 @@ generated quantities {
         E[i,j,k] = E[i-1,j-1,k-1];
         E_new[i,j,k] = E_new[i-1,j-1,k-1];
         
-        //E_occupancy[i,j,k] = E_occupancy[i-1,j-1,k-1];
-        //E_occupancy_new[i,j,k] = E_occupancy_new[i-1,j-1,k-1];
+        E_occupancy[i,j,k] = E_occupancy[i-1,j-1,k-1];
+        E_occupancy_new[i,j,k] = E_occupancy_new[i-1,j-1,k-1];
         
       }
     }
@@ -474,15 +476,15 @@ generated quantities {
         N[i,j,k] = N[i,j,k] * bernoulli_logit_rng(omega[i,j,k]);
         
         // Occupancy state is 1 only if site is both in range and bernoulli_logit_rng() = 1
-        //if(N[i,j,k] == 0){
+        if(N[i,j,k] == 0){
           
-          //psi[i,j,k] = 0;
+          psi[i,j,k] = 0;
         
-        //} else{
+        } else{
           
-          //psi[i,j,k] = 1;
+          psi[i,j,k] = 1;
           
-        //}
+        }
   
       } // end loop across intervals
     } // end loop acros sites
@@ -514,11 +516,11 @@ generated quantities {
             
             // Generate new replicate count data and
 
-            w[i,j,k] = poisson_rng(exp(log_eta[i,j,k]));
+            w[i,j,k] = poisson_log_rng(log_eta[i,j,k]);
             
             // the count is from a truncated distr., and must be greater than 0.
             while(w[i,j,k] == 0){
-              w[i,j,k] = poisson_rng(exp(log_eta[i,j,k]));
+              w[i,j,k] = poisson_log_rng(log_eta[i,j,k]);
             }
             
             y_new[i,j,k,l] = 
@@ -531,18 +533,18 @@ generated quantities {
             
             // Musuem detections of occupancy
             // expected detection is...
-            //eval_binary_detection[i,j,k,l] =
-              //psi[i,j,k] // value of the latent abundance state with highest probability
-              //* inv_logit(logit_p_museum[i,j,k]); // times the estimate for detection rate
+            eval_binary_detection[i,j,k,l] =
+              psi[i,j,k] // value of the latent abundance state with highest probability
+              * inv_logit(logit_p_museum[i,j,k]); // times the estimate for detection rate
               
             // Compute fit statistic E_new for real data (V_citsci)
-            //E_occupancy[i,j,k,l] = square(V_museum[i,j,k,l] - eval_binary_detection[i,j,k,l]) / (eval_binary_detection[i,j,k,l] + 0.5);
+            E_occupancy[i,j,k,l] = square(V_museum[i,j,k,l] - eval_binary_detection[i,j,k,l]) / (eval_binary_detection[i,j,k,l] + 0.5);
             
-            //y_occupancy_new[i,j,k,l] = 
-               //binomial_rng(bernoulli_logit_rng(omega[i,j,k]), inv_logit(logit_p_museum[i,j,k]));
+            y_occupancy_new[i,j,k,l] = 
+               binomial_rng(bernoulli_logit_rng(omega[i,j,k]), inv_logit(logit_p_museum[i,j,k]));
                
             // Compute fit statistic E_new for replicate data
-            //E_occupancy_new[i,j,k,l] = square(y_occupancy_new[i,j,k,l] - eval_binary_detection[i,j,k,l]) / (eval_binary_detection[i,j,k,l] + 0.5);
+            E_occupancy_new[i,j,k,l] = square(y_occupancy_new[i,j,k,l] - eval_binary_detection[i,j,k,l]) / (eval_binary_detection[i,j,k,l] + 0.5);
             
           } else { // end if site is in range and should not be considered
           
@@ -551,8 +553,8 @@ generated quantities {
           E[i,j,k,l] = 0; // for real data
           E_new[i,j,k,l] = 0; // or for new data
           
-          //E_occupancy[i,j,k,l] = 0; // for real data
-          //E_occupancy_new[i,j,k,l] = 0; // or for new data
+          E_occupancy[i,j,k,l] = 0; // for real data
+          E_occupancy_new[i,j,k,l] = 0; // or for new data
           
           } // end if/else site in range
       
@@ -561,8 +563,8 @@ generated quantities {
         fit = fit + sum(E[i,j,k]); // descrepancies for real data
         fit_new = fit_new + sum(E_new[i,j,k]); // descrepancies for generated data
         
-        //fit_occupancy = fit_occupancy + sum(E_occupancy[i,j,k]); // descrepancies for real data
-        //fit_occupancy_new = fit_occupancy_new + sum(E_occupancy_new[i,j,k]); // descrepancies for generated data
+        fit_occupancy = fit_occupancy + sum(E_occupancy[i,j,k]); // descrepancies for real data
+        fit_occupancy_new = fit_occupancy_new + sum(E_occupancy_new[i,j,k]); // descrepancies for generated data
                                       
       } // loop across all intervals
     } // loop across all sites

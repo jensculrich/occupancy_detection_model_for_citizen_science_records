@@ -17,10 +17,10 @@ simulate_data <- function(n_species,
                           mu_psi_0,
                           sigma_psi_species,
                           sigma_psi_site,
-                          mu_psi_interval,
-                          sigma_psi_interval,
-                          mu_psi_pop_dens,
-                          sigma_psi_pop_dens,
+                          mu_psi_open_developed,
+                          sigma_psi_open_developed,
+                          mu_psi_herb_shrub,
+                          sigma_psi_herb_shrub,
                           psi_site_area,
                           
                           ## observation process
@@ -61,21 +61,32 @@ simulate_data <- function(n_species,
   sites <- seq(1, n_sites, by=1)
   species <- seq(1, n_species, by=1)
   
+  
   ## --------------------------------------------------
   ### Generate covariate data
-  
-  ## --------------------------------------------------
-  ### Population density
-  
-  # create a vector of site population density of length = number of sites
-  # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
-  pop_density <- rnorm(n_sites, mean = 0, sd = 1)
   
   # create a vector of site area of length = number of sites
   # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
   # this simulates the realism that some sites are e.g. partially on ocean or  
   # partially outside the administrative area from which we are drawing collection data.
   site_area <- rnorm(n_sites, mean = 0, sd = 1)
+  
+  # Realistically the plant cover is negatively correlated with both imp surface and pop density
+  # while pop density and imp surface are positively correlated.
+  # I will simluate data with these realistic correlations
+  #  A correlates with B corMat[1,2], and A with C with corMat[1,3], and B with C with corMat[2,3]
+  mu <- c(0, 0, 0)
+  stddev <- c(1, 1, 1)
+  corMat <- matrix(c(1, 0, -0.25,
+                     0, 1, -0.1,
+                     -0.25, -0.1, 1),
+                   ncol = 3)
+  covMat <- stddev %*% t(stddev) * corMat
+  correlated_data <- MASS::mvrnorm(n = n_sites, mu = mu, Sigma = covMat, empirical = FALSE)
+  
+  pop_density <- correlated_data[,1]
+  open_developed <- correlated_data[,2]
+  herb_shrub <- correlated_data[,3]
   
   ## --------------------------------------------------
   ### specify species-specific occupancy probabilities
@@ -91,13 +102,13 @@ simulate_data <- function(n_species,
   # species specific variation defined by sigma.psi.sp
   
   ## effect of interval on occupancy (species-specific random slopes)
-  psi_interval <- rnorm(n=n_species, mean=mu_psi_interval, sd=sigma_psi_interval)
+  psi_open_developed <- rnorm(n=n_species, mean=mu_psi_open_developed, sd=sigma_psi_open_developed)
   # change in each species occupancy across time is drawn from a distribution defined
-  # by a community mean (mu_psi_interval) with 
-  # species specific variation defined by sigma_psi_interval
+  # by a community mean (mu_psi_open_developed) with 
+  # species specific variation defined by sigma_psi_open_developed
   
   ## effect of pop density on occupancy (species-specific random slopes)
-  psi_pop_dens <- rnorm(n=n_species, mean=mu_psi_pop_dens, sd=sigma_psi_pop_dens)
+  psi_herb_shrub <- rnorm(n=n_species, mean=mu_psi_herb_shrub, sd=sigma_psi_herb_shrub)
   # change in each species occupancy across time is drawn from a distribution defined
   # by a community mean (mu_psi_interval) with 
   # species specific variation defined by sigma_psi_interval
@@ -129,44 +140,41 @@ simulate_data <- function(n_species,
   
   ## --------------------------------------------------
   ## Create arrays for psi and p
-  psi_matrix <- array(NA, dim =c(n_species, n_sites, n_intervals)) 
+  logit_psi_matrix <- array(NA, dim =c(n_species, n_sites, n_intervals)) 
   # a psi value for each species, at each site, in each interval 
   
-  p_matrix_citsci <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
+  logit_p_matrix_citsci <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
   # a p value for each species, at each site, in each interval, AND in each visit
-  p_matrix_museum <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
+  logit_p_matrix_museum <- array(NA, dim =c(n_species, n_sites, n_intervals, n_visits))
   # a p value for each species, at each site, in each interval, AND in each visit
   
   for(species in 1:n_species) { # for each site
     for(site in 1:n_sites) { # for each interval
       for(interval in 1:n_intervals) { # for each species
         
-        psi_matrix[species, site, interval] <- ilogit( # occupancy is equal to
+        logit_psi_matrix[species, site, interval] <- # occupancy is equal to
           mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
             psi_site[site] + # a site specific intercept
-            psi_interval[species]*intervals[interval] + # a species specific temporal change
-            psi_pop_dens[species]*pop_density[site] + # a fixed effect of population density 
+            psi_open_developed[species]*open_developed[interval] + # a species specific temporal change
+            psi_herb_shrub[species]*herb_shrub[site] + # a fixed effect of population density 
             psi_site_area*site_area[site] # a fixed effect of site area
-        )
         
         for(visit in 1:n_visits) { # for each visit
           
-          p_matrix_citsci[species, site, interval, visit] <- ilogit( # detection is equal to 
+          logit_p_matrix_citsci[species, site, interval, visit] <- # detection is equal to 
             mu_p_citsci_0 + # a baseline intercept
               p_citsci_species[species] + # a species specific intercept
               p_citsci_site[site] + # a spatiotemporally specific intercept
               p_citsci_interval*intervals[interval] + # an overall effect of time on detection
               p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
-          )
           
-          p_matrix_museum[species, site, interval, visit] <- ilogit( # detection is equal to 
+          logit_p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
             mu_p_museum_0 + # a baseline intercept
             p_museum_species[species] + # a species specific intercept
             p_museum_site[site] + # a spatiotemporally specific intercept
             p_museum_interval*intervals[interval] + # an overall effect of time on detection
             p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
-          )
           
         } # for each visit
       } # for each species
@@ -214,7 +222,8 @@ simulate_data <- function(n_species,
         if(ranges[species,site,1,1] == 1) {
           
           Z[species,site,interval] <- rbinom(n = 1, size = 1, 
-                                             prob = psi_matrix[species,site,interval])
+                                             prob = ilogit(logit_psi_matrix[species,site,interval])
+                                             )
         } else{
           
           Z[species,site,interval] <- 0
@@ -240,7 +249,8 @@ simulate_data <- function(n_species,
           
           # eventually here we will need to specify which(site) to restrict to actual range
           V_citsci[species,site,interval,visit] <- Z[species,site,interval] * # occupancy state * detection prob
-            rbinom(n = 1, size = 1, prob = p_matrix_citsci[species,site,interval,visit])
+            rbinom(n = 1, size = 1, 
+                   prob = ilogit(logit_p_matrix_citsci[species,site,interval,visit]))
           
         }
       }
@@ -259,7 +269,8 @@ simulate_data <- function(n_species,
           
           # eventually here we will need to specify which(site) to restrict to actual range
           V_museum[species,site,interval,visit] <- Z[species,site,interval] * # occupancy state * detection prob
-            rbinom(n = 1, size = 1, prob = p_matrix_museum[species,site,interval,visit])
+            rbinom(n = 1, size = 1, 
+                   prob = ilogit(logit_p_matrix_museum[species,site,interval,visit]))
           
         }
       }
@@ -334,13 +345,15 @@ simulate_data <- function(n_species,
   return(list(
     V_citsci = V_citsci, # detection data from citizen science records
     V_museum = V_museum, # detection data from museum records
-    V_citsci_NA = V_citsci_NA, # array indicating whether sampling occurred in a site*interval*visit
+    ranges = ranges, # array indicating whether sampling occurred in a site*interval*visit
     V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
     n_species = n_species, # number of species
     n_sites = n_sites, # number of sites
     n_intervals = n_intervals, # number of surveys 
     n_visits = n_visits, # number of visits
     pop_density = pop_density, # vector of pop densities
+    open_developed = open_developed, # vector of impervious surface covers
+    herb_shrub = herb_shrub, # vector of perennial plant covers
     site_area = site_area # vector of site areas
   ))
   
@@ -350,19 +363,19 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 30 ## number of species
-n_sites = 30 ## number of sites
+n_species = 20 ## number of species
+n_sites = 20 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
-n_visits = 6 ## number of samples per year
+n_visits = 3 ## number of samples per year
 
 ## occupancy
 mu_psi_0 = -0.5
 sigma_psi_species = 0.5
 sigma_psi_site = 0.5
-mu_psi_interval = 0.5
-sigma_psi_interval = 0.2
-mu_psi_pop_dens = -0.5 # random effect of population density on occupancy
-sigma_psi_pop_dens = 0.2
+mu_psi_open_developed = 0.5
+sigma_psi_open_developed = 0.2
+mu_psi_herb_shrub = -0.5 # random effect of population density on occupancy
+sigma_psi_herb_shrub = 0.2
 psi_site_area = 1 # fixed effect of site area on occupancy
 
 ## detection
@@ -387,7 +400,7 @@ p_museum_pop_density = 0
 # introduce NAs (missed visits)?
 sites_missing = 0.5*n_sites 
 intervals_missing = 2
-visits_missing = 4
+visits_missing = 2
 
 sites_in_range_beta1 = 2
 sites_in_range_beta2 = 2
@@ -404,10 +417,10 @@ my_simulated_data <- simulate_data(n_species,
                                    mu_psi_0,
                                    sigma_psi_species,
                                    sigma_psi_site,
-                                   mu_psi_interval,
-                                   sigma_psi_interval,
-                                   mu_psi_pop_dens,
-                                   sigma_psi_pop_dens,
+                                   mu_psi_open_developed,
+                                   sigma_psi_open_developed,
+                                   mu_psi_herb_shrub,
+                                   sigma_psi_herb_shrub,
                                    psi_site_area,
                                   
                                    # citizen science observation process
@@ -442,7 +455,7 @@ my_simulated_data <- simulate_data(n_species,
 # data to feed to the model
 V_citsci <- my_simulated_data$V_citsci # detection data
 V_museum <- my_simulated_data$V_museum # detection data
-V_citsci_NA <- my_simulated_data$V_citsci_NA # indicator of whether sampling occurred
+ranges <- my_simulated_data$ranges # indicator of whether sampling occurred
 V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
 n_species <- my_simulated_data$n_species # number of species
 n_sites <- my_simulated_data$n_sites # number of sites
@@ -464,21 +477,23 @@ species <- seq(1, n_species, by=1)
 
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
+open_developed <- my_simulated_data$open_developed
+herb_shrub <- my_simulated_data$herb_shrub
 
 stan_data <- c("V_citsci", "V_museum", 
-               "V_citsci_NA", "V_museum_NA",
+               "ranges", "V_museum_NA",
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites",
-               "pop_densities", "site_areas") 
+               "pop_densities", "site_areas", "open_developed", "herb_shrub") 
 
 # Parameters monitored
 params <- c("mu_psi_0",
             "sigma_psi_species",
             "sigma_psi_site",
-            "mu_psi_interval",
-            "sigma_psi_interval",
-            "mu_psi_pop_density",
-            "sigma_psi_pop_density",
+            "mu_psi_open_developed",
+            "sigma_psi_open_developed",
+            "mu_psi_herb_shrub",
+            "sigma_psi_herb_shrub",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -491,16 +506,21 @@ params <- c("mu_psi_0",
             "sigma_p_museum_species",
             "sigma_p_museum_site",
             "p_museum_interval",
-            "p_museum_pop_density"
+            "p_museum_pop_density",
+            
+            "fit_citsci",
+            "fit_new_citsci",
+            "fit_museum",
+            "fit_new_museum"
 )
 
 parameter_value <- c(mu_psi_0,
                      sigma_psi_species,
                      sigma_psi_site,
-                     mu_psi_interval,
-                     sigma_psi_interval,
-                     mu_psi_pop_dens,
-                     sigma_psi_pop_dens,
+                     mu_psi_open_developed,
+                     sigma_psi_open_developed,
+                     mu_psi_herb_shrub,
+                     sigma_psi_herb_shrub,
                      psi_site_area,
                      
                      mu_p_citsci_0,
@@ -513,15 +533,20 @@ parameter_value <- c(mu_psi_0,
                      sigma_p_museum_species,
                      sigma_p_museum_site,
                      p_museum_interval,
-                     p_museum_pop_density
+                     p_museum_pop_density,
+                     
+                     NA,
+                     NA,
+                     NA,
+                     NA
 )
 
 # MCMC settings
-n_iterations <- 800
-n_thin <- 2
-n_burnin <- 400
-n_chains <- 3
-n_cores <- n_chains
+n_iterations <- 400
+n_thin <- 1
+n_burnin <- 200
+n_chains <- 4
+n_cores <- parallel::detectCores()
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -531,10 +556,10 @@ inits <- lapply(1:n_chains, function(i)
   list(mu_psi_0 = runif(1, -1, 1),
        sigma_psi_species = runif(1, 0, 1),
        sigma_psi_site = runif(1, 0, 1),
-       mu_psi_interval = runif(1, -1, 1),
-       sigma_psi_interval = runif(1, 0, 1),
-       mu_psi_pop_density = runif(1, -1, 1),
-       sigma_psi_pop_density = runif(1, 0, 1),
+       mu_psi_open_developed = runif(1, -1, 1),
+       sigma_psi_open_developed = runif(1, 0, 1),
+       mu_psi_herb_shrub = runif(1, -1, 1),
+       sigma_psi_herb_shrub = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 1),
@@ -557,7 +582,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./models/model.stan"
+stan_model <- "./occupancy/models/model.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -573,7 +598,7 @@ stan_out_sim <- stan(stan_model,
 print(stan_out_sim, digits = 3)
 View(targets)
 
-saveRDS(stan_out_sim, "./model_outputs/stan_out_sim_integrated_ranges.rds")
+saveRDS(stan_out_sim, "./occupancy/simulation/stan_out_sim.rds")
 stan_out_sim <- readRDS("./simulation/stan_out_sim_integrated_ranges.rds")
 
 ## --------------------------------------------------
@@ -592,7 +617,5 @@ pairs(stan_out, pars = c(
   "mu_p_citsci_0",
   "mu_p_museum_0"
 ))
-
-# should now also write a posterior predictive check into the model
 
 
