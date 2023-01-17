@@ -162,7 +162,7 @@ params <- c("mu_psi_0",
             "sigma_psi_open_developed",
             "psi_herb_shrub",
             "mu_psi_herb_shrub",
-            "sigma_herb_shrub",
+            "sigma_psi_herb_shrub",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -208,13 +208,13 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_herb_shrub = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
-       mu_p_citsci_0 = runif(1, -1, 1),
+       mu_p_citsci_0 = runif(1, -1, 0),
        sigma_p_citsci_species = runif(1, 0, 1),
        sigma_p_citsci_site = runif(1, 0, 1),
        p_citsci_interval = runif(1, -1, 1),
        p_citsci_pop_density = runif(1, -1, 1),
        
-       mu_p_museum_0 = runif(1, -1, 1),
+       mu_p_museum_0 = runif(1, -1, 0),
        sigma_p_museum_species = runif(1, 0, 1),
        sigma_p_museum_site = runif(1, 0, 1),
        p_museum_interval = runif(1, -1, 1),
@@ -245,15 +245,21 @@ saveRDS(stan_out, paste0(
 )
 )
 
+stan_out <- readRDS(paste0(
+  "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
+  "km_", min_population_size, "minpop", n_intervals, "_", n_visits, ".RDS"
+)
+)
+
 # print main effects
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
           "sigma_psi_species",
           "sigma_psi_site",
-          "mu_psi_pop_density",
-          "sigma_psi_pop_density",
-          "mu_psi_interval",
-          "sigma_psi_interval",
+          "mu_psi_open_developed",
+          "sigma_psi_open_developed",
+          "mu_psi_herb_shrub",
+          "sigma_psi_herb_shrub",
           "psi_site_area",
           
           "mu_p_citsci_0",
@@ -266,7 +272,12 @@ print(stan_out, digits = 3, pars=
           "sigma_p_museum_species",
           "sigma_p_museum_site",
           "p_museum_interval",
-          "p_museum_pop_density"))
+          "p_museum_pop_density",
+          
+          "fit_citsci",
+          "fit_new_citsci",
+          "fit_museum",
+          "fit_new_museum"))
 
 # print sampled random effects
 print(stan_out, digits = 3, pars=
@@ -298,18 +309,14 @@ print(stan_out, digits = 3, pars=
           "p_museum_species[23]"))
 
 
-
-saveRDS(stan_out, "./model_outputs/stan_out_model_integrated_ranges_200_35km_25records.rds")
-# stan_out <- readRDS("./model_outputs/stan_out_model_integrated_ranges_200_35km_25records.rds")
-
 ## --------------------------------------------------
 ### Simple diagnostic plots
 
 # traceplot
 traceplot(stan_out, pars = c(
   "mu_psi_0",
-  "mu_psi_interval",
-  "mu_psi_pop_density",
+  "mu_psi_open_developed",
+  "mu_psi_herb_shrub",
   "psi_site_area",
   
   "mu_p_citsci_0",

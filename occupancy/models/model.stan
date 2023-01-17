@@ -155,7 +155,7 @@ model {
   // PRIORS
   
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 2.5); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 2); // global intercept for occupancy rate
   
   psi_species ~ normal(0, sigma_psi_species); 
   // occupancy intercept for each species drawn from the community
@@ -176,7 +176,7 @@ model {
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  mu_psi_open_developed ~ normal(0, 2.5); // community mean
+  mu_psi_open_developed ~ normal(0, 2); // community mean
   sigma_psi_open_developed ~ normal(0, 1); // community variance
   
   psi_herb_shrub ~ normal(mu_psi_herb_shrub, sigma_psi_herb_shrub);
@@ -184,16 +184,16 @@ model {
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  mu_psi_herb_shrub ~ normal(0, 2.5); // community mean
-  mu_psi_herb_shrub ~ normal(0, 1); // community variance
+  mu_psi_herb_shrub ~ normal(0, 2); // community mean
+  sigma_psi_herb_shrub ~ normal(0, 1); // community variance
   
-  psi_site_area ~ normal(0, 2.5); // effect of site area on occupancy
+  psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
   // Detection (Observation Process)
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(0, 2.5); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 2); // global intercept for detection
 
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
@@ -206,13 +206,13 @@ model {
   // distribution (variance defined by sigma), centered at 0. 
   sigma_p_citsci_site ~ normal(0, 1); // spatial variance
   
-  p_citsci_interval ~ normal(0, 2.5); // temporal effect on detection probability
+  p_citsci_interval ~ normal(0, 2); // temporal effect on detection probability
   
-  p_citsci_pop_density ~ normal(0, 2.5); // population effect on detection probability
+  p_citsci_pop_density ~ normal(0, 2); // population effect on detection probability
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 2.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 2); // global intercept for detection
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
@@ -225,9 +225,9 @@ model {
   // distribution (variance defined by sigma), centered at 0. 
   sigma_p_museum_site ~ normal(0, 1); // spatial variance
   
-  p_museum_interval ~ normal(0, 2.5); // temporal effect on detection probability
+  p_museum_interval ~ normal(0, 2); // temporal effect on detection probability
   
-  p_museum_pop_density ~ normal(0, 2.5); // population effect on detection probability
+  p_museum_pop_density ~ normal(0, 2); // population effect on detection probability
 
   
   // LIKELIHOOD
@@ -384,7 +384,7 @@ generated quantities {
 
         // Compute fit statistic E_new for real data (V_citsci)
         E_museum[i,j,k,l] = square(V_museum[i,j,k,l] - 
-        eval_museum[i,j,k,l]) / (eval_museum[i,j,k,l] + 0.5);
+          eval_museum[i,j,k,l]) / (eval_museum[i,j,k,l] + 0.5);
         
         // generate a new occupancy state and set of detections given the parameters
         y_new_museum[i,j,k,l] = 
