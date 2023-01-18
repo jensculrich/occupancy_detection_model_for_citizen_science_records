@@ -31,7 +31,7 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] open_developed; // (scaled) impervious surface cover of each site
-  vector[n_sites] herb_shrub; // (scaled) perennial plant cover of each site
+  vector[n_sites] developed_med_high; // (scaled) perennial plant cover of each site
   
 } // end data
 
@@ -57,9 +57,9 @@ parameters {
   real<lower=0> sigma_psi_open_developed; // variance in species slopes
   
   // random slope for species specific population density effects on occupancy
-  vector[n_species] psi_herb_shrub; // vector of species specific slope estimates
-  real mu_psi_herb_shrub; // community mean of species specific slopes
-  real<lower=0> sigma_psi_herb_shrub; // variance in species slopes
+  vector[n_species] psi_developed_med_high; // vector of species specific slope estimates
+  real mu_psi_developed_med_high; // community mean of species specific slopes
+  real<lower=0> sigma_psi_developed_med_high; // variance in species slopes
   
   // effect of site are on occupancy
   real psi_site_area;
@@ -114,7 +114,7 @@ transformed parameters {
             psi_species[species[i]] + // a species specific intercept
             psi_site[sites[j]] + // a site specific intercept
             psi_open_developed[species[i]]*open_developed[k] + // a species specific temporal effect
-            psi_herb_shrub[species[i]]*herb_shrub[j] + // an effect of pop density on occurrence
+            psi_developed_med_high[species[i]]*developed_med_high[j] + // an effect of pop density on occurrence
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -179,13 +179,13 @@ model {
   mu_psi_open_developed ~ normal(0, 2); // community mean
   sigma_psi_open_developed ~ normal(0, 1); // community variance
   
-  psi_herb_shrub ~ normal(mu_psi_herb_shrub, sigma_psi_herb_shrub);
+  psi_developed_med_high ~ normal(mu_psi_developed_med_high, sigma_psi_developed_med_high);
   // occupancy slope (population density effect on occupancy) for each species drawn from the 
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  mu_psi_herb_shrub ~ normal(0, 2); // community mean
-  sigma_psi_herb_shrub ~ normal(0, 1); // community variance
+  mu_psi_developed_med_high ~ normal(0, 2); // community mean
+  sigma_psi_developed_med_high ~ normal(0, 1); // community variance
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
@@ -282,141 +282,162 @@ model {
   
 } // end model
 
-generated quantities {
+generated quantities{
   
-  // Posterior Predictive Check
+  int Z[n_species, n_sites, n_intervals];
   
-  int<lower=0> Z[n_species,n_sites,n_intervals]; // expected occupancy 
-
+  int z_rep[n_species, n_sites, n_intervals];
+  int y_rep_citsci[n_species, n_sites, n_intervals, n_visits]; // repd detections
+  int y_rep_museum[n_species, n_sites, n_intervals, n_visits]; // repd detections
+  
   real eval_citsci[n_species,n_sites,n_intervals,n_visits]; // expected values
   real eval_museum[n_species,n_sites,n_intervals,n_visits]; // expected values
   
-  int y_new_citsci[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
-  int y_new_museum[n_species,n_sites,n_intervals,n_visits]; // new data for counts generated from eval
-    
-  real E_citsci[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
-  real E_new_citsci[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
-  real E_museum[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of real data from expected value
-  real E_new_museum[n_species,n_sites,n_intervals,n_visits]; // squared scaled distance of new data from expected value
-
-  real fit_citsci = 0; // sum squared distances of real data from expected values
-  real fit_new_citsci = 0; // sum squared distances of new data from expected values
-  real fit_museum = 0; // sum squared distances of real data from expected values
-  real fit_new_museum = 0; // sum squared distances of new data from expected values
+  real T_rep_citsci[n_species]; // Tukey-Freeman distance from eval (species bin)
+  real T_obs_citsci[n_species]; // Tukey-Freeman distance from eval (species bin)
+  real T_rep_museum[n_species]; // Tukey-Freeman distance from eval (species bin)
+  real T_obs_museum[n_species]; // Tukey-Freeman distance from eval (species bin)
   
-  // Initialize E and E_new
-  for(l in 1:n_visits){
-        
-    E_citsci[1,1,1,l] = 0;
-    E_new_citsci[1,1,1,l] = 0;
-    E_museum[1,1,1,l] = 0;
-    E_new_museum[1,1,1,l] = 0;
-    
-  } 
+  real P_species_citsci[n_species]; // P-value by species
+  real P_species_museum[n_species]; // P-value by species
   
-  for (i in 2:n_species){
-    for(j in 2:n_sites){
-      for(k in 2:n_intervals){
-        
-        E_citsci[i,j,k] = E_citsci[i-1,j-1,k-1];
-        E_new_citsci[i,j,k] = E_new_citsci[i-1,j-1,k-1];
-        E_museum[i,j,k] = E_museum[i-1,j-1,k-1];
-        E_new_museum[i,j,k] = E_new_museum[i-1,j-1,k-1];
-        
-      }
-    }
+  // Initialize T_rep and T_obs and P-values
+  for(i in 1:n_species){
+    
+    T_rep_citsci[i] = 0;
+    T_obs_citsci[i] = 0;
+    T_rep_museum[i] = 0;
+    T_obs_museum[i] = 0;
+    
+    P_species_citsci[i] = 0;
+    P_species_museum[i] = 0;
+    
   }
-  
-  // Generare expected values for occupancy
-  for (i in 1:n_species){ // loop across species
-    for(j in 1:n_sites){ // loop across sites
-      for(k in 1:n_intervals){ // loop across intervals
       
-        // if the site is in range of a species
-        if(sum(ranges[i,j,k]) > 0){ 
-        
-          // Expected occupancy is outcome of bernoulli trial
-          Z[i,j,k] = bernoulli_logit_rng(logit_psi[i,j,k]);
-        
-        } else { // else the site is not in range
+  // Predict Z at sites
+  for(i in 1:n_species) { // loop across all species
+    for(j in 1:n_sites) { // loop across all sites
+      for(k in 1:n_intervals){ // loop across all intervals
+      
+        if(sum(ranges[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if site is not in range
+          
+          // if occupancy state is certain then the expected occupancy is 1
+          if(sum(V_citsci[i, j, k, 1:n_visits]) > 0 || sum(V_museum[i, j, k, 1:n_visits]) > 0) {
+          
+            Z[i,j,k] = 1;
+          
+          // else the site could be occupied or not
+          } else {
             
-          // and the latent occupancy state is zero
+            // occupancy but never observed by either dataset
+            real ulo = inv_logit(logit_psi[i,j,k]) * 
+              ((1 - inv_logit(logit_p_citsci[i,j,k]))^n_visits + 
+              (1 - inv_logit(logit_p_museum[i,j,k]))^n_visits);
+            // non-occupancy
+            real uln = (1 - inv_logit(logit_psi[i,j,k]));
+            
+            // outcome of occupancy given the likelihood associated with both possibilities
+            Z[i,j,k] = bernoulli_rng(ulo / (ulo + uln));
+            
+          } // end else uncertain occupancy state
+        
+        // else the site is not in range for the species
+        } else {
+          
+          // and by definition the site is unoccupied
           Z[i,j,k] = 0;
-            
-        } 
+          
+        } // end else the site is not in the species range
+        
+      } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species
       
-      }
-    }
-  }
-  
-  // Generare counts and quantify discrepancy in real data versus new, simulated data
-  for(i in 1:n_species){ // loop across species
-    for(j in 1:n_sites){ // loop across sites
-      for(k in 1:n_intervals){ // loop across intervals
+  // generating posterior predictive distribution
+  // Predict Z at sites
+  for(i in 1:n_species) { // loop across all species
+    for(j in 1:n_sites) { // loop across all sites
+      for(k in 1:n_intervals){ // loop across all intervals
         for(l in 1:n_visits){
-        
-        // The sum of the NA indicator vector ranges == 0 if site is not in range
-        if(sum(ranges[i,j,k]) > 0){ 
-        
-        // Cit sci detection data
-        // expected detection is... 
-        eval_citsci[i,j,k,l] =
-          Z[i,j,k] // value of the latent occupancy state
-          * inv_logit(logit_p_citsci[i,j,k]); // times the estimate for detection rate
-
-        // Compute fit statistic E_new for real data (V_citsci)
-        E_citsci[i,j,k,l] = square(V_citsci[i,j,k,l] - eval_citsci[i,j,k,l]) / (eval_citsci[i,j,k,l] + 0.5);
-        
-        // generate a new occupancy state and set of detections given the parameters
-        y_new_citsci[i,j,k,l] = 
-              binomial_rng(bernoulli_logit_rng(logit_psi[i,j,k]),
-                inv_logit(logit_p_citsci[i,j,k]));  
-        
-        // Compute fit statistic E_new for replicate data
-        E_new_citsci[i,j,k,l] = square(y_new_citsci[i,j,k,l] - 
-          eval_citsci[i,j,k,l]) / (eval_citsci[i,j,k,l] + 0.5);
           
-        // Museum detection data
-        // expected detection is... 
-        eval_museum[i,j,k,l] =
-          Z[i,j,k] // value of the latent occupancy state
-          * inv_logit(logit_p_museum[i,j,k]); // times the estimate for detection rate
-
-        // Compute fit statistic E_new for real data (V_citsci)
-        E_museum[i,j,k,l] = square(V_museum[i,j,k,l] - 
-          eval_museum[i,j,k,l]) / (eval_museum[i,j,k,l] + 0.5);
-        
-        // generate a new occupancy state and set of detections given the parameters
-        y_new_museum[i,j,k,l] = 
-              binomial_rng(bernoulli_logit_rng(logit_psi[i,j,k]),
-                inv_logit(logit_p_museum[i,j,k]));  
-        
-        // Compute fit statistic E_new for replicate data
-        E_new_museum[i,j,k,l] = square(y_new_museum[i,j,k,l] - 
-          eval_museum[i,j,k,l]) / (eval_museum[i,j,k,l] + 0.5);  
+          // expected detections
+          eval_citsci[i,j,k,l] = Z[i,j,k] * 
+            bernoulli_logit_rng(logit_p_citsci[i,j,k]);
+          eval_museum[i,j,k,l] = Z[i,j,k] * 
+            bernoulli_logit_rng(logit_p_museum[i,j,k]);
+          
+          // occupancy in replicated data
+          // should evaluate to zero if the site is not in range
+          z_rep[i,j,k] = bernoulli_logit_rng(logit_psi[i,j,k]); 
+          if(sum(ranges[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if site is not in range
+            z_rep[i,j,k] = z_rep[i,j,k];
+          } else {
+            z_rep[i,j,k] = 0;
+          }
+          
+          // detections in replicated data
+          y_rep_citsci[i,j,k,l] = z_rep[i,j,k] * bernoulli_logit_rng(logit_p_citsci[i,j,k]);
+          y_rep_museum[i,j,k,l] = z_rep[i,j,k] * bernoulli_logit_rng(logit_p_museum[i,j,k]);
+          
+          // Compute fit statistic (Tukey-Freeman) for replicate data
+          // Citizen science records
+          // Binned by species
+          T_rep_citsci[i] = T_rep_citsci[i] + (sqrt(y_rep_citsci[i,j,k,l]) - 
+            sqrt(eval_citsci[i,j,k,l]))^2;
+          // Compute fit statistic (Tukey-Freeman) for real data
+          // Binned by species
+          T_obs_citsci[i] = T_obs_citsci[i] + (sqrt(V_citsci[i,j,k,l]) - 
+            sqrt(eval_citsci[i,j,k,l]))^2;
+          
+          // Compute fit statistic (Tukey-Freeman) for replicate data
+          // Binned by species
+          // Museum records
+          if(V_museum_NA[i,j,k,l] == 0){
             
+            T_rep_museum[i] = T_rep_museum[i] + 0;
+            // Compute fit statistic (Tukey-Freeman) for real data
+            // Binned by species
+            T_obs_museum[i] = T_obs_museum[i] + 0;
           
-        } else { // else the site is not in range
-        
-        // do not contribute to the sum squared distance from expected value
-        // if the site is not in the species range
-        E_citsci[i,j,k,l] = 0; // for real data
-        E_new_citsci[i,j,k,l] = 0; // or for new data
-        E_museum[i,j,k,l] = 0; // for real data
-        E_new_museum[i,j,k,l] = 0; // or for new data
-        
-        } // end if/else site in range
-        
-        } // end for visit
-        
-        // sum discrepancies
-        fit_citsci = fit_citsci + sum(E_citsci[i,j,k]); // descrepancies for real data
-        fit_new_citsci = fit_new_citsci + sum(E_new_citsci[i,j,k]); // descrepancies for generated data
-        fit_museum = fit_museum + sum(E_museum[i,j,k]); // descrepancies for real data
-        fit_new_museum = fit_new_museum + sum(E_new_museum[i,j,k]); // descrepancies for generated data
-        
-      } // end for interval 
-    } // end for site
-  } // end for species
+          } else{
+            
+            T_rep_museum[i] = T_rep_museum[i] + (sqrt(y_rep_museum[i,j,k,l]) - 
+              sqrt(eval_museum[i,j,k,l]))^2;
+            // Compute fit statistic (Tukey-Freeman) for real data
+            // Binned by species
+            T_obs_museum[i] = T_obs_museum[i] + (sqrt(V_museum[i,j,k,l]) - 
+              sqrt(eval_museum[i,j,k,l]))^2;
+            
+          }
+          
+        } // end loop across visits
+      } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species
   
+  // bin by species
+  for(i in 1:n_species) { // loop across all species
+    
+    // if the discrepancy is lower for the real data for the species
+    // versus the replicated data
+    if(T_obs_citsci[i] < T_rep_citsci[i]){
+      
+      // then increase species P by 1      
+      P_species_citsci[i] = P_species_citsci[i] + 1;
+      // the ppc will involve averaging P across the number of post-burnin iterations
+            
+    }
+    
+    // if the discrepancy is lower for the real data for the species
+    // versus the replicated data
+    if(T_obs_museum[i] < T_rep_museum[i]){
+      
+      // then increase species P by 1      
+      P_species_museum[i] = P_species_museum[i] + 1;
+      // the ppc will involve averaging P across the number of post-burnin iterations
+            
+    }
+    
+  }
+
 }

@@ -49,50 +49,50 @@ get_spatial_data <- function(
   
   ## To save time and computing power, if study dimensions match preprocessing reqts.
   ## then use the preprocessed data to save time, 
-  if(grid_size == 30000 && min_population_size == 300 && min_site_area == 0.10){
+  #if(grid_size == 30000 && min_population_size == 300 && min_site_area == 0.10){
     
     # read the occurrence data for the given taxon
-    df_id_dens <- readRDS(paste0(
-      "./preprocessed_data/",
-      taxon,
-      "_occurrence_records_30km_300minpop_.RDS"))
+    #df_id_dens <- readRDS(paste0(
+      #"./preprocessed_data/",
+      #taxon,
+      #"_occurrence_records_30km_300minpop_.RDS"))
     
-    grid_pop_dens <- readRDS("./preprocessed_data/site_data_30km_300minpop_.RDS")
+    #grid_pop_dens <- readRDS("./preprocessed_data/site_data_30km_300minpop_.RDS")
     
     ## --------------------------------------------------
     # Extract variables
     
-    scaled_pop_density <- grid_pop_dens %>% 
-      pull(scaled_pop_den_km2)
+    #scaled_pop_density <- grid_pop_dens %>% 
+      #pull(scaled_pop_den_km2)
     
-    scaled_site_area <- grid_pop_dens %>% 
-      pull(scaled_site_area)
+    #scaled_site_area <- grid_pop_dens %>% 
+      #pull(scaled_site_area)
     
-    scaled_developed_open <- grid_pop_dens %>% 
-      pull(scaled_developed_open)
+    #scaled_developed_open <- grid_pop_dens %>% 
+      #pull(scaled_developed_open)
     
-    scaled_herb_shrub_cover <- grid_pop_dens %>% 
-      pull(scaled_herb_shrub_cover)
+    #scaled_herb_shrub_cover <- grid_pop_dens %>% 
+      #pull(scaled_herb_shrub_cover)
     
-    scaled_forest <- grid_pop_dens %>% 
-      pull(scaled_forest)
+    #scaled_forest <- grid_pop_dens %>% 
+      #pull(scaled_forest)
     
-    scaled_developed_med_high <- grid_pop_dens %>% 
-      pull(scaled_developed_med_high)
+    #scaled_developed_med_high <- grid_pop_dens %>% 
+      #pull(scaled_developed_med_high)
     
     ## --------------------------------------------------
     # Calculate correlations between variables 
     
-    my_variables <- as.data.frame(cbind(scaled_pop_density, 
-                                        scaled_site_area, 
-                                        scaled_developed_open,
-                                        scaled_developed_med_high,
-                                        scaled_herb_shrub_cover, 
-                                        scaled_forest))
+    #my_variables <- as.data.frame(cbind(scaled_pop_density, 
+                                        #scaled_site_area, 
+                                        #scaled_developed_open,
+                                        #scaled_developed_med_high,
+                                        #scaled_herb_shrub_cover, 
+                                        #scaled_forest))
     
-    correlation_matrix <- cor(my_variables)
+    #correlation_matrix <- cor(my_variables)
     
-  } else{
+  #} else{
     
     ## --------------------------------------------------
     # Envrionmental raster data
@@ -213,6 +213,12 @@ get_spatial_data <- function(
                             function(x) { 
                               (length(which(x %in% c(41,42,43))) / length(x))
                             } 
+    )
+    
+    r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
+                                function(x) { 
+                                  (length(which(x %in% c(52,71,41,42,43))) / length(x))
+                                } 
     ) 
     
     grid_pop_dens <- cbind(grid_pop_dens,
@@ -220,12 +226,14 @@ get_spatial_data <- function(
                            unlist(r.mean_herb_shrub),
                            unlist(r.mean_dev_open),
                            unlist(r.mean_high_dev),
-                           unlist(r.mean_forest)) %>%
+                           unlist(r.mean_forest),
+                           unlist(r.mean_herb_shrub_forest)) %>%
       rename("site_area" = "unlist.r.site_area.",
              "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
              "developed_open" = "unlist.r.mean_dev_open.",
              "developed_med_high" = "unlist.r.mean_high_dev.",
-             "forest" = "unlist.r.mean_forest.") %>%
+             "forest" = "unlist.r.mean_forest.",
+             "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
       # remove sites below filter for minimum site area
       filter(site_area > min_site_area) %>%
       # center-scale the variables
@@ -234,11 +242,12 @@ get_spatial_data <- function(
              scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
              scaled_developed_open = center_scale(developed_open),
              scaled_developed_med_high = center_scale(developed_med_high),
-             scaled_forest = center_scale(forest)
+             scaled_forest = center_scale(forest),
+             scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
       )
     
     rm(crs_raster, grid, land, prj1, 
-       r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev,
+       r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
        r.site_area, r.vals_land, r.vals_land_NA, states, states_trans)
     gc()
     
@@ -285,23 +294,26 @@ get_spatial_data <- function(
                                                   grid_pop_dens$scaled_developed_open,
                                                   grid_pop_dens$scaled_developed_med_high,
                                                   grid_pop_dens$scaled_herb_shrub_cover,
-                                                  grid_pop_dens$scaled_forest)))
+                                                  grid_pop_dens$scaled_forest,
+                                                  grid_pop_dens$scaled_herb_shrub_forest)))
     
     colnames(correlation_matrix) <- c("scaled_pop_den_km2", 
                                       "scaled_site_area", 
                                       "scaled_developed_open",
                                       "scaled_developed_med_high",
                                       "scaled_herb_shrub_cover",
-                                      "scaled_forest")
+                                      "scaled_forest",
+                                      "scaled_herb_shrub_forest")
     
     rownames(correlation_matrix) <- c("scaled_pop_den_km2", 
                                       "scaled_site_area", 
                                       "scaled_developed_open",
                                       "scaled_developed_med_high",
                                       "scaled_herb_shrub_cover",
-                                      "scaled_forest")
+                                      "scaled_forest",
+                                      "scaled_herb_shrub_forest")
     
-  }
+  #} # end else
   
   
   ## --------------------------------------------------
@@ -314,3 +326,4 @@ get_spatial_data <- function(
     
   ))
 }
+

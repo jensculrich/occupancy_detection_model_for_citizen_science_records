@@ -53,12 +53,15 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # spatial covariate data to pass to run model
   urban_grid <- my_spatial_data$urban_grid
   
+  raw_pop_density <- urban_grid$pop_density_per_km2
   pop_density_vector <- urban_grid$scaled_pop_den_km2
   site_area_vector <- urban_grid$scaled_site_area
   developed_open_vector <- urban_grid$scaled_developed_open
   herb_shrub_vector <- urban_grid$scaled_herb_shrub_cover
-  # add any new environmental variavle vectors here (forest and med/high dev are already held in urban_grid)
-  
+  forest_vector <- urban_grid$scaled_forest
+  herb_shrub_forest_vector <- urban_grid$scaled_herb_shrub_forest
+  developed_med_high_vector <- urban_grid$scaled_developed_med_high
+
   site_name_vector <- urban_grid$grid_id
   
   # correlation matrix
@@ -80,16 +83,88 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(year >= era_start) %>%
     nrow()
   
+  # citsci and museum records from time period
+  citsci_detections <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(year >= era_start) %>%
+    group_by(species, grid_id, year) %>%
+    slice(1) %>%
+    nrow()
+  
   museum_records <- df_id_urban_filtered %>%
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
     filter(year >= era_start) %>%
+    nrow()
+  
+  museum_detections <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(year >= era_start) %>%
+    group_by(species, grid_id, year) %>%
+    slice(1) %>%
     nrow()
   
   # species counts
   species_counts <- df_id_urban_filtered %>%
     filter(year > era_start) %>%
     group_by(species) %>%
-    count()
+    count(name="total_count")
+  
+  # species counts
+  species_counts_citsci <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(year > era_start) %>%
+    group_by(species) %>%
+    count(name="citsci_count")
+  
+  # species counts
+  species_counts_museum <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(year > era_start) %>%
+    group_by(species) %>%
+    count(name="museum_count")
+  
+  # species counts
+  species_counts <- species_counts %>%
+    left_join(., species_counts_citsci) %>%
+    left_join(., species_counts_museum)
+  
+  rm(species_counts_citsci, species_counts_museum)
+  
+  # species detections
+  species_detections <- df_id_urban_filtered %>%
+    filter(year > era_start) %>%
+    group_by(species, grid_id, year) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(species) %>%
+    count(name="total_detections")
+  
+  # species detections
+  species_detections_citsci <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(year > era_start) %>%
+    group_by(species, grid_id, year) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(species) %>%
+    count(name="citsci_detections")
+  
+  # species detections
+  species_detections_museum <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(year > era_start) %>%
+    group_by(species, grid_id, year) %>%
+    slice(1) %>%
+    ungroup() %>%
+    group_by(species) %>%
+    count(name="museum_detections")
+  
+  # species counts
+  species_detections <- species_detections %>%
+    left_join(., species_detections_citsci) %>%
+    left_join(., species_detections_museum)
+  
+  rm(species_detections_citsci, species_detections_museum)
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -564,18 +639,25 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     sites = site_vector,
     species = species_vector,
     
+    raw_pop_density = raw_pop_density,
     pop_densities = pop_density_vector,
     site_areas = site_area_vector,
     herb_shrub_cover = herb_shrub_vector,
     developed_open = developed_open_vector,
+    forest = forest_vector,
+    herb_shrub_forest = herb_shrub_forest_vector,
+    developed_med_high_vector = developed_med_high_vector,
     
     correlation_matrix = correlation_matrix,
     
     total_records = total_records_since_2000,
     total_records_since_study = total_records_since_2000,
     citsci_records = citsci_records,
+    citsci_detections = citsci_detections,
     museum_records = museum_records,
-    species_counts = species_counts
+    museum_detections = museum_detections,
+    species_counts = species_counts,
+    species_detections = species_detections
     
   ))
   

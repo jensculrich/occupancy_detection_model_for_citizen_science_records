@@ -19,8 +19,8 @@ simulate_data <- function(n_species,
                           sigma_psi_site,
                           mu_psi_open_developed,
                           sigma_psi_open_developed,
-                          mu_psi_herb_shrub,
-                          sigma_psi_herb_shrub,
+                          mu_psi_herb_shrub_forest,
+                          sigma_psi_herb_shrub_forest,
                           psi_site_area,
                           
                           ## observation process
@@ -86,7 +86,7 @@ simulate_data <- function(n_species,
   
   pop_density <- correlated_data[,1]
   open_developed <- correlated_data[,2]
-  herb_shrub <- correlated_data[,3]
+  herb_shrub_forest <- correlated_data[,3]
   
   ## --------------------------------------------------
   ### specify species-specific occupancy probabilities
@@ -108,7 +108,7 @@ simulate_data <- function(n_species,
   # species specific variation defined by sigma_psi_open_developed
   
   ## effect of pop density on occupancy (species-specific random slopes)
-  psi_herb_shrub <- rnorm(n=n_species, mean=mu_psi_herb_shrub, sd=sigma_psi_herb_shrub)
+  psi_herb_shrub_forest <- rnorm(n=n_species, mean=mu_psi_herb_shrub_forest, sd=sigma_psi_herb_shrub_forest)
   # change in each species occupancy across time is drawn from a distribution defined
   # by a community mean (mu_psi_interval) with 
   # species specific variation defined by sigma_psi_interval
@@ -157,7 +157,7 @@ simulate_data <- function(n_species,
             psi_species[species] + # a species specific intercept
             psi_site[site] + # a site specific intercept
             psi_open_developed[species]*open_developed[interval] + # a species specific temporal change
-            psi_herb_shrub[species]*herb_shrub[site] + # a fixed effect of population density 
+            psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a fixed effect of population density 
             psi_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -353,7 +353,7 @@ simulate_data <- function(n_species,
     n_visits = n_visits, # number of visits
     pop_density = pop_density, # vector of pop densities
     open_developed = open_developed, # vector of impervious surface covers
-    herb_shrub = herb_shrub, # vector of perennial plant covers
+    herb_shrub_forest = herb_shrub_forest, # vector of perennial plant covers
     site_area = site_area # vector of site areas
   ))
   
@@ -363,8 +363,8 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
-n_sites = 20 ## number of sites
+n_species = 35 ## number of species
+n_sites = 35 ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 3 ## number of samples per year
 
@@ -372,11 +372,11 @@ n_visits = 3 ## number of samples per year
 mu_psi_0 = -0.5
 sigma_psi_species = 0.5
 sigma_psi_site = 0.5
-mu_psi_open_developed = 0.5
+mu_psi_open_developed = 0
 sigma_psi_open_developed = 0.2
-mu_psi_herb_shrub = -0.5 # random effect of population density on occupancy
-sigma_psi_herb_shrub = 0.2
-psi_site_area = 1 # fixed effect of site area on occupancy
+mu_psi_herb_shrub_forest = 0.5 
+sigma_psi_herb_shrub_forest = 0.2
+psi_site_area = 0.75 # fixed effect of site area on occupancy
 
 ## detection
 # citizen science observation process
@@ -419,8 +419,8 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_psi_site,
                                    mu_psi_open_developed,
                                    sigma_psi_open_developed,
-                                   mu_psi_herb_shrub,
-                                   sigma_psi_herb_shrub,
+                                   mu_psi_herb_shrub_forest,
+                                   sigma_psi_herb_shrub_forest,
                                    psi_site_area,
                                   
                                    # citizen science observation process
@@ -467,7 +467,7 @@ n_visits <- my_simulated_data$n_visits
 sum(my_simulated_data$V_citsci == 1)
 sum(my_simulated_data$V_museum == 1)
 
-check_citsci <- which(V_citsci>V_citsci_NA)
+check_citsci <- which(V_citsci>ranges)
 check_museum <- which(V_museum>V_museum_NA)
  
 intervals_raw <- seq(1, n_intervals, by=1)
@@ -478,13 +478,13 @@ species <- seq(1, n_species, by=1)
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
 open_developed <- my_simulated_data$open_developed
-herb_shrub <- my_simulated_data$herb_shrub
+herb_shrub_forest <- my_simulated_data$herb_shrub_forest
 
 stan_data <- c("V_citsci", "V_museum", 
                "ranges", "V_museum_NA",
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites",
-               "pop_densities", "site_areas", "open_developed", "herb_shrub") 
+               "pop_densities", "site_areas", "open_developed", "herb_shrub_forest") 
 
 # Parameters monitored
 params <- c("mu_psi_0",
@@ -492,8 +492,8 @@ params <- c("mu_psi_0",
             "sigma_psi_site",
             "mu_psi_open_developed",
             "sigma_psi_open_developed",
-            "mu_psi_herb_shrub",
-            "sigma_psi_herb_shrub",
+            "mu_psi_herb_shrub_forest",
+            "sigma_psi_herb_shrub_forest",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -508,10 +508,13 @@ params <- c("mu_psi_0",
             "p_museum_interval",
             "p_museum_pop_density",
             
-            "fit_citsci",
-            "fit_new_citsci",
-            "fit_museum",
-            "fit_new_museum"
+            "T_rep_citsci",
+            "T_obs_citsci",
+            "P_species_citsci",
+            
+            "T_rep_museum",
+            "T_obs_museum",
+            "P_species_museum"
 )
 
 parameter_value <- c(mu_psi_0,
@@ -519,8 +522,8 @@ parameter_value <- c(mu_psi_0,
                      sigma_psi_site,
                      mu_psi_open_developed,
                      sigma_psi_open_developed,
-                     mu_psi_herb_shrub,
-                     sigma_psi_herb_shrub,
+                     mu_psi_herb_shrub_forest,
+                     sigma_psi_herb_shrub_forest,
                      psi_site_area,
                      
                      mu_p_citsci_0,
@@ -538,6 +541,8 @@ parameter_value <- c(mu_psi_0,
                      NA,
                      NA,
                      NA,
+                     NA,
+                     NA,
                      NA
 )
 
@@ -547,6 +552,7 @@ n_thin <- 1
 n_burnin <- 200
 n_chains <- 4
 n_cores <- parallel::detectCores()
+delta = 0.95
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -558,17 +564,17 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_site = runif(1, 0, 1),
        mu_psi_open_developed = runif(1, -1, 1),
        sigma_psi_open_developed = runif(1, 0, 1),
-       mu_psi_herb_shrub = runif(1, -1, 1),
-       sigma_psi_herb_shrub = runif(1, 0, 1),
+       mu_psi_herb_shrub_forest = runif(1, -1, 1),
+       sigma_psi_herb_shrub_forest = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
-       mu_p_citsci_0 = runif(1, -1, 1),
+       mu_p_citsci_0 = runif(1, -1, 0),
        sigma_p_citsci_species = runif(1, 0, 1),
        sigma_p_citsci_site = runif(1, 0, 1),
        p_citsci_interval = runif(1, -1, 1),
        p_citsci_pop_density = runif(1, -1, 1),
        
-       mu_p_museum_0 = runif(1, -1, 1),
+       mu_p_museum_0 = runif(1, -1, 0),
        sigma_p_museum_species = runif(1, 0, 1),
        sigma_p_museum_site = runif(1, 0, 1),
        p_museum_interval = runif(1, -1, 1),
@@ -591,15 +597,15 @@ stan_out_sim <- stan(stan_model,
                      pars = params,
                      chains = n_chains, iter = n_iterations, 
                      warmup = n_burnin, thin = n_thin,
-                     seed = 1,
                      open_progress = FALSE,
+                     control=list(adapt_delta=delta),
                      cores = n_cores)
 
 print(stan_out_sim, digits = 3)
 View(targets)
 
 saveRDS(stan_out_sim, "./occupancy/simulation/stan_out_sim.rds")
-stan_out_sim <- readRDS("./simulation/stan_out_sim_integrated_ranges.rds")
+stan_out_sim <- readRDS("./occupancy/simulation/stan_out_sim.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
@@ -607,15 +613,69 @@ stan_out_sim <- readRDS("./simulation/stan_out_sim_integrated_ranges.rds")
 # traceplot
 traceplot(stan_out_sim, pars = c(
   "mu_psi_0",
+  "mu_psi_open_developed",
+  "mu_psi_herb_shrub_forest",
   "mu_p_citsci_0",
   "mu_p_museum_0"
 ))
 
 # pairs plot
-pairs(stan_out, pars = c(
+pairs(stan_out_sim, pars = c(
   "mu_psi_0",
   "mu_p_citsci_0",
   "mu_p_museum_0"
 ))
 
+## --------------------------------------------------
+### PPC
+
+# print rep and obs
+print(stan_out_sim, digits = 3, pars=
+        c("T_rep_citsci", "T_obs_citsci", "P_species_citsci"))
+print(stan_out_sim, digits = 3, pars=
+        c("T_rep_museum", "T_obs_museum", "P_species_museum"))
+
+# as data frame
+list_of_draws <- as.data.frame(stan_out_sim)
+list_of_draws <- list_of_draws[(n_burnin+1):n_iterations,]
+
+# Citizen Science
+# P-values
+m <- n_iterations - n_burnin
+P_average_citsci = vector(length = n_species)
+
+for(i in 1:n_species){
+  P_average_citsci[i] = sum(list_of_draws[,88+i])/m
+}
+
+print(P_average_citsci)
+
+# Evaluation of fit
+plot(list_of_draws[,54], list_of_draws[,19], main = "", xlab =
+       "Discrepancy actual data", ylab = "Discrepancy replicate data",
+     frame.plot = FALSE,
+     ylim = c(0, 100),
+     xlim = c(0, 100))
+
+abline(0, 1, lwd = 2, col = "black")
+
+# Museum
+# P-values
+m <- n_iterations - n_burnin
+P_average_museum = vector(length = n_species)
+
+for(i in 1:n_species){
+  P_average_museum[i] = sum(list_of_draws[,193+i])/m
+}
+
+print(P_average_museum)
+
+# Evaluation of fit
+plot(list_of_draws[,124], list_of_draws[,159], main = "", xlab =
+       "Discrepancy actual data", ylab = "Discrepancy replicate data",
+     frame.plot = FALSE,
+     ylim = c(0, 100),
+     xlim = c(0, 100))
+
+abline(0, 1, lwd = 2, col = "black")
 
