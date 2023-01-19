@@ -3,6 +3,7 @@
 .RData
 .Ruserdata
 data/
-figures/data/
-abundance-occupancy/figures/data
-occupancy/figures/data
+figures/
+abundance-occupancy/figures/
+figures/occurrence_data/
+figures/environmental_data/
