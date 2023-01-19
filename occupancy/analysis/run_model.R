@@ -11,10 +11,10 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 3 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 25 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 300 # min pop density in the grid cell (per km^2)
+grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 250 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -42,8 +42,8 @@ n_visits = 5 # must define the number of repeat obs years within each interval
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 3 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 35000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 300 # min pop density in the grid cell (per km^2)
+grid_size = 40000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 250 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -148,91 +148,172 @@ species <- seq(1, n_species, by=1)
 
 # sum(V_museum_NA) # number of species sampling events by museums
 # c <- which(V_museum>V_museum_NA) # this will give you numerical value
-
-stan_data <- c("V_citsci", "V_museum",
-               "ranges", "V_museum_NA", 
-               "n_species", "n_sites", "n_intervals", "n_visits", 
-               "intervals", "species", "sites",
-               "pop_densities", "site_areas",
-               "open_developed", "developed_med_high"
-)
-
-# Parameters monitored
-params <- c("mu_psi_0",
-            "psi_species",
-            "sigma_psi_species",
-            "sigma_psi_site",
-            "psi_open_developed",
-            "mu_psi_open_developed",
-            "sigma_psi_open_developed",
-            "psi_developed_med_high",
-            "mu_psi_developed_med_high",
-            "sigma_psi_developed_med_high",
-            "psi_site_area",
-            
-            "mu_p_citsci_0",
-            "p_citsci_species",
-            "sigma_p_citsci_species",
-            "sigma_p_citsci_site",
-            "p_citsci_interval",
-            "p_citsci_pop_density", 
-            
-            "mu_p_museum_0",
-            "p_museum_species",
-            "sigma_p_museum_species",
-            "sigma_p_museum_site",
-            "p_museum_interval",
-            "p_museum_pop_density",
-            
-            "T_rep_citsci",
-            "T_obs_citsci",
-            "P_species_citsci",
-            "T_rep_museum",
-            "T_obs_museum",
-            "P_species_museum"
-)
-
-
-# MCMC settings
-n_iterations <- 1200
-n_thin <- 1
-n_burnin <- 600
-n_chains <- 4
-n_cores <- parallel::detectCores()
-delta = 0.95
-
-## Initial values
-# given the number of parameters, the chains need some decent initial values
-# otherwise sometimes they have a hard time starting to sample
-inits <- lapply(1:n_chains, function(i)
-  
-  list(mu_psi_0 = runif(1, -1, 1),
-       sigma_psi_species = runif(1, 0, 1),
-       sigma_psi_site = runif(1, 0, 1),
-       mu_psi_open_developed = runif(1, -1, 1),
-       sigma_psi_open_developed = runif(1, 0, 1),
-       mu_psi_developed_med_high = runif(1, -1, 1),
-       sigma_psi_developed_med_high = runif(1, 0, 1),
-       psi_site_area = runif(1, -1, 1),
-       
-       mu_p_citsci_0 = runif(1, -1, 0),
-       sigma_p_citsci_species = runif(1, 0, 1),
-       sigma_p_citsci_site = runif(1, 0, 1),
-       p_citsci_interval = runif(1, -1, 1),
-       p_citsci_pop_density = runif(1, -1, 1),
-       
-       mu_p_museum_0 = runif(1, -1, 0),
-       sigma_p_museum_species = runif(1, 0, 1),
-       sigma_p_museum_site = runif(1, 0, 1),
-       p_museum_interval = runif(1, -1, 1),
-       p_museum_pop_density = runif(1, -1, 1)
-       
+if(taxon == "bombus"){
+  stan_data <- c("V_citsci", "V_museum",
+                 "ranges", "V_museum_NA", 
+                 "n_species", "n_sites", "n_intervals", "n_visits", 
+                 "intervals", "species", "sites",
+                 "pop_densities", "site_areas",
+                 "open_developed", "developed_med_high", "herb_shrub_forest"
   )
-)
+  
+  # Parameters monitored
+  params <- c("mu_psi_0",
+              "psi_species",
+              "sigma_psi_species",
+              "sigma_psi_site",
+              "psi_open_developed",
+              "mu_psi_open_developed",
+              "sigma_psi_open_developed",
+              "psi_developed_med_high",
+              "mu_psi_developed_med_high",
+              "sigma_psi_developed_med_high",
+              "psi_herb_shrub_forest",
+              "mu_psi_herb_shrub_forest",
+              "sigma_psi_herb_shrub_forest",
+              "psi_site_area",
+              
+              "mu_p_citsci_0",
+              "p_citsci_species",
+              "sigma_p_citsci_species",
+              "sigma_p_citsci_site",
+              "p_citsci_interval",
+              "p_citsci_pop_density", 
+              
+              "mu_p_museum_0",
+              "p_museum_species",
+              "sigma_p_museum_species",
+              "sigma_p_museum_site",
+              "p_museum_interval",
+              "p_museum_pop_density",
+              
+              "T_rep_citsci",
+              "T_obs_citsci",
+              "P_species_citsci",
+              "T_rep_museum",
+              "T_obs_museum",
+              "P_species_museum"
+  )
+  
+  
+  # MCMC settings
+  n_iterations <- 1200
+  n_thin <- 1
+  n_burnin <- 600
+  n_chains <- 4
+  n_cores <- parallel::detectCores()
+  delta = 0.99
+  
+  ## Initial values
+  # given the number of parameters, the chains need some decent initial values
+  # otherwise sometimes they have a hard time starting to sample
+  inits <- lapply(1:n_chains, function(i)
+    
+    list(mu_psi_0 = runif(1, 0, 1),
+         sigma_psi_species = runif(1, 0, 1),
+         sigma_psi_site = runif(1, 0, 1),
+         mu_psi_open_developed = runif(1, -1, 1),
+         sigma_psi_open_developed = runif(1, 0, 1),
+         mu_psi_developed_med_high = runif(1, -1, 1),
+         sigma_psi_developed_med_high = runif(1, 0, 1),
+         mu_psi_herb_shrub_forest = runif(1, -1, 1),
+         sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+         psi_site_area = runif(1, -1, 1),
+         
+         mu_p_citsci_0 = runif(1, -1, 0),
+         sigma_p_citsci_species = runif(1, 0, 1),
+         sigma_p_citsci_site = runif(1, 0, 1),
+         p_citsci_interval = runif(1, -1, 1),
+         p_citsci_pop_density = runif(1, -1, 1),
+         
+         mu_p_museum_0 = runif(1, -1, 0),
+         sigma_p_museum_species = runif(1, 0, 1),
+         sigma_p_museum_site = runif(1, 0, 1),
+         p_museum_interval = runif(1, -1, 1),
+         p_museum_pop_density = runif(1, -1, 1)
+         
+    )
+  )
+  
+} else {
+  
+  stan_data <- c("V_citsci", "V_museum",
+                 "ranges", "V_museum_NA", 
+                 "n_species", "n_sites", "n_intervals", "n_visits", 
+                 "intervals", "species", "sites",
+                 "pop_densities", "site_areas", 
+                 "herb_shrub_forest"
+  )
+  
+  # Parameters monitored
+  params <- c("mu_psi_0",
+              "psi_species",
+              "sigma_psi_species",
+              "sigma_psi_site",
+              "psi_herb_shrub_forest",
+              "mu_psi_herb_shrub_forest",
+              "sigma_psi_herb_shrub_forest",
+              "psi_site_area",
+              
+              "mu_p_citsci_0",
+              "p_citsci_species",
+              "sigma_p_citsci_species",
+              "sigma_p_citsci_site",
+              "p_citsci_interval",
+              "p_citsci_pop_density", 
+              
+              "mu_p_museum_0",
+              "p_museum_species",
+              "sigma_p_museum_species",
+              "sigma_p_museum_site",
+              "p_museum_interval",
+              "p_museum_pop_density",
+              
+              "P_species_citsci",
+              "P_species_museum"
+  )
+  
+  
+  # MCMC settings
+  n_iterations <- 1000
+  n_thin <- 1
+  n_burnin <- 500
+  n_chains <- 4
+  n_cores <- parallel::detectCores()
+  delta = 0.97
+  
+  ## Initial values
+  # given the number of parameters, the chains need some decent initial values
+  # otherwise sometimes they have a hard time starting to sample
+  inits <- lapply(1:n_chains, function(i)
+    
+    list(mu_psi_0 = runif(1, 0, 1),
+         sigma_psi_species = runif(1, 0, 1),
+         sigma_psi_site = runif(1, 0, 1),
+         mu_psi_herb_shrub_forest = runif(1, -1, 1),
+         sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+         psi_site_area = runif(1, -1, 1),
+         
+         mu_p_citsci_0 = runif(1, -1, 0),
+         sigma_p_citsci_species = runif(1, 0, 1),
+         sigma_p_citsci_site = runif(1, 0, 1),
+         p_citsci_interval = runif(1, -1, 1),
+         p_citsci_pop_density = runif(1, -1, 1),
+         
+         mu_p_museum_0 = runif(1, -1, 0),
+         sigma_p_museum_species = runif(1, 0, 1),
+         sigma_p_museum_site = runif(1, 0, 1),
+         p_museum_interval = runif(1, -1, 1),
+         p_museum_pop_density = runif(1, -1, 1)
+         
+    )
+  )
+}
+
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- "./occupancy/models/model.stan"
+stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -250,15 +331,15 @@ saveRDS(stan_out, paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
   "km_", min_population_size, "minpop", 
   min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, ".RDS"
+  n_intervals, "_", n_visits, "2.RDS"
 )
 )
 
 stan_out <- readRDS(paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
-  "km_", min_population_size, "_", "minpop", "_",
+  "km_", min_population_size, "minpop", "_",
   min_records_per_species, "_", "minpersp_",
-  n_intervals, "_", n_visits, "_", ".RDS"
+  n_intervals, "_", n_visits, ".RDS"
 )
 )
 
@@ -271,14 +352,19 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_open_developed",
           "mu_psi_developed_med_high",
           "sigma_psi_developed_med_high",
-          "psi_site_area",
-          
+          "mu_psi_herb_shrub_forest",
+          "sigma_psi_herb_shrub_forest",
+          "psi_site_area"))
+
+
+print(stan_out, digits = 3, pars=
+        c(
           "mu_p_citsci_0",
           "sigma_p_citsci_species",
           "sigma_p_citsci_site",
           "p_citsci_interval",
           "p_citsci_pop_density", 
-          
+
           "mu_p_museum_0",
           "sigma_p_museum_species",
           "sigma_p_museum_site",
@@ -291,6 +377,9 @@ print(stan_out, digits = 3, pars=
 
 print(stan_out, digits = 3, pars=
         c("psi_developed_med_high"))
+
+print(stan_out, digits = 3, pars=
+        c("psi_herb_shrub_forest"))
 
 # print sampled ppc
 print(stan_out, digits = 3, pars=
@@ -332,10 +421,18 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "sigma_psi_species",
+  "sigma_psi_site",
   "mu_psi_open_developed",
+  "sigma_psi_open_developed",
   "mu_psi_developed_med_high",
-  "psi_site_area",
-  
+  "sigma_psi_developed_med_high",
+  "mu_psi_herb_shrub_forest",
+  "sigma_psi_herb_shrub_forest",
+  "psi_site_area"
+))
+
+# traceplot
+traceplot(stan_out, pars = c(
   "mu_p_citsci_0",
   "sigma_p_citsci_species",
   "sigma_p_citsci_site",
@@ -352,9 +449,10 @@ traceplot(stan_out, pars = c(
 # pairs plot
 pairs(stan_out, pars = c(
   "mu_psi_0",
-  "mu_psi_interval",
-  "sigma_psi_interval",
-  "mu_psi_pop_density",
+  "sigma_psi_species",
+  #"mu_psi_interval",
+  #"sigma_psi_interval",
+  #"mu_psi_pop_density",
   "psi_site_area",
   
   "mu_p_citsci_0",

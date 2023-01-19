@@ -44,7 +44,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 30000 # e.g., 25000 = 25km x 25 km sites
+grid_size <- 35000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # minimum population size
@@ -266,25 +266,35 @@ r.mean_forest <- lapply(r.vals_land_NA,
                         } 
 ) 
 
+r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
+                                   function(x) { 
+                                     (length(which(x %in% c(52,71,41,42,43))) / length(x))
+                                   } 
+) 
+
 grid_pop_dens <- cbind(grid_pop_dens,
                        unlist(r.site_area),
                        unlist(r.mean_herb_shrub),
                        unlist(r.mean_dev_open),
                        unlist(r.mean_high_dev),
-                       unlist(r.mean_forest)) %>%
+                       unlist(r.mean_forest),
+                       unlist(r.mean_herb_shrub_forest)) %>%
   rename("site_area" = "unlist.r.site_area.",
          "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
          "developed_open" = "unlist.r.mean_dev_open.",
          "developed_med_high" = "unlist.r.mean_high_dev.",
-         "forest" = "unlist.r.mean_forest.") %>%
+         "forest" = "unlist.r.mean_forest.",
+         "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
   # remove sites below filter for minimum site area
   filter(site_area > min_site_area) %>%
+  # center-scale the variables
   mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
          scaled_site_area = center_scale(site_area),
          scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
          scaled_developed_open = center_scale(developed_open),
          scaled_developed_med_high = center_scale(developed_med_high),
-         scaled_forest = center_scale(forest)
+         scaled_forest = center_scale(forest),
+         scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
   )
 
 ## --------------------------------------------------
@@ -368,6 +378,17 @@ ggplot() +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
+
+# sclaed herb shrub forest cover
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_forest), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled herb/shrub/forest cover") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Forest Cover in Urban Areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
 
 ## --------------------------------------------------
 # Construct a correlation matrix for variables
