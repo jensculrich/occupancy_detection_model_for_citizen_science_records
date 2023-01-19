@@ -14,7 +14,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 25 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
 grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 250 # min pop density in the grid cell (per km^2)
+min_population_size = 300 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -331,7 +331,7 @@ saveRDS(stan_out, paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
   "km_", min_population_size, "minpop", 
   min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, "2.RDS"
+  n_intervals, "_", n_visits, ".RDS"
 )
 )
 
