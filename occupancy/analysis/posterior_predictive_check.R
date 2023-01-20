@@ -3,7 +3,7 @@
 # Tukey Freeman (species-binned) discrepancy 
 
 # Read in a model file
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae_35km_300minpop3_3.rds")
+stan_out <- readRDS("./occupancy/model_outputs/bombus_30km_300minpop3minpersp3_5.rds")
 
 # Read in a model file
 #stan_out <- readRDS("./occupancy/simulation/stan_sim_out.rds")
@@ -13,30 +13,30 @@ stan_out <- readRDS("./occupancy/model_outputs/syrphidae_35km_300minpop3_3.rds")
 ### PPC
 
 # as data frame
+fit_summary <- rstan::summary(stan_out)
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
 list_of_draws <- as.data.frame(stan_out)
-list_of_draws <- list_of_draws[(n_burnin+1):n_iterations,]
 
 # Bayesian P-values (P_average should be > 0.10 otherwise the model fit would be highlu questionable)
-m <- n_iterations - n_burnin
 P_average_citsci = vector(length = n_species)
 
 # Note the column number is just the column number of the first species P in the df
 for(i in 1:n_species){
-  P_average_citsci[i] = sum(list_of_draws[,368+i])/m
+  P_average_citsci[i] = fit_summary$summary[196+i,1]
 }
 
 # Bayesian P-values (P_average should be > 0.10 otherwise the model fit would be highlu questionable)
-m <- n_iterations - n_burnin
 P_average_museum = vector(length = n_species)
 
 # Note the column number is just the column number of the first species P in the df
 for(i in 1:n_species){
-  P_average_museum[i] = sum(list_of_draws[,518+i])/m
+  P_average_museum[i] = fit_summary$summary[262+i,1]
 }
 
 # Visual evaluation of fit
 # Could plot by species or all species on same plot but coloured differently
-plot(list_of_draws[,319], list_of_draws[,269], main = "", xlab =
+plot(fit_summary$summary[262,1], fit_summary$summary[262,1], main = "", xlab =
        "Discrepancy actual data", ylab = "Discrepancy replicate data",
      frame.plot = FALSE,
      ylim = c(0, 150),
