@@ -32,7 +32,7 @@ data {
   vector[n_sites] pop_densities; // (scaled) population density of each site
   // vector[n_sites] open_developed; // (scaled) developed open surface cover of each site
   // vector[n_sites] developed_med_high; // (scaled) high develop cover of each site
-  vector[n_sites] herb_shrub_forest; // (scaled) UNdeveloped open surface cover of each site
+  vector[n_sites] developed_med_high; // (scaled) UNdeveloped open surface cover of each site
   
 } // end data
 
@@ -53,9 +53,9 @@ parameters {
   real<lower=0> sigma_psi_site; // variance in site intercepts
   
   // random slope for species specific population density effects on occupancy
-  vector[n_species] psi_herb_shrub_forest; // vector of species specific slope estimates
-  real mu_psi_herb_shrub_forest; // community mean of species specific slopes
-  real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
+  vector[n_species] psi_developed_med_high; // vector of species specific slope estimates
+  real mu_psi_developed_med_high; // community mean of species specific slopes
+  real<lower=0> sigma_psi_developed_med_high; // variance in species slopes
   
   // effect of site are on occupancy
   real psi_site_area;
@@ -111,7 +111,7 @@ transformed parameters {
             psi_site[sites[j]] + // a site specific intercept
             //psi_open_developed[species[i]]*open_developed[k] + // an effect
             //psi_developed_med_high[species[i]]*developed_med_high[j] + // an effect of pop density on occurrence
-            psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
+            psi_developed_med_high[species[i]]*developed_med_high[j] + // an effect 
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -152,17 +152,17 @@ model {
   // PRIORS
   
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(2, 2); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 2); // global intercept for occupancy rate
   
   psi_species ~ normal(0, sigma_psi_species); 
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_species ~ normal(0, 1); //informative prior
+  sigma_psi_species ~ normal(0, 0.5); //informative prior
   
   psi_site ~ normal(0, sigma_psi_site); 
   // occupancy intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_site ~ normal(0, 1); // informative prior
+  sigma_psi_site ~ normal(0, 0.5); // informative prior
   
   // the change in time prior is set to be informative 
   // I suspect more of the variation in time comes from detection rate changes 
@@ -184,13 +184,13 @@ model {
   //mu_psi_developed_med_high ~ normal(0, 2); // community mean
   //sigma_psi_developed_med_high ~ normal(0, 1); // community variance
   
-  psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
+  psi_developed_med_high ~ normal(mu_psi_developed_med_high, sigma_psi_developed_med_high);
   // occupancy slope (population density effect on occupancy) for each species drawn from the 
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
-  sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
+  mu_psi_developed_med_high ~ normal(0, 1); // community mean
+  sigma_psi_developed_med_high ~ normal(0, 0.5); // community variance
   
   psi_site_area ~ normal(0, 0.5); // effect of site area on occupancy
   
@@ -198,18 +198,18 @@ model {
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(-2, 2); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 2); // global intercept for detection
 
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_species ~ cauchy(0, 1);
+  sigma_p_citsci_species ~ cauchy(0, 0.5);
   
   // should redefine p_site so that it is spatially AND temporally heterogenous 
   p_citsci_site ~ normal(0, sigma_p_citsci_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_site ~ normal(0, 1); // spatial variance
+  sigma_p_citsci_site ~ normal(0, 0.5); // spatial variance
   
   p_citsci_interval ~ normal(0, 2); // temporal effect on detection probability
   
@@ -217,18 +217,18 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(-1, 2); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 2); // global intercept for detection
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ normal(0, 1);
+  sigma_p_museum_species ~ normal(0, 0.5);
   
   // should redefine p_site so that it is spatially AND temporally heterogenous 
   p_museum_site ~ normal(0, sigma_p_museum_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_site ~ normal(0, 1); // spatial variance
+  sigma_p_museum_site ~ normal(0, 0.5); // spatial variance
   
   p_museum_interval ~ normal(0, 2); // temporal effect on detection probability
   

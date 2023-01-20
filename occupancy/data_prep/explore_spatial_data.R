@@ -44,7 +44,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 35000 # e.g., 25000 = 25km x 25 km sites
+grid_size <- 30000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # minimum population size
@@ -175,7 +175,7 @@ plot(log(pop_raster+1),
      alpha=1,
      legend=T,
      main=expression("(log) Population Density/km"^2),
-     xlab="Longitude", ylab="Latitude")
+     xlab="Longitude", ylab="Latitude",)
 
 plot(prj_states, colour = NA, add = TRUE)
 # plot(prj1, colour = NA, add = TRUE)
@@ -300,6 +300,18 @@ grid_pop_dens <- cbind(grid_pop_dens,
 ## --------------------------------------------------
 # Visualize the data
 
+# view extent only with population density
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  #geom_sf(data = grid_pop_dens, aes(fill = pop_density_per_km2), lwd = 0.3) +
+  #scale_fill_gradient2(name = expression("Population/km"^2)) +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Population density in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+
 # view sites only with population density
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
@@ -383,10 +395,10 @@ ggplot() +
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_forest), lwd = 0.3) +
-  scale_fill_gradient2(name = "Scaled herb/shrub/forest cover") +
+  scale_fill_gradient2(name = "Scaled cover") +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Forest Cover in Urban Areas") +
+  ggtitle("Undeveloped natural habitat in Urban Areas") +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 

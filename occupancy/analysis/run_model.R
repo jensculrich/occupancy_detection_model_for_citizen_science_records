@@ -42,8 +42,8 @@ n_visits = 5 # must define the number of repeat obs years within each interval
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 3 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 40000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 250 # min pop density in the grid cell (per km^2)
+grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 300 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -115,6 +115,8 @@ n_visits <- my_data$n_visits
 interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
+
+# saveRDS(species_names, "./figures/bombus_names_3min.RDS")
 
 pop_densities <- my_data$pop_densities
 open_developed <- my_data$developed_open
@@ -242,7 +244,7 @@ if(taxon == "bombus"){
                  "n_species", "n_sites", "n_intervals", "n_visits", 
                  "intervals", "species", "sites",
                  "pop_densities", "site_areas", 
-                 "herb_shrub_forest"
+                 "developed_med_high"
   )
   
   # Parameters monitored
@@ -250,9 +252,9 @@ if(taxon == "bombus"){
               "psi_species",
               "sigma_psi_species",
               "sigma_psi_site",
-              "psi_herb_shrub_forest",
-              "mu_psi_herb_shrub_forest",
-              "sigma_psi_herb_shrub_forest",
+              "psi_developed_med_high",
+              "mu_psi_developed_med_high",
+              "sigma_psi_developed_med_high",
               "psi_site_area",
               
               "mu_p_citsci_0",
@@ -275,9 +277,9 @@ if(taxon == "bombus"){
   
   
   # MCMC settings
-  n_iterations <- 1000
+  n_iterations <- 800
   n_thin <- 1
-  n_burnin <- 500
+  n_burnin <- 400
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.97
@@ -290,8 +292,8 @@ if(taxon == "bombus"){
     list(mu_psi_0 = runif(1, 0, 1),
          sigma_psi_species = runif(1, 0, 1),
          sigma_psi_site = runif(1, 0, 1),
-         mu_psi_herb_shrub_forest = runif(1, -1, 1),
-         sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+         mu_psi_developed_med_high = runif(1, -1, 1),
+         sigma_psi_developed_med_high = runif(1, 0, 1),
          psi_site_area = runif(1, -1, 1),
          
          mu_p_citsci_0 = runif(1, -1, 0),
@@ -336,9 +338,9 @@ saveRDS(stan_out, paste0(
 )
 
 stan_out <- readRDS(paste0(
-  "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
-  "km_", min_population_size, "minpop", "_",
-  min_records_per_species, "_", "minpersp_",
+  "./occupancy/model_outputs/", taxon, "_", grid_size / 1000, 
+  "km_", min_population_size, "minpop", 
+  min_records_per_species, "minpersp",
   n_intervals, "_", n_visits, ".RDS"
 )
 )
@@ -348,12 +350,8 @@ print(stan_out, digits = 3, pars=
         c("mu_psi_0",
           "sigma_psi_species",
           "sigma_psi_site",
-          "mu_psi_open_developed",
-          "sigma_psi_open_developed",
           "mu_psi_developed_med_high",
           "sigma_psi_developed_med_high",
-          "mu_psi_herb_shrub_forest",
-          "sigma_psi_herb_shrub_forest",
           "psi_site_area"))
 
 
@@ -422,12 +420,8 @@ traceplot(stan_out, pars = c(
   "mu_psi_0",
   "sigma_psi_species",
   "sigma_psi_site",
-  "mu_psi_open_developed",
-  "sigma_psi_open_developed",
   "mu_psi_developed_med_high",
   "sigma_psi_developed_med_high",
-  "mu_psi_herb_shrub_forest",
-  "sigma_psi_herb_shrub_forest",
   "psi_site_area"
 ))
 
