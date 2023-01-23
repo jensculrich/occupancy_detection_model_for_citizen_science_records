@@ -36,11 +36,11 @@ for(i in 1:n_species){
 
 # Visual evaluation of fit
 # Could plot by species or all species on same plot but coloured differently
-plot(fit_summary$summary[262,1], fit_summary$summary[262,1], main = "", xlab =
+plot(list_of_draws[,175], list_of_draws[,153], main = "", xlab =
        "Discrepancy actual data", ylab = "Discrepancy replicate data",
      frame.plot = FALSE,
-     ylim = c(0, 150),
-     xlim = c(0, 150))
+     ylim = c(0, 30),
+     xlim = c(0, 30))
 abline(0, 1, lwd = 2, col = "black")
 
 # I binned the discrepancies by species, so the column numbers are just the first species
