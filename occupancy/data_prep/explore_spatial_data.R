@@ -93,7 +93,9 @@ crs(pop_raster)
 #raster::crs(land)
 
 ## --------------------------------------------------
-# Data Aggregation IMPERVIOUS SURFACE
+# Data Aggregation 
+
+# impervious surface
 
 # reduce size of files by aggregating up from 30m x 30m to 300m x 300m pixels
 # only need to do this once and then we have the file we are going to use for all variable extractions
@@ -105,6 +107,8 @@ crs(pop_raster)
 # 1/30meters = x/500 meters -> x = 16.7
 # 1/30meters = x/300 meters -> x = 10
 #imp_cropped_agg <- aggregate(imp_cropped, 10, fun=mean)
+
+# land use
 
 # crop to smaller bounding box to make more manageable 
 #extent(land)
@@ -193,6 +197,70 @@ grid_pop_dens <- cbind(grid, r.vals) %>%
 grid_pop_dens <- grid_pop_dens %>%
   filter(pop_density_per_km2 > min_population_size) 
 
+## --------------------------------------------------
+# Connect sites for spatial autocorrelation smoothing
+# https://github.com/ConnorDonegan/Stan-IAR
+
+# cite: Donegan, Connor. Flexible Functions for ICAR, BYM, and BYM2 Models in Stan. 
+# Code Repository. 2021. 
+# Available online: https://github.com/ConnorDonegan/Stan-IAR (access date).
+
+# should do this AFTER removing any small sites
+
+C <- spdep::nb2mat(spdep::poly2nb(grid_pop_dens, queen = TRUE), style = "B", zero.policy = TRUE)
+
+edges <- function (w) {
+  lw <- apply(w, 1, function(r) {
+    which(r != 0)
+  })
+  all.edges <- lapply(1:length(lw), function(i) {
+    nbs <- lw[[i]]
+    if (length(nbs)) 
+      data.frame(node1 = i, node2 = nbs, weight = w[i, nbs])
+  })
+  all.edges <- do.call("rbind", all.edges)
+  edges <- all.edges[which(all.edges$node1 < all.edges$node2), ]
+  return(edges)
+}
+
+prep_icar_data <- function (C, inv_sqrt_scale_factor = NULL) {
+  n <- nrow(C)
+  E <- edges(C)
+  G <- list(np = nrow(C), from = E$node1, to = E$node2, nedges = nrow(E))
+  class(G) <- "Graph"
+  nb2 <- spdep::n.comp.nb(spdep::graph2nb(G))
+  k = nb2$nc
+  if (inherits(inv_sqrt_scale_factor, "NULL")) inv_sqrt_scale_factor <- array(rep(1, k), dim = k)
+  group_idx = NULL
+  for (j in 1:k) group_idx <- c(group_idx, which(nb2$comp.id == j))
+  group_size <- NULL
+  for (j in 1:k) group_size <- c(group_size, sum(nb2$comp.id == j))
+  # intercept per connected component of size > 1, if multiple.
+  m <- sum(group_size > 1) - 1
+  if (m) {
+    GS <- group_size
+    ID <- nb2$comp.id
+    change.to.one <- which(GS == 1)
+    ID[which(ID == change.to.one)] <- 1
+    A = model.matrix(~ factor(ID))
+    A <- as.matrix(A[,-1])
+  } else {
+    A <- model.matrix(~ 0, data.frame(C))
+  }
+  l <- list(k = k, 
+            group_size = array(group_size, dim = k), 
+            n_edges = nrow(E), 
+            node1 = E$node1, 
+            node2 = E$node2, 
+            group_idx = array(group_idx, dim = n), 
+            m = m,
+            A = A,
+            inv_sqrt_scale_factor = inv_sqrt_scale_factor, 
+            comp_id = nb2$comp.id)
+  return(l)
+}
+
+icar.data <- prep_icar_data(C)
 
 ## --------------------------------------------------
 # Extract environmental variables from each remaining site

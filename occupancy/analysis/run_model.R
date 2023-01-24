@@ -116,6 +116,8 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
+
+
 # saveRDS(species_names, "./figures/bombus_names_3min.RDS")
 
 pop_densities <- my_data$pop_densities
@@ -127,6 +129,12 @@ developed_med_high <- my_data$developed_med_high
 
 # Other information about the data (not used by the model)
 correlation_matrix <- my_data$correlation_matrix
+
+# icar components
+N_edges <- my_data$n_edges
+node1 <- my_data$node1
+node2 <- my_data$node2
+scaling_factor <- my_data$inv_sqrt_scale_factor
 
 species_counts <- my_data$species_counts
 species_detections <- my_data$species_detections
@@ -156,14 +164,15 @@ if(taxon == "bombus"){
                  "n_species", "n_sites", "n_intervals", "n_visits", 
                  "intervals", "species", "sites",
                  "pop_densities", "site_areas",
-                 "open_developed", "developed_med_high", "herb_shrub_forest"
+                 "open_developed", "developed_med_high", "herb_shrub_forest",
+                 "N_edges", "node1", "node2", "scaling_factor"
   )
   
   # Parameters monitored
   params <- c("mu_psi_0",
               "psi_species",
               "sigma_psi_species",
-              "sigma_psi_site",
+              #"sigma_psi_site",
               "psi_open_developed",
               "mu_psi_open_developed",
               "sigma_psi_open_developed",
@@ -174,6 +183,10 @@ if(taxon == "bombus"){
               "mu_psi_herb_shrub_forest",
               "sigma_psi_herb_shrub_forest",
               "psi_site_area",
+              "sigma",
+              "phi",
+              "theta",
+              "rho",
               
               "mu_p_citsci_0",
               "p_citsci_species",
@@ -189,22 +202,22 @@ if(taxon == "bombus"){
               "p_museum_interval",
               "p_museum_pop_density",
               
-              "T_rep_citsci",
-              "T_obs_citsci",
+              #"T_rep_citsci",
+              #"T_obs_citsci",
               "P_species_citsci",
-              "T_rep_museum",
-              "T_obs_museum",
+              #"T_rep_museum",
+              #"T_obs_museum",
               "P_species_museum"
   )
   
   
   # MCMC settings
-  n_iterations <- 1200
+  n_iterations <- 500
   n_thin <- 1
-  n_burnin <- 600
+  n_burnin <- 250
   n_chains <- 4
   n_cores <- parallel::detectCores()
-  delta = 0.99
+  delta = 0.97
   
   ## Initial values
   # given the number of parameters, the chains need some decent initial values
@@ -212,25 +225,28 @@ if(taxon == "bombus"){
   inits <- lapply(1:n_chains, function(i)
     
     list(mu_psi_0 = runif(1, 0, 1),
-         sigma_psi_species = runif(1, 0, 1),
-         sigma_psi_site = runif(1, 0, 1),
+         sigma_psi_species = runif(1, 0, 0.5),
+         #sigma_psi_site = runif(1, 0, 1),
          mu_psi_open_developed = runif(1, -1, 1),
-         sigma_psi_open_developed = runif(1, 0, 1),
+         sigma_psi_open_developed = runif(1, 0, 0.5),
          mu_psi_developed_med_high = runif(1, -1, 1),
-         sigma_psi_developed_med_high = runif(1, 0, 1),
+         sigma_psi_developed_med_high = runif(1, 0, 0.5),
          mu_psi_herb_shrub_forest = runif(1, -1, 1),
-         sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+         sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
          psi_site_area = runif(1, -1, 1),
+         sigma = runif(1, 0, 0.5),
+         theta = runif(1, 0, 0.5),
+         phi = runif(1, 0, 0.5),
          
          mu_p_citsci_0 = runif(1, -1, 0),
-         sigma_p_citsci_species = runif(1, 0, 1),
-         sigma_p_citsci_site = runif(1, 0, 1),
+         sigma_p_citsci_species = runif(1, 0, 0.5),
+         sigma_p_citsci_site = runif(1, 0, 0.5),
          p_citsci_interval = runif(1, -1, 1),
          p_citsci_pop_density = runif(1, -1, 1),
          
          mu_p_museum_0 = runif(1, -1, 0),
-         sigma_p_museum_species = runif(1, 0, 1),
-         sigma_p_museum_site = runif(1, 0, 1),
+         sigma_p_museum_species = runif(1, 0, 0.5),
+         sigma_p_museum_site = runif(1, 0, 0.5),
          p_museum_interval = runif(1, -1, 1),
          p_museum_pop_density = runif(1, -1, 1)
          
@@ -315,7 +331,7 @@ if(taxon == "bombus"){
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+stan_model <- paste0("./occupancy/models/model_", taxon, "_icar.stan")
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -333,7 +349,7 @@ saveRDS(stan_out, paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
   "km_", min_population_size, "minpop", 
   min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, ".RDS"
+  n_intervals, "_", n_visits, "_icar.RDS"
 )
 )
 
@@ -349,7 +365,10 @@ stan_out <- readRDS(paste0(
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
           "sigma_psi_species",
-          "sigma_psi_site",
+          "sigma", 
+          #"phi",
+          "theta",
+          "rho",
           "mu_psi_developed_med_high",
           "sigma_psi_developed_med_high",
           "psi_site_area"))
@@ -419,7 +438,7 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "sigma_psi_species",
-  "sigma_psi_site",
+  "sigma", "phi[1]",
   "mu_psi_developed_med_high",
   "sigma_psi_developed_med_high",
   "psi_site_area"
