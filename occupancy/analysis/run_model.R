@@ -126,15 +126,12 @@ herb_shrub <- my_data$herb_shrub_cover
 site_areas <- my_data$site_areas
 herb_shrub_forest <- my_data$herb_shrub_forest
 developed_med_high <- my_data$developed_med_high
+ecoregion3_vector <- my_data$ecoregion3_vector
+ecoregion1_vector <- my_data$ecoregion1_vector
+
 
 # Other information about the data (not used by the model)
 correlation_matrix <- my_data$correlation_matrix
-
-# icar components
-N_edges <- my_data$n_edges
-node1 <- my_data$node1
-node2 <- my_data$node2
-scaling_factor <- my_data$inv_sqrt_scale_factor
 
 species_counts <- my_data$species_counts
 species_detections <- my_data$species_detections

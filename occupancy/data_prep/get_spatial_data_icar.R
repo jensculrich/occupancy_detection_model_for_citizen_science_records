@@ -32,6 +32,8 @@ library(tigris) # get state shapefile
 library(sf) # spatial data processing
 library(raster) # read and format raster data
 library(exactextractr) # quick extraction of raster data
+library(spdep) # create site-wise adjacency matrix for spatial smoothing
+library(INLA) # create site-wise adjacency matrix for spatial smoothing
 
 get_spatial_data <- function(
   grid_size, # square edge dimensions of a site, in meters
@@ -99,7 +101,7 @@ get_spatial_data <- function(
     
     # take this chunk out
     # CRS for NAD83 / UTM Zone 10N
-    # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
+    crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
     
     # spatial data - California state shapefile
     states <- tigris::states() %>%
@@ -154,6 +156,7 @@ get_spatial_data <- function(
     # free unused space
     rm(pop_raster, prj1, r.vals, crs_raster)
     gc(verbose = FALSE)
+    
     
     ## --------------------------------------------------
     # Extract environmental variables from each remaining site
@@ -252,31 +255,114 @@ get_spatial_data <- function(
     gc()
     
     ## --------------------------------------------------
-    # Determine spatial cluster of each site
-    # (will need to move this below site filter)
+    # Connect sites for spatial autocorrelation smoothing
+    # https://github.com/ConnorDonegan/Stan-IAR
     
-    ## --------------------------------------------------
-    # Ecoregion data for site clustering
+    # cite: Donegan, Connor. Flexible Functions for ICAR, BYM, and BYM2 Models in Stan. 
+    # Code Repository. 2021. 
+    # Available online: https://github.com/ConnorDonegan/Stan-IAR (access date).
     
-    ecoregion3 <- sf::read_sf("./data/spatial_data/NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
-    ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
+    C <- spdep::nb2mat(spdep::poly2nb(grid_pop_dens, queen = TRUE), style = "B", zero.policy = TRUE)
     
-    ## level 2 cluster (ecoregion3)
-    crs_ecoregion3 <- sf::st_crs(raster::crs(ecoregion3))
-    prj1 <- st_transform(grid_pop_dens, crs_ecoregion3)
+    #' convert connectivity matrix to unique pairs of connected nodes (graph structure)
+    edges <- function (w) {
+      lw <- apply(w, 1, function(r) {
+        which(r != 0)
+      })
+      all.edges <- lapply(1:length(lw), function(i) {
+        nbs <- lw[[i]]
+        if (length(nbs)) 
+          data.frame(node1 = i, node2 = nbs, weight = w[i, nbs])
+      })
+      all.edges <- do.call("rbind", all.edges)
+      edges <- all.edges[which(all.edges$node1 < all.edges$node2), ]
+      return(edges)
+    }
     
-    ecoregion3_vector <- st_join(prj1, ecoregion3) %>%
-      group_by(grid_id) %>%
-      slice(which.max(Shape_Area)) %>% 
-      pull(NA_L3CODE)
+    #' compute scaling factor for adjacency matrix
+    #' accounts for differences in spatial connectivity 
+    scale_c <- function(C) {
+      
+      #' compute geometric mean of a vector
+      geometric_mean <- function(x) exp(mean(log(x))) 
+      
+      N = dim(C)[1]
+      
+      # Create ICAR precision matrix  (diag - C): this is singular
+      # function Diagonal creates a square matrix with given diagonal
+      Q =  Matrix::Diagonal(N, rowSums(C)) - C
+      
+      # Add a small jitter to the diagonal for numerical stability (optional but recommended)
+      Q_pert = Q + Diagonal(N) * max(diag(Q)) * sqrt(.Machine$double.eps)
+      
+      # Function inla.qinv provides efficient way to calculate the elements of the
+      # the inverse corresponding to the non-zero elements of Q
+      Q_inv = inla.qinv(Q_pert, constr=list(A = matrix(1,1,N),e=0))
+      
+      # Compute the geometric mean of the variances, which are on the diagonal of Q.inv
+      scaling_factor <- geometric_mean(Matrix::diag(Q_inv)) 
+      return(scaling_factor) 
+    }
     
-    ## level 3 cluster (ecoregion1)
-    ecoregion1_vector <- st_join(prj1, ecoregion3) %>%
-      group_by(grid_id) %>%
-      slice(which.max(Shape_Area)) %>% 
-      pull(NA_L1CODE)
+    #' prepare Stan data for ICAR model given a connectivity matrix
+    prep_icar_data <- function (C, inv_sqrt_scale_factor = NULL) {
+      n <- nrow(C)
+      E <- edges(C)
+      G <- list(np = nrow(C), from = E$node1, to = E$node2, nedges = nrow(E))
+      class(G) <- "Graph"
+      nb2 <- spdep::n.comp.nb(spdep::graph2nb(G))
+      k = nb2$nc
+      if (inherits(inv_sqrt_scale_factor, "NULL")) inv_sqrt_scale_factor <- array(rep(1, k), dim = k)
+      group_idx = NULL
+      for (j in 1:k) group_idx <- c(group_idx, which(nb2$comp.id == j))
+      group_size <- NULL
+      for (j in 1:k) group_size <- c(group_size, sum(nb2$comp.id == j))
+      # intercept per connected component of size > 1, if multiple.
+      m <- sum(group_size > 1) - 1
+      if (m) {
+        GS <- group_size
+        ID <- nb2$comp.id
+        change.to.one <- which(GS == 1)
+        ID[which(ID == change.to.one)] <- 1
+        A = model.matrix(~ factor(ID))
+        A <- as.matrix(A[,-1])
+      } else {
+        A <- model.matrix(~ 0, data.frame(C))
+      }
+      l <- list(k = k, 
+                group_size = array(group_size, dim = k), 
+                n_edges = nrow(E), 
+                node1 = E$node1, 
+                node2 = E$node2, 
+                group_idx = array(group_idx, dim = n), 
+                m = m,
+                A = A,
+                inv_sqrt_scale_factor = inv_sqrt_scale_factor, 
+                comp_id = nb2$comp.id)
+      return(l)
+    }
     
-    rm(prj1, ecoregion3, ecoregion1)
+    icar.data <- prep_icar_data(C)
+    
+    ## calculate the scale factor for each of k connected group of nodes, using the scale_c function from M. Morris
+    # k <- icar.data$k
+    k <- 1
+    scale_factor <- vector(mode = "numeric", length = k)
+    for (j in 1:k) {
+      g.idx <- which(icar.data$comp_id == j) 
+      if (length(g.idx) == 1) {
+        scale_factor[j] <- 1
+        next
+      }    
+      Cg <- C[g.idx, g.idx] 
+      scale_factor[j] <- scale_c(Cg) 
+    }
+    
+    ## update the data list for Stan
+    icar.data$inv_sqrt_scale_factor <- 1 / sqrt( scale_factor )
+    
+    rm(C, edges, scale_c, prep_icar_data)
+    gc()
     
     ## --------------------------------------------------
     # Occurrence data
@@ -293,7 +379,7 @@ get_spatial_data <- function(
                        crs = 4326))
     
     # and then transform it to the crs
-    df_trans <- st_transform(df_sf, crs = crs(grid_pop_dens))
+    df_trans <- st_transform(df_sf, crs = crs)
     
     ## --------------------------------------------------
     # Now tag records with site ID's based on spatial intersection
@@ -346,8 +432,14 @@ get_spatial_data <- function(
   return(list(
     
     df_id_urban_filtered = df_id_dens,
-    urban_grid = cbind(grid_pop_dens, ecoregion3_vector, ecoregion1_vector),
+    urban_grid = grid_pop_dens,
     correlation_matrix = correlation_matrix,
+    
+    n_edges = icar.data$n_edges,
+    node1 = icar.data$node1,
+    node2 = icar.data$node2,
+    inv_sqrt_scale_factor = icar.data$inv_sqrt_scale_factor,
+    k = icar.data$k
     
   ))
 }

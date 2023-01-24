@@ -61,17 +61,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   forest_vector <- urban_grid$scaled_forest
   herb_shrub_forest_vector <- urban_grid$scaled_herb_shrub_forest
   developed_med_high_vector <- urban_grid$scaled_developed_med_high
+  ecoregion3_vector <- urban_grid$ecoregion3_vector
+  ecoregion1_vector <- urban_grid$ecoregion1_vector
 
   site_name_vector <- urban_grid$grid_id
   
   # correlation matrix
   correlation_matrix <- my_spatial_data$correlation_matrix
-  
-  # Adjacency data
-  n_edges <- my_spatial_data$n_edges
-  node1 <- my_spatial_data$node1
-  node2 <- my_spatial_data$node2
-  inv_sqrt_scale_factor <- my_spatial_data$inv_sqrt_scale_factor
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
@@ -652,13 +648,11 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     developed_open = developed_open_vector,
     forest = forest_vector,
     herb_shrub_forest = herb_shrub_forest_vector,
-    developed_med_high_vector = developed_med_high_vector,
+    developed_med_high = developed_med_high_vector,
+    ecoregion3_vector = ecoregion3_vector,
+    ecoregion1_vector = ecoregion1_vector,
     
     correlation_matrix = correlation_matrix,
-    n_edges = n_edges,
-    node1 = node1,
-    node2 = node2,
-    inv_sqrt_scale_factor = inv_sqrt_scale_factor,
     
     total_records = total_records_since_2000,
     total_records_since_study = total_records_since_2000,
