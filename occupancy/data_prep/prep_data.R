@@ -61,13 +61,20 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   forest_vector <- urban_grid$scaled_forest
   herb_shrub_forest_vector <- urban_grid$scaled_herb_shrub_forest
   developed_med_high_vector <- urban_grid$scaled_developed_med_high
-  ecoregion3_vector <- urban_grid$ecoregion3_vector
-  ecoregion1_vector <- urban_grid$ecoregion1_vector
+  ecoregion_three_vector <- urban_grid$ecoregion_three_vector
+  ecoregion_one_vector <- urban_grid$ecoregion_one_vector
 
   site_name_vector <- urban_grid$grid_id
   
   # correlation matrix
   correlation_matrix <- my_spatial_data$correlation_matrix
+  
+  my_spatial_data
+  
+  ecoregion_three_lookup <- my_spatial_data$ecoregion_three_lookup
+  ecoregion_one_lookup <- my_spatial_data$ecoregion_one_lookup
+  n_ecoregion_three <- my_spatial_data$n_ecoregion_three
+  n_ecoregion_one <- my_spatial_data$n_ecoregion_one
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
@@ -649,8 +656,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     forest = forest_vector,
     herb_shrub_forest = herb_shrub_forest_vector,
     developed_med_high = developed_med_high_vector,
-    ecoregion3_vector = ecoregion3_vector,
-    ecoregion1_vector = ecoregion1_vector,
+    
+    ecoregion_three_vector = ecoregion_three_vector,
+    ecoregion_one_vector = ecoregion_one_vector,
+    ecoregion_three_lookup = ecoregion_three_lookup,
+    ecoregion_one_lookup = ecoregion_one_lookup,
+    n_ecoregion_three = n_ecoregion_three,
+    n_ecoregion_one = n_ecoregion_one,
     
     correlation_matrix = correlation_matrix,
     

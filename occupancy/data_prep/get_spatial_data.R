@@ -261,32 +261,44 @@ get_spatial_data <- function(
     ecoregion3 <- sf::read_sf("./data/spatial_data/NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
     ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
     
-    ## level 2 cluster (ecoregion3)
+    ## level 3 cluster (ecoregion3)
     crs_ecoregion3 <- sf::st_crs(raster::crs(ecoregion3))
     prj1 <- st_transform(grid_pop_dens, crs_ecoregion3)
     
-    ecoregion3_vector <- st_join(prj1, ecoregion3) %>%
+    ecoregion_three_names <- st_join(prj1, ecoregion3) %>%
       group_by(grid_id) %>%
       slice(which.max(Shape_Area)) %>% 
-      pull(NA_L3CODE)
+      pull(NA_L3CODE) 
     
-    ## level 3 cluster (ecoregion1)
-    ecoregion1_vector <- st_join(prj1, ecoregion3) %>%
+    ecoregion_three_vector <- as.numeric(as.factor(ecoregion_three_names))
+    
+    ecoregion_three_lookup <- as.numeric(as.factor(ecoregion_three_names))
+    
+    n_ecoregion_three <- unique(ecoregion_three_lookup) %>%
+      length()
+    
+    ## level 4 cluster (ecoregion1)
+    crs_ecoregion1 <- sf::st_crs(raster::crs(ecoregion1))
+    prj1 <- st_transform(grid_pop_dens, crs_ecoregion1)
+    
+    ecoregion_one_names <- st_join(prj1, ecoregion1) %>%
       group_by(grid_id) %>%
       slice(which.max(Shape_Area)) %>% 
       pull(NA_L1CODE)
     
-    grid_pop_dens <- cbind(grid_pop_dens, ecoregion3_vector, ecoregion1_vector) %>%
-      mutate(ecoregion3_numeric = as.numeric(as.factor(ecoregion3_vector))) %>%
-      mutate(ecoregion1_numeric = as.numeric(as.factor(ecoregion1_vector)))
+    ecoregion_one_vector <- as.numeric(as.factor(ecoregion_one_names))
+    
+    n_ecoregion_one <- unique(ecoregion_one_vector) %>%
+      length()
+    
+    grid_pop_dens <- cbind(grid_pop_dens, ecoregion_three_vector, ecoregion_one_vector)
+    
+    ecoregion_one_lookup <- grid_pop_dens %>%
+      group_by(ecoregion_three_vector, ecoregion_one_vector) %>%
+      slice(1) %>%
+      pull(ecoregion_one_vector)
     
     rm(prj1, ecoregion3, ecoregion1)
-    
-    # siteLookup (which level 4 cluster is level 3 cluster grouped in?)
-    ecoregion_one_lookup <- grid_pop_dens %>%
-      group_by(as.factor(ecoregion3_numeric)) %>%
-      slice(1) %>%
-      pull(ecoregion1_numeric)
     
     ## --------------------------------------------------
     # Occurrence data
@@ -357,8 +369,11 @@ get_spatial_data <- function(
     
     df_id_urban_filtered = df_id_dens,
     urban_grid = grid_pop_dens,
+    ecoregion_three_lookup = ecoregion_three_lookup,
     ecoregion_one_lookup = ecoregion_one_lookup,
-    correlation_matrix = correlation_matrix,
+    n_ecoregion_three = n_ecoregion_three,
+    n_ecoregion_one = n_ecoregion_one,
+    correlation_matrix = correlation_matrix
     
   ))
 }

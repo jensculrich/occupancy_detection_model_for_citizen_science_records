@@ -266,7 +266,7 @@ model {
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_citsci_species ~ cauchy(0, 0.5);
+  sigma_p_citsci_species ~ normal(0, 0.5);
   
   p_citsci_site ~ normal(0, sigma_p_citsci_site);
   // detection intercept for each site drawn from the spatially heterogenous
