@@ -134,7 +134,7 @@ transformed parameters {
             mu_psi_0 + // a baseline intercept
             psi_species[species[i]] + // a species specific intercept
             //psi_site[sites[j]] + // a site specific intercept
-            psi_open_developed[species[i]]*open_developed[k] + // an effect
+            psi_open_developed[species[i]]*open_developed[j] + // an effect
             psi_developed_med_high[species[i]]*developed_med_high[j] + // an effect of pop density on occurrence
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
             psi_site_area*site_areas[j] + // an effect of spatial area of the site on occurrence

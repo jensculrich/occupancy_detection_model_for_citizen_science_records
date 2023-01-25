@@ -9,18 +9,26 @@
 
 # model fitting using 'model_simplest.stan' should return the parameter inputs
 simulate_data <- function(n_species,
+                          n_ecoregion_one,
+                          n_ecoregion_three_per_one,
+                          n_ecoregion_three,
+                          n_sites_per_ecoregion_three,
                           n_sites,
                           n_intervals,
                           n_visits,
                           
-                          ## ecological process
+                          # ecological process
                           mu_psi_0,
                           sigma_psi_species,
                           sigma_psi_site,
+                          sigma_psi_ecoregion_three,
+                          sigma_psi_ecoregion_one,
                           mu_psi_open_developed,
                           sigma_psi_open_developed,
                           mu_psi_herb_shrub_forest,
                           sigma_psi_herb_shrub_forest,
+                          mu_psi_developed_med_high,
+                          sigma_psi_developed_med_high,
                           psi_site_area,
                           
                           ## observation process
@@ -75,18 +83,20 @@ simulate_data <- function(n_species,
   # while pop density and imp surface are positively correlated.
   # I will simluate data with these realistic correlations
   #  A correlates with B corMat[1,2], and A with C with corMat[1,3], and B with C with corMat[2,3]
-  mu <- c(0, 0, 0)
-  stddev <- c(1, 1, 1)
-  corMat <- matrix(c(1, 0, -0.25,
-                     0, 1, -0.1,
-                     -0.25, -0.1, 1),
-                   ncol = 3)
+  mu <- c(0, 0, 0, 0)
+  stddev <- c(1, 1, 1, 1)
+  corMat <- matrix(c(1, 0, -0.25, .75,
+                     0, 1, -0.1, 0,
+                     -0.25, -0.1, 1, -.5,
+                     .75, 0, -.5, 1),
+                   ncol = 4)
   covMat <- stddev %*% t(stddev) * corMat
   correlated_data <- MASS::mvrnorm(n = n_sites, mu = mu, Sigma = covMat, empirical = FALSE)
   
   pop_density <- correlated_data[,1]
   open_developed <- correlated_data[,2]
   herb_shrub_forest <- correlated_data[,3]
+  developed_med_high <- correlated_data[,4]
   
   ## --------------------------------------------------
   ### specify species-specific occupancy probabilities
@@ -96,19 +106,63 @@ simulate_data <- function(n_species,
   # species baseline occupancy is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma.psi.sp
   
-  ## site-specific random intercepts
-  psi_site <- rnorm(n=n_sites, mean=0, sd=sigma_psi_site)
-  # species baseline occupancy is drawn from a normal distribution with mean 0 and 
-  # species specific variation defined by sigma.psi.sp
   
-  ## effect of interval on occupancy (species-specific random slopes)
-  psi_open_developed <- rnorm(n=n_species, mean=mu_psi_open_developed, sd=sigma_psi_open_developed)
-  # change in each species occupancy across time is drawn from a distribution defined
-  # by a community mean (mu_psi_open_developed) with 
-  # species specific variation defined by sigma_psi_open_developed
+  ## ecoregion1-specific random intercepts
+  ## site-specific random intercepts
+  ecoregion_one = rep(1:n_ecoregion_one, each = n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
+  
+  # site baseline success is drawn from a normal distribution with mean 0 and 
+  # site specific variation defined by sigma_alpha_site
+  ecoregion_one_intercepts <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_psi_ecoregion_one),
+                         each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
+  
+  ## ecoregion3-specific random intercepts
+  ## site-specific random intercepts
+  ecoregion_three = rep(1:n_ecoregion_three, each = n_sites_per_ecoregion_three)
+  
+  # site baseline success is drawn from a normal distribution with mean 0 and 
+  # site specific variation defined by sigma_alpha_site
+  ecoregion_three_intercepts <- rep(rnorm(n=n_ecoregion_three, mean=0, sd=sigma_psi_ecoregion_three),
+                                  each=n_sites_per_ecoregion_three)
+  
+  
+  ecoregion_one_lookup <- rep(1:n_ecoregion_one, each=n_ecoregion_three_per_one)
+  
+  ## site-specific random intercepts
+  
+  # site baseline success is drawn from a normal distribution with mean 0 and 
+  # site specific variation defined by sigma_alpha_site
+  site_intercepts <- rep(rnorm(n=n_sites, mean=0, sd=sigma_psi_site))
+  
+  ecoregion_three_lookup <- rep(1:n_ecoregion_three, each=n_sites_per_ecoregion_three)
+  
+  psi_site_nested <- vector(length=n_sites)
+  
+  for(i in 1:n_sites){
+    
+    psi_site_nested[i] <- ecoregion_one_intercepts[i] + 
+      ecoregion_three_intercepts[i] + site_intercepts[i]
+    
+  }
+  
+  View(cbind(sites, ecoregion_three, ecoregion_one, 
+             site_intercepts, ecoregion_three_intercepts, ecoregion_one_intercepts,
+             psi_site_nested))
   
   ## effect of pop density on occupancy (species-specific random slopes)
   psi_herb_shrub_forest <- rnorm(n=n_species, mean=mu_psi_herb_shrub_forest, sd=sigma_psi_herb_shrub_forest)
+  # change in each species occupancy across time is drawn from a distribution defined
+  # by a community mean (mu_psi_interval) with 
+  # species specific variation defined by sigma_psi_interval
+  
+  ## effect of pop density on occupancy (species-specific random slopes)
+  psi_developed_med_high <- rnorm(n=n_species, mean=mu_psi_developed_med_high, sd=sigma_psi_developed_med_high)
+  # change in each species occupancy across time is drawn from a distribution defined
+  # by a community mean (mu_psi_interval) with 
+  # species specific variation defined by sigma_psi_interval
+  
+  ## effect of pop density on occupancy (species-specific random slopes)
+  psi_open_developed <- rnorm(n=n_species, mean=mu_psi_open_developed, sd=sigma_psi_psi_open_developed)
   # change in each species occupancy across time is drawn from a distribution defined
   # by a community mean (mu_psi_interval) with 
   # species specific variation defined by sigma_psi_interval
@@ -155,9 +209,10 @@ simulate_data <- function(n_species,
         logit_psi_matrix[species, site, interval] <- # occupancy is equal to
           mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
-            psi_site[site] + # a site specific intercept
-            psi_open_developed[species]*open_developed[interval] + # a species specific temporal change
-            psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a fixed effect of population density 
+            psi_site_nested[site] + # a site specific intercept
+            psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
+            psi_developed_med_high[species]*developed_med_high[site] + # a species specific effect
+            psi_open_developed[species]*open_developed[site] + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -347,13 +402,20 @@ simulate_data <- function(n_species,
     V_museum = V_museum, # detection data from museum records
     ranges = ranges, # array indicating whether sampling occurred in a site*interval*visit
     V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
-    n_species = n_species, # number of species
+    n_species = n_species, # number of species,
+    n_ecoregion_three = n_ecoregion_three,
+    n_ecoregion_one = n_ecoregion_one,
+    ecoregion_three = ecoregion_three,
+    ecoregion_one = ecoregion_one,
+    ecoregion_three_lookup = ecoregion_three_lookup,
+    ecoregion_one_lookup = ecoregion_one_lookup,
     n_sites = n_sites, # number of sites
     n_intervals = n_intervals, # number of surveys 
     n_visits = n_visits, # number of visits
     pop_density = pop_density, # vector of pop densities
     open_developed = open_developed, # vector of impervious surface covers
     herb_shrub_forest = herb_shrub_forest, # vector of perennial plant covers
+    developed_med_high = developed_med_high, 
     site_area = site_area # vector of site areas
   ))
   
@@ -363,19 +425,27 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 35 ## number of species
-n_sites = 35 ## number of sites
+n_species = 20 ## number of species
+n_ecoregion_one = 8
+n_ecoregion_three_per_one = 6 # ecoregion3 per ecoregion1
+n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
+n_sites_per_ecoregion_three = 6
+n_sites = n_sites_per_ecoregion_three*n_ecoregion_three ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 3 ## number of samples per year
 
 ## occupancy
 mu_psi_0 = -0.5
 sigma_psi_species = 0.5
-sigma_psi_site = 0.5
-mu_psi_open_developed = 0
-sigma_psi_open_developed = 0.2
+sigma_psi_site = 0.5 # variation across level2
+sigma_psi_ecoregion_three = 0.5 # variation across level3
+sigma_psi_ecoregion_one = 0.25 # variation across level4
+mu_psi_open_developed = -0.25
+sigma_psi_open_developed = 0.5
 mu_psi_herb_shrub_forest = 0.5 
-sigma_psi_herb_shrub_forest = 0.2
+sigma_psi_herb_shrub_forest = 0.5
+mu_psi_developed_med_high = 0
+sigma_psi_developed_med_high = .75
 psi_site_area = 0.75 # fixed effect of site area on occupancy
 
 ## detection
@@ -400,7 +470,7 @@ p_museum_pop_density = 0
 # introduce NAs (missed visits)?
 sites_missing = 0.5*n_sites 
 intervals_missing = 2
-visits_missing = 2
+visits_missing = 1
 
 sites_in_range_beta1 = 2
 sites_in_range_beta2 = 2
@@ -409,6 +479,10 @@ sites_in_range_beta2 = 2
 ### Simulate data
 set.seed(1)
 my_simulated_data <- simulate_data(n_species,
+                                   n_ecoregion_one,
+                                   n_ecoregion_three_per_one,
+                                   n_ecoregion_three,
+                                   n_sites_per_ecoregion_three,
                                    n_sites,
                                    n_intervals,
                                    n_visits,
@@ -417,10 +491,14 @@ my_simulated_data <- simulate_data(n_species,
                                    mu_psi_0,
                                    sigma_psi_species,
                                    sigma_psi_site,
+                                   sigma_psi_ecoregion_three,
+                                   sigma_psi_ecoregion_one,
                                    mu_psi_open_developed,
                                    sigma_psi_open_developed,
                                    mu_psi_herb_shrub_forest,
                                    sigma_psi_herb_shrub_forest,
+                                   mu_psi_developed_med_high,
+                                   sigma_psi_developed_med_high,
                                    psi_site_area,
                                   
                                    # citizen science observation process
@@ -459,6 +537,8 @@ ranges <- my_simulated_data$ranges # indicator of whether sampling occurred
 V_museum_NA <- my_simulated_data$V_museum_NA # indicator of whether sampling occurred
 n_species <- my_simulated_data$n_species # number of species
 n_sites <- my_simulated_data$n_sites # number of sites
+n_ecoregion_three <- my_simulated_data$n_ecoregion_three
+n_ecoregion_one <- my_simulated_data$n_ecoregion_one
 n_intervals <- my_simulated_data$n_intervals # number of surveys 
 n_visits <- my_simulated_data$n_visits
 
@@ -473,27 +553,40 @@ check_museum <- which(V_museum>V_museum_NA)
 intervals_raw <- seq(1, n_intervals, by=1)
 intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
+ecoregion_three <- my_simulated_data$ecoregion_three
+ecoregion_one <- my_simulated_data$ecoregion_one
+ecoregion_three_lookup <- my_simulated_data$ecoregion_three_lookup
+ecoregion_one_lookup <- my_simulated_data$ecoregion_one_lookup
 species <- seq(1, n_species, by=1)
 
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
 open_developed <- my_simulated_data$open_developed
 herb_shrub_forest <- my_simulated_data$herb_shrub_forest
+developed_med_high <- my_simulated_data$developed_med_high
 
 stan_data <- c("V_citsci", "V_museum", 
                "ranges", "V_museum_NA",
                "n_species", "n_sites", "n_intervals", "n_visits", 
                "intervals", "species", "sites",
-               "pop_densities", "site_areas", "open_developed", "herb_shrub_forest") 
+               "n_ecoregion_three", "n_ecoregion_one",
+               "ecoregion_three", "ecoregion_one",
+               "ecoregion_three_lookup", "ecoregion_one_lookup",
+               "pop_densities", "site_areas", "open_developed", 
+               "herb_shrub_forest", "developed_med_high") 
 
 # Parameters monitored
 params <- c("mu_psi_0",
             "sigma_psi_species",
             "sigma_psi_site",
+            "sigma_psi_ecoregion_three",
+            "sigma_psi_ecoregion_one",
             "mu_psi_open_developed",
             "sigma_psi_open_developed",
             "mu_psi_herb_shrub_forest",
             "sigma_psi_herb_shrub_forest",
+            "mu_psi_developed_med_high",
+            "sigma_psi_developed_med_high",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -506,24 +599,28 @@ params <- c("mu_psi_0",
             "sigma_p_museum_species",
             "sigma_p_museum_site",
             "p_museum_interval",
-            "p_museum_pop_density",
+            "p_museum_pop_density"#,
             
-            "T_rep_citsci",
-            "T_obs_citsci",
-            "P_species_citsci",
+            #"T_rep_citsci",
+            #"T_obs_citsci",
+            #"P_species_citsci",
             
-            "T_rep_museum",
-            "T_obs_museum",
-            "P_species_museum"
+            #"T_rep_museum",
+            #"T_obs_museum",
+            #"P_species_museum"
 )
 
 parameter_value <- c(mu_psi_0,
                      sigma_psi_species,
                      sigma_psi_site,
+                     sigma_psi_ecoregion_three,
+                     sigma_psi_ecoregion_one,
                      mu_psi_open_developed,
                      sigma_psi_open_developed,
                      mu_psi_herb_shrub_forest,
                      sigma_psi_herb_shrub_forest,
+                     mu_psi_developed_med_high,
+                     sigma_psi_developed_med_high,
                      psi_site_area,
                      
                      mu_p_citsci_0,
@@ -536,36 +633,41 @@ parameter_value <- c(mu_psi_0,
                      sigma_p_museum_species,
                      sigma_p_museum_site,
                      p_museum_interval,
-                     p_museum_pop_density,
+                     p_museum_pop_density#,
                      
-                     NA,
-                     NA,
-                     NA,
-                     NA,
-                     NA,
-                     NA
+                     #NA,
+                     #NA,
+                     #NA,
+                     #NA,
+                     #NA,
+                     #NA
 )
 
 # MCMC settings
-n_iterations <- 400
+n_iterations <- 600
 n_thin <- 1
-n_burnin <- 200
+n_burnin <- 300
 n_chains <- 4
-n_cores <- parallel::detectCores()
+n_cores <- 4
 delta = 0.95
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
 # otherwise sometimes they have a hard time starting to sample
+set.seed(2)
 inits <- lapply(1:n_chains, function(i)
   
   list(mu_psi_0 = runif(1, -1, 1),
        sigma_psi_species = runif(1, 0, 1),
        sigma_psi_site = runif(1, 0, 1),
+       sigma_psi_ecoregion_three = runif(1, 0, 1),
+       sigma_psi_ecoregion_one = runif(1, 0, 1),
        mu_psi_open_developed = runif(1, -1, 1),
        sigma_psi_open_developed = runif(1, 0, 1),
        mu_psi_herb_shrub_forest = runif(1, -1, 1),
        sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+       mu_psi_developed_med_high = runif(1, -1, 1),
+       sigma_psi_developed_med_high = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 0),
@@ -588,7 +690,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./occupancy/models/model.stan"
+stan_model <- "./occupancy/models/model_bombus.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -613,17 +715,37 @@ stan_out_sim <- readRDS("./occupancy/simulation/stan_out_sim.rds")
 # traceplot
 traceplot(stan_out_sim, pars = c(
   "mu_psi_0",
-  "mu_psi_open_developed",
   "mu_psi_herb_shrub_forest",
+  #"mu_psi_open_developed",
+  "mu_psi_developed_med_high",
   "mu_p_citsci_0",
   "mu_p_museum_0"
+))
+
+# traceplot
+traceplot(stan_out_sim, pars = c(
+  "sigma_psi_species",
+  "sigma_psi_site",
+  "sigma_psi_ecoregion_three",
+  "sigma_psi_ecoregion_one",
+  #"sigma_psi_open_developed",
+  "sigma_psi_herb_shrub_forest",
+  "sigma_psi_developed_med_high",
+  "sigma_p_citsci_site",
+  "sigma_p_museum_site",
+  "sigma_p_citsci_species",
+  "sigma_p_museum_species"
 ))
 
 # pairs plot
 pairs(stan_out_sim, pars = c(
   "mu_psi_0",
   "mu_p_citsci_0",
-  "mu_p_museum_0"
+  "mu_p_museum_0",
+  
+  "sigma_psi_open_developed",
+  "sigma_psi_herb_shrub_forest",
+  "sigma_psi_developed_med_high"
 ))
 
 ## --------------------------------------------------

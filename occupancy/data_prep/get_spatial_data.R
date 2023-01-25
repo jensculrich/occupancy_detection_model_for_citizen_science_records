@@ -276,7 +276,17 @@ get_spatial_data <- function(
       slice(which.max(Shape_Area)) %>% 
       pull(NA_L1CODE)
     
+    grid_pop_dens <- cbind(grid_pop_dens, ecoregion3_vector, ecoregion1_vector) %>%
+      mutate(ecoregion3_numeric = as.numeric(as.factor(ecoregion3_vector))) %>%
+      mutate(ecoregion1_numeric = as.numeric(as.factor(ecoregion1_vector)))
+    
     rm(prj1, ecoregion3, ecoregion1)
+    
+    # siteLookup (which level 4 cluster is level 3 cluster grouped in?)
+    ecoregion_one_lookup <- grid_pop_dens %>%
+      group_by(as.factor(ecoregion3_numeric)) %>%
+      slice(1) %>%
+      pull(ecoregion1_numeric)
     
     ## --------------------------------------------------
     # Occurrence data
@@ -346,7 +356,8 @@ get_spatial_data <- function(
   return(list(
     
     df_id_urban_filtered = df_id_dens,
-    urban_grid = cbind(grid_pop_dens, ecoregion3_vector, ecoregion1_vector),
+    urban_grid = grid_pop_dens,
+    ecoregion_one_lookup = ecoregion_one_lookup,
     correlation_matrix = correlation_matrix,
     
   ))
