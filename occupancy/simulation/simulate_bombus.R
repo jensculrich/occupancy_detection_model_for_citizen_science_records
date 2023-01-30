@@ -27,8 +27,6 @@ simulate_data <- function(n_species,
                           sigma_psi_open_developed,
                           mu_psi_herb_shrub_forest,
                           sigma_psi_herb_shrub_forest,
-                          mu_psi_developed_med_high,
-                          sigma_psi_developed_med_high,
                           psi_site_area,
                           
                           ## observation process
@@ -47,8 +45,6 @@ simulate_data <- function(n_species,
                           sigma_p_museum_species,
                           p_museum_site,
                           sigma_p_museum_site,
-                          p_museum_interval,
-                          p_museum_pop_density, 
                           
                           sites_missing,
                           intervals_missing,
@@ -156,12 +152,6 @@ simulate_data <- function(n_species,
   # species specific variation defined by sigma_psi_interval
   
   ## effect of pop density on occupancy (species-specific random slopes)
-  psi_developed_med_high <- rnorm(n=n_species, mean=mu_psi_developed_med_high, sd=sigma_psi_developed_med_high)
-  # change in each species occupancy across time is drawn from a distribution defined
-  # by a community mean (mu_psi_interval) with 
-  # species specific variation defined by sigma_psi_interval
-  
-  ## effect of pop density on occupancy (species-specific random slopes)
   psi_open_developed <- rnorm(n=n_species, mean=mu_psi_open_developed, sd=sigma_psi_psi_open_developed)
   # change in each species occupancy across time is drawn from a distribution defined
   # by a community mean (mu_psi_interval) with 
@@ -211,7 +201,6 @@ simulate_data <- function(n_species,
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
-            psi_developed_med_high[species]*developed_med_high[site] + # a species specific effect
             psi_open_developed[species]*open_developed[site] + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
@@ -227,10 +216,8 @@ simulate_data <- function(n_species,
           logit_p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
             mu_p_museum_0 + # a baseline intercept
             p_museum_species[species] + # a species specific intercept
-            p_museum_site[site] + # a spatiotemporally specific intercept
-            p_museum_interval*intervals[interval] + # an overall effect of time on detection
-            p_museum_pop_density*pop_density[site] # an effect of population density on detection ability
-          
+            p_museum_site[site] # a spatiotemporally specific intercept
+
         } # for each visit
       } # for each species
     } # for each interval
@@ -415,7 +402,6 @@ simulate_data <- function(n_species,
     pop_density = pop_density, # vector of pop densities
     open_developed = open_developed, # vector of impervious surface covers
     herb_shrub_forest = herb_shrub_forest, # vector of perennial plant covers
-    developed_med_high = developed_med_high, 
     site_area = site_area # vector of site areas
   ))
   
@@ -444,8 +430,6 @@ mu_psi_open_developed = -0.25
 sigma_psi_open_developed = 0.5
 mu_psi_herb_shrub_forest = 0.5 
 sigma_psi_herb_shrub_forest = 0.5
-mu_psi_developed_med_high = 0
-sigma_psi_developed_med_high = .75
 psi_site_area = 0.75 # fixed effect of site area on occupancy
 
 ## detection
@@ -464,8 +448,6 @@ p_museum_species = 0
 sigma_p_museum_species = 0.5
 p_museum_site = 0
 sigma_p_museum_site = 0.3
-p_museum_interval = 0
-p_museum_pop_density = 0 
 
 # introduce NAs (missed visits)?
 sites_missing = 0.5*n_sites 
@@ -497,8 +479,6 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_psi_open_developed,
                                    mu_psi_herb_shrub_forest,
                                    sigma_psi_herb_shrub_forest,
-                                   mu_psi_developed_med_high,
-                                   sigma_psi_developed_med_high,
                                    psi_site_area,
                                   
                                    # citizen science observation process
@@ -516,8 +496,6 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_p_museum_species,
                                    p_museum_site,
                                    sigma_p_museum_site,
-                                   p_museum_interval,
-                                   p_museum_pop_density, 
                                    
                                    # introduce NAs (missed visits)?
                                    sites_missing, 
@@ -563,7 +541,6 @@ pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
 open_developed <- my_simulated_data$open_developed
 herb_shrub_forest <- my_simulated_data$herb_shrub_forest
-developed_med_high <- my_simulated_data$developed_med_high
 
 stan_data <- c("V_citsci", "V_museum", 
                "ranges", "V_museum_NA",
@@ -573,7 +550,7 @@ stan_data <- c("V_citsci", "V_museum",
                "ecoregion_three", "ecoregion_one",
                "ecoregion_three_lookup", "ecoregion_one_lookup",
                "pop_densities", "site_areas", "open_developed", 
-               "herb_shrub_forest", "developed_med_high") 
+               "herb_shrub_forest") 
 
 # Parameters monitored
 params <- c("mu_psi_0",
@@ -585,8 +562,6 @@ params <- c("mu_psi_0",
             "sigma_psi_open_developed",
             "mu_psi_herb_shrub_forest",
             "sigma_psi_herb_shrub_forest",
-            "mu_psi_developed_med_high",
-            "sigma_psi_developed_med_high",
             "psi_site_area",
             
             "mu_p_citsci_0",
@@ -597,9 +572,7 @@ params <- c("mu_psi_0",
             
             "mu_p_museum_0",
             "sigma_p_museum_species",
-            "sigma_p_museum_site",
-            "p_museum_interval",
-            "p_museum_pop_density"#,
+            "sigma_p_museum_site"#,
             
             #"T_rep_citsci",
             #"T_obs_citsci",
@@ -619,8 +592,6 @@ parameter_value <- c(mu_psi_0,
                      sigma_psi_open_developed,
                      mu_psi_herb_shrub_forest,
                      sigma_psi_herb_shrub_forest,
-                     mu_psi_developed_med_high,
-                     sigma_psi_developed_med_high,
                      psi_site_area,
                      
                      mu_p_citsci_0,
@@ -631,9 +602,7 @@ parameter_value <- c(mu_psi_0,
                      
                      mu_p_museum_0,
                      sigma_p_museum_species,
-                     sigma_p_museum_site,
-                     p_museum_interval,
-                     p_museum_pop_density#,
+                     sigma_p_museum_site#,
                      
                      #NA,
                      #NA,
@@ -666,8 +635,6 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_open_developed = runif(1, 0, 1),
        mu_psi_herb_shrub_forest = runif(1, -1, 1),
        sigma_psi_herb_shrub_forest = runif(1, 0, 1),
-       mu_psi_developed_med_high = runif(1, -1, 1),
-       sigma_psi_developed_med_high = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
        
        mu_p_citsci_0 = runif(1, -1, 0),
@@ -678,9 +645,7 @@ inits <- lapply(1:n_chains, function(i)
        
        mu_p_museum_0 = runif(1, -1, 0),
        sigma_p_museum_species = runif(1, 0, 1),
-       sigma_p_museum_site = runif(1, 0, 1),
-       p_museum_interval = runif(1, -1, 1),
-       p_museum_pop_density = runif(1, -1, 1)
+       sigma_p_museum_site = runif(1, 0, 1)
        
   )
 )

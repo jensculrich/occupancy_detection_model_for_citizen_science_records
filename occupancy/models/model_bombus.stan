@@ -38,7 +38,6 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] open_developed; // (scaled) developed open surface cover of each site
-  vector[n_sites] developed_med_high; // (scaled) high develop cover of each site
   vector[n_sites] herb_shrub_forest; // (scaled) UNdeveloped open surface cover of each site
   
 } // end data
@@ -70,11 +69,6 @@ parameters {
   // but with overall estimates for success partially informed by the data pooled across all sites.
   vector[n_ecoregion_one] psi_ecoregion_one; // site specific intercept for PL outcome
   real<lower=0> sigma_psi_ecoregion_one; // variance in site intercepts
-  
-  // random slope for species specific high development effects on occupancy
-  vector[n_species] psi_developed_med_high; // vector of species specific slope estimates
-  real mu_psi_developed_med_high; // community mean of species specific slopes
-  real<lower=0> sigma_psi_developed_med_high; // variance in species slopes
   
   // random slope for species specific natural habitat effects on occupancy
   vector[n_species] psi_herb_shrub_forest; // vector of species specific slope estimates
@@ -117,9 +111,6 @@ parameters {
   // random slope for site specific temporal effects on occupancy
   vector[n_sites] p_museum_site; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_museum_site; // variance in site slopes
-  
-  real p_museum_interval; // fixed temporal effect on detection probability
-  real p_museum_pop_density; // fixed effect of population on detection probability
   
 } // end parameters
 
@@ -165,7 +156,6 @@ transformed parameters {
             mu_psi_0 + // a baseline intercept
             psi_species[species[i]] + // a species specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
-            psi_developed_med_high[species[i]]*developed_med_high[j] + // an effect of pop density on occurrence
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
             psi_open_developed[species[i]]*open_developed[j] + // an effect
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
@@ -191,8 +181,6 @@ transformed parameters {
             mu_p_museum_0 + // a baseline intercept
             p_museum_species[species[i]] + // a species specific intercept
             p_museum_site[sites[j]] + // a spatially specific intercept
-            p_museum_interval*intervals[k] + // an overall effect of time on detection
-            p_museum_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_museum[i,j,k]
            
       } // end loop across all intervals
@@ -230,14 +218,6 @@ model {
   // prob of success intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
   sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly informative prior
-  
-  psi_developed_med_high ~ normal(mu_psi_developed_med_high, sigma_psi_developed_med_high);
-  // occupancy slope (population density effect on occupancy) for each species drawn from the 
-  // community distribution (variance defined by sigma), centered at mu_psi_interval. 
-  // centering on mu (rather than 0) allows us to estimate the average effect of
-  // the management on abundance across all species.
-  mu_psi_developed_med_high ~ normal(0, 1); // community mean
-  sigma_psi_developed_med_high ~ normal(0, 0.5); // community variance
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   // occupancy slope (population density effect on occupancy) for each species drawn from the 
@@ -291,10 +271,6 @@ model {
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
   sigma_p_museum_site ~ normal(0, 0.5); // spatial variance
-  
-  p_museum_interval ~ normal(0, 1); // temporal effect on detection probability
-  
-  p_museum_pop_density ~ normal(0, 1); // population effect on detection probability
 
   
   // LIKELIHOOD
