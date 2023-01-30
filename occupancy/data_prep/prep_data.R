@@ -28,6 +28,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       remove_unidentified_species
 ) {
   
+  ## --------------------------------------------------
+  ## Operation Functions
+  ## predictor center scaling function
+  center_scale <- function(x) {
+    (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
+  }
+  
   source("./occupancy/data_prep/get_spatial_data.R")
   
   # retrieve the spatial occurrence record data
@@ -380,6 +387,64 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # end pipe
   
   ## --------------------------------------------------
+  # records per sampling event
+  
+  museum_total_records <- df_id_urban_filtered %>%
+    
+    # remove records (if any) missing species level identification
+    filter(species != "") %>%
+    
+    # assign year as - year after era_start
+    mutate(occ_year = (year - era_start)) %>%
+    
+    # remove years before the start date
+    filter(occ_year >= 0) %>%
+    # remove years after end date
+    filter(occ_year < total_years) %>%
+    
+    # now assign the years into 1:n_intervals
+    mutate(occ_interval = occ_year %/% n_visits) %>%
+    
+    # add a sampling round (1:n)
+    mutate(visit = (occ_year %% n_visits)) %>%
+    
+    # remove species with total observations (n) < min_records_per_species
+    # these are records across all citizen science AND preserved specimen records
+    group_by(species) %>%
+    add_tally() %>%
+    filter(n >= min_records_per_species) %>%
+    ungroup() %>%
+    
+    # filter to citizen science data only
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
+    
+    # determine whether a community sampling event occurred
+    # using collector name might be overly conservative because for example
+    # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
+    # instead grouping by collections housed in the same institution from the same year
+    # within a site
+    group_by(year, grid_id) %>%
+    add_tally(name = "records_per_year_per_site") %>%
+    slice(1) %>%
+    ungroup() %>%
+    # now add an average per sampling interval 
+    group_by(occ_interval, grid_id) %>%
+    mutate(museum_total_records = mean(records_per_year_per_site)) %>%
+    slice(1) %>%
+    ungroup() %>%
+    
+    dplyr::select(grid_id, occ_interval, museum_total_records) %>%
+    mutate(occ_interval = as.numeric(occ_interval),
+           grid_id = as.integer(grid_id),
+           museum_total_records = as.numeric(museum_total_records)) %>%
+    # scale the variable (before comparing to sites with no museum data - 
+    # since they will be passed in the likelihood function)
+    mutate(museum_total_records = center_scale(museum_total_records))
+  # end pipe
+  
+  # join with all siteXintervals after generating that table
+  
+  ## --------------------------------------------------
   # Extract stan data from df
   # I use the list of all species and all sites 
   # rather than species and sites sampled potentially by only citizen science or by only museums
@@ -632,6 +697,27 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # thus check should be empty
   
   ## --------------------------------------------------
+  # Construct records per visit covariate
+  
+  all_interval_site_visits <- all_species_site_visits %>%
+    group_by(occ_interval, grid_id) %>%
+    slice(1) %>%
+    dplyr::select(occ_interval, grid_id) %>%
+    mutate(occ_interval = as.numeric(occ_interval)) %>%
+    ungroup()
+  
+  all_interval_sites_museum_joined <- left_join(all_interval_site_visits, museum_total_records, 
+                                               by=c("grid_id", "occ_interval")) %>%
+    # create an indicator if the site visit was a sampled or not
+    mutate(museum_total_records = replace_na(museum_total_records, 0),
+           occ_interval = as.integer(occ_interval)) %>%
+    arrange(grid_id)
+  
+  # now spread into 2 dimensions
+  museum_total_records <- matrix(data = all_interval_sites_museum_joined$museum_total_records, 
+                        nrow= n_sites, ncol= n_intervals)
+  
+  ## --------------------------------------------------
   # Return stuff
   return(list(
     
@@ -656,6 +742,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     forest = forest_vector,
     herb_shrub_forest = herb_shrub_forest_vector,
     developed_med_high = developed_med_high_vector,
+    museum_total_records = museum_total_records,
     
     ecoregion_three_vector = ecoregion_three_vector,
     ecoregion_one_vector = ecoregion_one_vector,

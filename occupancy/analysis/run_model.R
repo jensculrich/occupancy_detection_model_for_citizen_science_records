@@ -1,5 +1,5 @@
 ## run_model_integrated.R
-### Run occupancy model (model_integrated.stan) using real pollinator occurrence data from GBIF
+### Run occupancy model (model_"taxon".stan) using real pollinator occurrence data from GBIF
 # jcu; started nov 24, 2022
 
 ## --------------------------------------------------
