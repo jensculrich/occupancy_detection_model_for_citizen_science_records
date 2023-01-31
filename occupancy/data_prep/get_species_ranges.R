@@ -22,21 +22,24 @@ get_species_ranges <- function(
   
   species_ranges <- vector(mode = "list", length = n_species)
   
-  crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
+  # USA_Contiguous_Albers_Equal_Area_Conic
+  crs <- 5070
   
   # read occurrence data
   # this is occurrence data from all time records, not just from the study time span 
   # read the occurrence data for the given taxon
-  df <- read.csv(paste0(
-    "./data/occurrence_data/",
-    taxon,
-    "_data.csv"))
+  df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv")) %>%
+    
+    # filter out records with high location uncertainty (threshold at 10km)
+    filter(coordinateUncertaintyInMeters < 10000) %>%
+    
+    # filter any ranges to core range if desired
+    # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
+    # (filter out occurrences west of 105 Longitude)
+    filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
+    filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110))
   
   urban_grid <- urban_grid %>% rename("geometry" = ".")
-  
-  #urban_grid_prj <- st_as_sf(urban_grid,
-  #                      wkt = urban_grid$geometry,
-  #                      crs = 26910)
   
   
   for(i in 1:n_species){

@@ -57,6 +57,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     
   }
   
+  
+  
   # spatial covariate data to pass to run model
   urban_grid <- my_spatial_data$urban_grid
   

@@ -46,7 +46,9 @@ center_scale <- function(x) {
 # grid size
 grid_size <- 30000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
-crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
+# crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
+# Albers equal area
+crs <- 5070
 # minimum population size
 # a grid cell must intersect a city with min_population_size or more
 # people living there. This filters out grid cell sites that do not
@@ -68,10 +70,13 @@ taxon = "syrphidae"
 ## --------------------------------------------------
 # Spatial extent and urban areas
 
-# spatial data - California state shapefile
+# spatial data - state shapefile
 states <- tigris::states() %>%
-  filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
-
+  #filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
+  # lower 48 + DC
+  filter(REGION != 9) %>%
+  filter(!NAME %in% c("Alaska", "Hawaii"))
+  
 str(states)
 st_crs(states)
 
@@ -89,8 +94,8 @@ crs(pop_raster)
 # DO NOT READ IF USING THE AGGREGATED/CROPPED FILE PRODUCED ONE TIME ONLY BELOW
 # land cover raster 30m x 30m
 # 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
-# land=raster::raster("D:/urban_spatial_data/land_cover/nlcd_2016_land_cover_l48_20210604.img")
-#raster::crs(land)
+land=raster::raster("./data/spatial_data/land_use/land_cover/nlcd_2016_land_cover_l48_20210604.img")
+raster::crs(land)
 
 ## --------------------------------------------------
 # Data Aggregation 
@@ -109,27 +114,26 @@ crs(pop_raster)
 #imp_cropped_agg <- aggregate(imp_cropped, 10, fun=mean)
 
 # land use
+# project the states to the raster and then crop so we cut off the ocean
+#crs_raster <- sf::st_crs(raster::crs(land))
+#prj_states <- st_transform(states, crs_raster)
 
 # crop to smaller bounding box to make more manageable 
 #extent(land)
-#new_extent <- extent(-2400000, -1100000, 950000, 3200000)
+#new_extent <- extent(-2493045, 2342655, 177285, 3310005)
 #land <- crop(x = land, y = new_extent)
-
-# project the states to the raster and then crop so we cut off the ocean
-#crs_raster <- sf::st_crs(raster::crs(land))
-#prj_states <- st_transform(states_trans, crs_raster)
 
 # finally, mask the raster to the study area (prj_states)
 #land <- raster::mask(land, prj_states)
 
-#writeRaster(land, 
-#            "./data/spatial_data/land_use/land_use.tif",
-#            overwrite=TRUE)
+#writeRaster(land, "./data/spatial_data/land_use/land_use_full.tif", overwrite=TRUE)
 
 #rm(land, land_cropped)
 #gc()
 
-land=raster::raster("./data/spatial_data/land_use/land_use.tif")
+#land2 <- raster::raster("./data/spatial_data/land_use/land_use_full.gri")
+
+#land=raster::raster("./data/spatial_data/land_use/land_use.tif")
 
 
 ## --------------------------------------------------
@@ -140,7 +144,7 @@ land=raster::raster("./data/spatial_data/land_use/land_use.tif")
 
 ## transform
 # transform state shapefile to crs
-states_trans <- st_transform(states, 26910) # NAD83 / UTM Zone 10N
+states_trans <- st_transform(states, crs) # albers equal area
 
 # create _km grid - here you can substitute by specifying grid_size above
 grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>% 
@@ -285,10 +289,12 @@ plot(prj1, colour = NA, add = TRUE) +
 # extract raster values to list object
 
 r.vals_land <- exactextractr::exact_extract(land, prj1)
+gc()
 
 # want to reclassify open water as NA
 r.vals_land_NA <- lapply(r.vals_land, function(x) na_if(x$value, 0))
 r.vals_land_NA <- lapply(r.vals_land_NA, function(x) na_if(x,11))
+gc()
 
 # first find out the proportion of rows that are NA's 
 # (this will be our site area)
@@ -300,11 +306,12 @@ r.site_area <- lapply(r.vals_land_NA,
                         (length(which(!is.na(x))) / length(x))
                       } 
 ) 
-
+gc()
 
 # now drop NA values so that the below estimates are the proportion of cover
 # of all land cover in the administrative area
 r.vals_land_NA <- lapply(r.vals_land_NA, na.omit)
+gc()
 
 # now pull out site proportion of each type
 # for legend of category number codes see: 
@@ -364,6 +371,11 @@ grid_pop_dens <- cbind(grid_pop_dens,
          scaled_forest = center_scale(forest),
          scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
   )
+
+rm(crs_raster, grid, land, prj1, 
+   r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
+   r.site_area, r.vals_land, r.vals_land_NA, states, states_trans)
+gc()
 
 ## --------------------------------------------------
 # Visualize the data
@@ -553,7 +565,7 @@ df_id_dens <- df_trans %>%
   # filter out records from outside of the urban grid
   filter(!is.na(grid_id)) %>%
   left_join(., dplyr::select(
-    df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
+    df, id, decimalLatitude, decimalLongitude), by="gbifID") 
 
 
 ## --------------------------------------------------

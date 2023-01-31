@@ -97,16 +97,25 @@ get_spatial_data <- function(
     ## --------------------------------------------------
     # Envrionmental raster data
     
-    # take this chunk out
-    # CRS for NAD83 / UTM Zone 10N
-    # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
+    # USA_Contiguous_Albers_Equal_Area_Conic
+    crs <- 5070
     
-    # spatial data - California state shapefile
+    # spatial data - state shapefile
     states <- tigris::states() %>%
-      filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
+      #filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
+      # lower 48 + DC
+      filter(REGION != 9) %>%
+      filter(!NAME %in% c("Alaska", "Hawaii"))
+    
+    str(states)
+    st_crs(states)
+    
+    # California only
+    #states_trans <- states  %>% 
+      #st_transform(., 26910) # NAD83 / UTM Zone 10N
     
     states_trans <- states  %>% 
-      st_transform(., 26910) # NAD83 / UTM Zone 10N
+      st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
     
     ## --------------------------------------------------
     # Environmental data rasters
@@ -119,7 +128,7 @@ get_spatial_data <- function(
     # land cover raster 30m x 30m
     # https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
     # land cover data from 2016 
-    land=raster::raster("./data/spatial_data/land_use/land_use.tif")
+    land=raster::raster("./data/spatial_data/land_use/land_cover/nlcd_2016_land_cover_l48_20210604.img")
     
     ## --------------------------------------------------
     # Overlay the shapefile with a grid of sites of size == 'grid_size' 
@@ -166,10 +175,12 @@ get_spatial_data <- function(
     # extract raster values to list object
     
     r.vals_land <- exactextractr::exact_extract(land, prj1)
+    gc(verbose = FALSE)
     
     # want to reclassify open water as NA
     r.vals_land_NA <- lapply(r.vals_land, function(x) na_if(x$value, 0))
     r.vals_land_NA <- lapply(r.vals_land_NA, function(x) na_if(x,11))
+    gc(verbose = FALSE)
     
     # first find out the proportion of rows that are NA's 
     # (this will be our site area)
@@ -181,11 +192,12 @@ get_spatial_data <- function(
                             (length(which(!is.na(x))) / length(x))
                           } 
     ) 
-    
+    gc(verbose = FALSE)
     
     # now drop NA values so that the below estimates are the proportion of cover
     # of all land cover in the administrative area
     r.vals_land_NA <- lapply(r.vals_land_NA, na.omit)
+    gc(verbose = FALSE)
     
     # now pull out site proportion of each type
     # for legend of category number codes see: 
@@ -296,6 +308,10 @@ get_spatial_data <- function(
     ecoregion_one_lookup <- grid_pop_dens %>%
       group_by(ecoregion_three_vector, ecoregion_one_vector) %>%
       slice(1) %>%
+      ungroup() %>%
+      group_by(ecoregion_three_vector) %>%
+      slice(1) %>%
+      ungroup() %>%
       pull(ecoregion_one_vector)
     
     rm(prj1, ecoregion3, ecoregion1)
@@ -304,7 +320,7 @@ get_spatial_data <- function(
     # Occurrence data
     
     # read either the syrphidae data or the bombus data
-    df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data.csv"))
+    df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
     
     ## --------------------------------------------------
     # Prep the data
@@ -322,11 +338,22 @@ get_spatial_data <- function(
     
     # which grid square is each point in?
     df_id_dens <- df_trans %>% 
+    
       st_join(grid_pop_dens, join = st_intersects) %>% as.data.frame %>%
       # filter out records from outside of the urban grid
       filter(!is.na(grid_id)) %>%
       left_join(., dplyr::select(
-        df, gbifID, decimalLatitude, decimalLongitude), by="gbifID") 
+        df, id, decimalLatitude, decimalLongitude), by="id") %>% 
+      
+      # and perform any further initial data filters
+    
+      # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
+      # (filter out occurrences west of 105 Longitude)
+      filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
+      filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110)) %>%
+      
+      # filter out records with high location uncertainty (threshold at 10km)
+      filter(coordinateUncertaintyInMeters < 10000)
     
     # free unused space
     rm(df, df_sf, df_trans)
