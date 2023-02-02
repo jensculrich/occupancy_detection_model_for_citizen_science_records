@@ -278,7 +278,9 @@ crs_raster <- sf::st_crs(raster::crs(land))
 prj_states <- st_transform(states_trans, crs_raster)
 
 # make a plot of the sites on the state background with land cover
-plot(land, 
+temp <- land
+temp[temp != 25] <- NA
+plot(temp, 
      xlab = "Longitude", ylab = "Latitude")
 plot(prj_states, colour = NA, add = TRUE)
 plot(prj1, colour = NA, add = TRUE) +

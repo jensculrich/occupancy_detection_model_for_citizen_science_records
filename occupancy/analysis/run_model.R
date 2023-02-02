@@ -11,10 +11,10 @@ n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 25 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 15 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
 grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 300 # min pop density in the grid cell (per km^2)
+min_population_size = 500 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -117,7 +117,7 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-# saveRDS(species_names, "./figures/bombus_names_3min.RDS")
+#saveRDS(species_names, "./figures/syrphidae_names_15min.RDS")
 
 pop_densities <- my_data$pop_densities
 open_developed <- my_data$developed_open
@@ -214,7 +214,7 @@ if(taxon == "bombus"){
   n_burnin <- 600
   n_chains <- 4
   n_cores <- parallel::detectCores()
-  delta = 0.95
+  delta = 0.9
   
   ## Initial values
   # given the number of parameters, the chains need some decent initial values
@@ -258,7 +258,7 @@ if(taxon == "bombus"){
                  "ecoregion_three", "ecoregion_one",
                  "ecoregion_three_lookup", "ecoregion_one_lookup",
                  "pop_densities", "site_areas", "open_developed", 
-                 "herb_shrub_forest", "museum_total_records")
+                 "herb_shrub_forest", "museum_total_records") 
   
   # Parameters monitored
   params <- c("mu_psi_0",
@@ -283,28 +283,28 @@ if(taxon == "bombus"){
               "sigma_p_museum_species",
               "sigma_p_museum_site",
               "sigma_p_museum_ecoregion_three",
-              "p_museum_total_records"#,
+              "p_museum_total_records",
               
-              #"psi_open_developed",
-              #"psi_herb_shrub_forest",
+              "psi_open_developed",
+              "psi_herb_shrub_forest",
               
               #"T_rep_citsci",
               #"T_obs_citsci",
-              #"P_species_citsci",
+              "P_species_citsci",
               
               #"T_rep_museum",
               #"T_obs_museum",
-              #"P_species_museum"
+              "P_species_museum"
   )
   
   
   # MCMC settings
-  n_iterations <- 800
+  n_iterations <- 1200
   n_thin <- 1
-  n_burnin <- 400
+  n_burnin <- 600
   n_chains <- 4
   n_cores <- parallel::detectCores()
-  delta = 0.95
+  delta = 0.9
   
   ## Initial values
   # given the number of parameters, the chains need some decent initial values

@@ -31,7 +31,7 @@ get_species_ranges <- function(
   df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv")) %>%
     
     # filter out records with high location uncertainty (threshold at 10km)
-    filter(coordinateUncertaintyInMeters < 10000) %>%
+    filter(coordinateUncertaintyInMeters < 10000 || is.na(coordinateUncertaintyInMeters)) %>%
     
     # filter any ranges to core range if desired
     # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)

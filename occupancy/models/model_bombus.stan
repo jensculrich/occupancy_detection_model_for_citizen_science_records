@@ -254,7 +254,7 @@ model {
   psi_site ~ normal(0, sigma_psi_site); 
   // occupancy intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_site ~ normal(0, 0.5); // informative prior
+  sigma_psi_site ~ normal(0, 0.2); // informative prior
   // level-3 spatial grouping
   psi_ecoregion_three ~ normal(0, sigma_psi_ecoregion_three); 
   // prob of success intercept for each site drawn from the community
@@ -325,7 +325,7 @@ model {
   p_museum_site ~ normal(0, sigma_p_museum_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_site ~ normal(0, 0.5); // spatial variance
+  sigma_p_museum_site ~ normal(0, 0.1); // spatial variance
   // level-3 spatial grouping
   p_museum_ecoregion_three ~ normal(0, sigma_p_museum_ecoregion_three); 
   // prob of success intercept for each site drawn from the community
@@ -398,10 +398,10 @@ generated quantities{
   real eval_citsci[n_species,n_sites,n_intervals,n_visits]; // expected values
   real eval_museum[n_species,n_sites,n_intervals,n_visits]; // expected values
   
-  real T_rep_citsci[n_species]; // Tukey-Freeman distance from eval (species bin)
-  real T_obs_citsci[n_species]; // Tukey-Freeman distance from eval (species bin)
-  real T_rep_museum[n_species]; // Tukey-Freeman distance from eval (species bin)
-  real T_obs_museum[n_species]; // Tukey-Freeman distance from eval (species bin)
+  real T_rep_citsci[n_species]; // Freeman-Tukey distance from eval (species bin)
+  real T_obs_citsci[n_species]; // Freeman-Tukey distance from eval (species bin)
+  real T_rep_museum[n_species]; // Freeman-Tukey distance from eval (species bin)
+  real T_obs_museum[n_species]; // Freeman-Tukey distance from eval (species bin)
   
   real P_species_citsci[n_species]; // P-value by species
   real P_species_museum[n_species]; // P-value by species
