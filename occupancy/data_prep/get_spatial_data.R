@@ -128,7 +128,7 @@ get_spatial_data <- function(
     # land cover raster 30m x 30m
     # https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
     # land cover data from 2016 
-    land=raster::raster("./data/spatial_data/land_use/land_cover/nlcd_2016_land_cover_l48_20210604.img")
+    land=raster::raster("./data/spatial_data/land_cover/land_cover/nlcd_2016_land_cover_l48_20210604.img")
     
     ## --------------------------------------------------
     # Overlay the shapefile with a grid of sites of size == 'grid_size' 

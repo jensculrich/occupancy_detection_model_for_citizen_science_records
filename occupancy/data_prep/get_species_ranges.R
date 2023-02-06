@@ -34,7 +34,7 @@ get_species_ranges <- function(
     filter(coordinateUncertaintyInMeters < 10000 || is.na(coordinateUncertaintyInMeters)) %>%
     
     # filter any ranges to core range if desired
-    # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
+    # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
     # (filter out occurrences west of 105 Longitude)
     filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
     filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110))

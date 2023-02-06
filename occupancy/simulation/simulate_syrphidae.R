@@ -8,7 +8,9 @@
 # a few species only might be targeted and not fully community wide)
 
 # model fitting using 'model_simplest.stan' should return the parameter inputs
-simulate_data <- function(n_species,
+simulate_data <- function(n_genera,
+                          n_species_per_genera,
+                          n_species = n_genera*n_species_per_genera,
                           n_ecoregion_one,
                           n_ecoregion_three_per_one,
                           n_ecoregion_three,
@@ -20,6 +22,7 @@ simulate_data <- function(n_species,
                           # ecological process
                           mu_psi_0,
                           sigma_psi_species,
+                          sigma_psi_genus,
                           sigma_psi_site,
                           sigma_psi_ecoregion_three,
                           sigma_psi_ecoregion_one,
@@ -113,11 +116,26 @@ simulate_data <- function(n_species,
   ## --------------------------------------------------
   ### specify species-specific occupancy probabilities
   
+  ## ecoregion3-specific random intercepts
+  ## site-specific random intercepts
+  genus = rep(1:n_genera, each = n_species_per_genera)
+  genera_intercepts <- rep(rnorm(n=n_genera, mean=0, sd=sigma_psi_genus),
+                                    each=n_species_per_genera)
+  
   ## species-specific random intercepts
-  psi_species <- rnorm(n=n_species, mean=0, sd=sigma_psi_species)
+  species_intercepts <- rnorm(n=n_species, mean=0, sd=sigma_psi_species)
   # species baseline occupancy is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma.psi.sp
   
+  genus_lookup <- rep(1:n_genera, each = n_species_per_genera)
+  
+  psi_species_nested <- vector(length=n_species)
+  
+  for(i in 1:n_species){
+    
+    psi_species_nested[i] <- genera_intercepts[i] + species_intercepts[i]
+    
+  }
   
   ## ecoregion1-specific random intercepts
   ## site-specific random intercepts
@@ -237,7 +255,7 @@ simulate_data <- function(n_species,
         
         logit_psi_matrix[species, site, interval] <- # occupancy is equal to
           mu_psi_0 + # a baseline intercept
-            psi_species[species] + # a species specific intercept
+            psi_species_nested[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
             psi_open_developed[species]*open_developed[site] + # a species specific effect
@@ -430,6 +448,9 @@ simulate_data <- function(n_species,
     ranges = ranges, # array indicating whether sampling occurred in a site*interval*visit
     V_museum_NA = V_museum_NA, # array indicating whether sampling occurred in a site*interval*visit
     n_species = n_species, # number of species,
+    n_genera = n_genera,
+    genus = genus,
+    genus_lookup = genus_lookup,
     n_ecoregion_three = n_ecoregion_three,
     n_ecoregion_one = n_ecoregion_one,
     ecoregion_three = ecoregion_three,
@@ -452,7 +473,9 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
+n_genera = 10 ## number of genera
+n_species_per_genera = 4 ## number of species
+n_species = n_genera*n_species_per_genera
 n_ecoregion_one = 7
 n_ecoregion_three_per_one = 7 # ecoregion3 per ecoregion1
 n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
@@ -464,6 +487,7 @@ n_visits = 3 ## number of samples per year
 ## occupancy
 mu_psi_0 = -0.5
 sigma_psi_species = 0.5
+sigma_psi_genus = 0.25
 sigma_psi_site = 0.5 # variation across level2
 sigma_psi_ecoregion_three = 0.5 # variation across level3
 sigma_psi_ecoregion_one = 0.25 # variation across level4
@@ -500,7 +524,9 @@ sites_in_range_beta2 = 2
 ## --------------------------------------------------
 ### Simulate data
 set.seed(3)
-my_simulated_data <- simulate_data(n_species,
+my_simulated_data <- simulate_data(n_genera,
+                                   n_species_per_genera,
+                                   n_species = n_genera*n_species_per_genera,
                                    n_ecoregion_one,
                                    n_ecoregion_three_per_one,
                                    n_ecoregion_three,
@@ -512,6 +538,7 @@ my_simulated_data <- simulate_data(n_species,
                                    # ecological process
                                    mu_psi_0,
                                    sigma_psi_species,
+                                   sigma_psi_genus,
                                    sigma_psi_site,
                                    sigma_psi_ecoregion_three,
                                    sigma_psi_ecoregion_one,
@@ -575,6 +602,8 @@ ecoregion_one <- my_simulated_data$ecoregion_one
 ecoregion_three_lookup <- my_simulated_data$ecoregion_three_lookup
 ecoregion_one_lookup <- my_simulated_data$ecoregion_one_lookup
 species <- seq(1, n_species, by=1)
+n_genera <- my_simulated_data$n_genera
+genus_lookup <- my_simulated_data$genus_lookup
 
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
@@ -585,9 +614,9 @@ museum_total_records <- my_simulated_data$total_records_museum
 stan_data <- c("V_citsci", "V_museum", 
                "ranges", "V_museum_NA",
                "n_species", "n_sites", "n_intervals", "n_visits", 
-               "intervals", "species", "sites",
-               "n_ecoregion_three", "n_ecoregion_one",
-               "ecoregion_three", "ecoregion_one",
+               "intervals", 
+               "species", "n_genera", "genus_lookup",
+               "sites", "n_ecoregion_three", "n_ecoregion_one",
                "ecoregion_three_lookup", "ecoregion_one_lookup",
                "pop_densities", "site_areas", "open_developed", 
                "herb_shrub_forest", "museum_total_records") 
@@ -595,6 +624,7 @@ stan_data <- c("V_citsci", "V_museum",
 # Parameters monitored
 params <- c("mu_psi_0",
             "sigma_psi_species",
+            "sigma_psi_genus",
             "sigma_psi_site",
             "sigma_psi_ecoregion_three",
             "sigma_psi_ecoregion_one",
@@ -628,6 +658,7 @@ params <- c("mu_psi_0",
 
 parameter_value <- c(mu_psi_0,
                      sigma_psi_species,
+                     sigma_psi_genus,
                      sigma_psi_site,
                      sigma_psi_ecoregion_three,
                      sigma_psi_ecoregion_one,
@@ -704,7 +735,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./occupancy/models/model_bombus.stan"
+stan_model <- "./occupancy/models/model_syrphidae.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -720,8 +751,8 @@ stan_out_sim <- stan(stan_model,
 print(stan_out_sim, digits = 3)
 View(targets)
 
-saveRDS(stan_out_sim, "./occupancy/simulation/stan_out_sim.rds")
-stan_out_sim <- readRDS("./occupancy/simulation/stan_out_sim.rds")
+saveRDS(stan_out_sim, "./occupancy/simulation/stan_out_sim_syrphidae.rds")
+stan_out_sim <- readRDS("./occupancy/simulation/stan_out_sim_syrphidae.rds")
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
@@ -741,6 +772,7 @@ traceplot(stan_out_sim, pars = c(
 # traceplot
 traceplot(stan_out_sim, pars = c(
   "sigma_psi_species",
+  "sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",

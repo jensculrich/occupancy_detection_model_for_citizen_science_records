@@ -44,7 +44,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 30000 # e.g., 25000 = 25km x 25 km sites
+grid_size <- 50000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # Albers equal area
@@ -57,7 +57,7 @@ crs <- 5070
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
-min_population_size <- 300 
+min_population_size <- 500 
 
 # minimum site area 
 # if sites are super tiny, the observation process could likely be very unstable
@@ -94,7 +94,7 @@ crs(pop_raster)
 # DO NOT READ IF USING THE AGGREGATED/CROPPED FILE PRODUCED ONE TIME ONLY BELOW
 # land cover raster 30m x 30m
 # 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
-land=raster::raster("./data/spatial_data/land_use/land_cover/nlcd_2016_land_cover_l48_20210604.img")
+land=raster::raster("./data/spatial_data/land_cover/land_cover/nlcd_2016_land_cover_l48_20210604.img")
 raster::crs(land)
 
 ## --------------------------------------------------
@@ -119,14 +119,18 @@ raster::crs(land)
 #prj_states <- st_transform(states, crs_raster)
 
 # crop to smaller bounding box to make more manageable 
-#extent(land)
-#new_extent <- extent(-2493045, 2342655, 177285, 3310005)
-#land <- crop(x = land, y = new_extent)
+extent(land)
+new_extent <- extent(-2400000, -1800000, 1250000, 1800000)
+land_cropped <- crop(x = land, y = new_extent)
+
+extent(land)
+new_extent <- extent(-2075000, -1925000, 1400000, 1525000)
+land_cropped_zoom <- crop(x = land_cropped, y = new_extent)
 
 # finally, mask the raster to the study area (prj_states)
 #land <- raster::mask(land, prj_states)
 
-#writeRaster(land, "./data/spatial_data/land_use/land_use_full.tif", overwrite=TRUE)
+#writeRaster(land_cropped_zoom, "./data/spatial_data/land_use/land_use_full_southCA_zoom.tif", overwrite=TRUE)
 
 #rm(land, land_cropped)
 #gc()
@@ -151,7 +155,7 @@ grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>%
   st_sf(grid_id = 1:length(.))
 
 # create labels for each grid_id
-# grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
+grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 
 # view the grid on the polygons
 ggplot() +
@@ -267,22 +271,65 @@ prep_icar_data <- function (C, inv_sqrt_scale_factor = NULL) {
 icar.data <- prep_icar_data(C)
 
 ## --------------------------------------------------
-# Extract environmental variables from each remaining site
+# Try quantifying landscape configuration
+library(landscapemetrics)
+
+check_landscape(land)
 
 # make sure that the grid is still projected to the raster
 crs_raster <- sf::st_crs(raster::crs(land))
 prj1 <- st_transform(grid_pop_dens, crs_raster)
 
+# natural habitat
+temp <- reclassify(land, cbind(c(41, 42, 43, 52, 71), 1))
+temp <- reclassify(temp, cbind(c(0, 11, 12, 21, 22, 23, 24, 31, 51, 72, 73, 74, 81, 82, 90, 95), NA))
+
+plot(temp)
+
+my_metrics = sample_lsm(temp, prj1, 
+                        level = "landscape", metric = c("enn_mn"))
+
+## --------------------------------------------------
+# Extract environmental variables from each remaining site
+
+# make sure that the grid is still projected to the raster
+crs_raster <- sf::st_crs(raster::crs(land_cropped))
+prj1 <- st_transform(grid_pop_dens, crs_raster)
+
 # project the states to the raster
-crs_raster <- sf::st_crs(raster::crs(land))
+crs_raster <- sf::st_crs(raster::crs(land_cropped))
 prj_states <- st_transform(states_trans, crs_raster)
 
+# project the grid labels
+prj_grid_lab <- st_transform(grid_lab, crs_raster)
+
 # make a plot of the sites on the state background with land cover
-temp <- land
-temp[temp != 25] <- NA
+# 11, 12, 21, 22, 23, 24, 31, 41, 42, 43, 51, 52, 71, 72, 73, 74, 81, 82, 90, 95
+
+# natural habitat
+temp <- reclassify(land_cropped_zoom, cbind(c(41, 42, 43, 52, 71), 1))
+temp <- reclassify(temp, cbind(c(0, 11, 12, 21, 22, 23, 24, 31, 51, 72, 73, 74, 81, 82, 90, 95), NA))
+
+# open developed habitat
+temp <- reclassify(land_cropped_zoom, cbind(c(21), 1))
+temp <- reclassify(temp, cbind(c(0, 11, 12, 22, 23, 24, 31, 41, 42, 43, 51, 52, 71, 72, 73, 74, 81, 82, 90, 95), NA))
+
+# open dev
+temp <- land_cropped_zoom
+temp[temp != 21] <- NA
+
+# natural
+temp <- land_cropped_zoom
+temp[temp != c( 41, 42, 43, 52, 71)] <- NA
+
+rasterVis::levelplot(temp, xlab = "Longitude", ylab = "Latitude", 
+                     colorkey=FALSE) 
+
 plot(temp, 
-     xlab = "Longitude", ylab = "Latitude")
+     xlab = "Longitude", ylab = "Latitude",
+     col = "darkblue")
 plot(prj_states, colour = NA, add = TRUE)
+plot(prj_grid_lab, add = TRUE)
 plot(prj1, colour = NA, add = TRUE) +
   title("Land Use",
         adj = .5, line = 1)
@@ -376,7 +423,7 @@ grid_pop_dens <- cbind(grid_pop_dens,
 
 rm(crs_raster, grid, land, prj1, 
    r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
-   r.site_area, r.vals_land, r.vals_land_NA, states, states_trans)
+   r.site_area, r.vals_land, r.vals_land_NA, states)
 gc()
 
 ## --------------------------------------------------

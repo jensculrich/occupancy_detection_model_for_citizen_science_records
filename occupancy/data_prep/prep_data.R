@@ -25,7 +25,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       min_year_for_species_ranges,
                       taxon,
                       min_site_area,
-                      remove_unidentified_species
+                      remove_unidentified_species,
+                      consider_species_occurring_outside_sites,
+                      min_records_per_species_full
 ) {
   
   ## --------------------------------------------------
@@ -57,8 +59,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     
   }
   
-  
-  
   # spatial covariate data to pass to run model
   urban_grid <- my_spatial_data$urban_grid
   
@@ -87,6 +87,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
+  
+  ## --------------------------------------------------
+  # occurrence data ONLY FROM SITES
   
   # total records from time period
   total_records_since_2000 <- nrow(df_id_urban_filtered)
@@ -183,6 +186,186 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     left_join(., species_detections_museum)
   
   rm(species_detections_citsci, species_detections_museum)
+  
+  ## --------------------------------------------------
+  # occurrence data FROM ANYWHERE IN CONTINENTAL US
+  
+  # read either the syrphidae data or the bombus data
+  df_full <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv")) %>%
+    filter(species != "")
+  
+  # total records from time period
+  total_records_since_2000_full <- nrow(df_full)
+  
+  total_records_since_study_full <- df_full %>%
+    filter(year > era_start) %>%
+    nrow()
+  
+  # citsci and museum records from time period
+  citsci_records_full <- df_full %>%
+    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(year >= era_start) %>%
+    nrow()
+  
+  # citsci and museum records from time period
+  #citsci_detections_full <- df_full %>%
+    #filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    #filter(year >= era_start) %>%
+    # group_by(species, grid_id, year) %>%
+    #slice(1) %>%
+    #nrow()
+  
+  museum_records_full <- df_full %>%
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(year >= era_start) %>%
+    nrow()
+  
+  #museum_detections <- df_full %>%
+    #filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    #filter(year >= era_start) %>%
+    #group_by(species, grid_id, year) %>%
+    #slice(1) %>%
+    #nrow()
+  
+  # species counts
+  species_counts_full <- df_full %>%
+    filter(year > era_start) %>%
+    group_by(species) %>%
+    count(name="total_count")
+  
+  # species counts
+  species_counts_citsci_full <- df_full %>%
+    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(year > era_start) %>%
+    group_by(species) %>%
+    count(name="citsci_count")
+  
+  # species counts
+  species_counts_museum_full <- df_full %>%
+    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(year > era_start) %>%
+    group_by(species) %>%
+    count(name="museum_count")
+  
+  # species counts
+  species_counts_full <- species_counts_full %>%
+    left_join(., species_counts_citsci_full) %>%
+    left_join(., species_counts_museum_full)
+  
+  ## --------------------------------------------------
+  # assign species list based on whether we want occurrences from anywhere in the extent or sites only 
+  
+  # anywehere in the extent
+  if(consider_species_occurring_outside_sites == TRUE){
+    
+    ## Get unique species 
+    # create an alphabetized list of all species encountered across all sites*intervals*visits
+    species_list <- df_full %>%
+      # remove species with total observations (n) < min_records_per_species 
+      group_by(species) %>%
+      add_tally() %>%
+      filter(n >= min_records_per_species_full) %>%
+      ungroup() %>%
+      
+      group_by(species) %>%
+      slice(1) %>% # take one row per species (the name of each species)
+      ungroup() %>%
+      dplyr::select(species) # extract species names column as vector
+    
+    # get vectors of species, sites, intervals, and visits 
+    # these are all species that were observed at least min_records_per_species
+    species_vector <- species_list %>%
+      pull(species)
+    
+  } else { # else only from sites
+    
+    ## Get unique species 
+    # create an alphabetized list of all species encountered across all sites*intervals*visits
+    species_list <- df_filtered %>%
+      group_by(species) %>%
+      slice(1) %>% # take one row per species (the name of each species)
+      ungroup() %>%
+      dplyr::select(species) # extract species names column as vector
+    
+    # get vectors of species, sites, intervals, and visits 
+    # these are all species that were observed at least min_records_per_species
+    species_vector <- species_list %>%
+      pull(species)
+    
+  }
+  
+  ## --------------------------------------------------
+  # auto generate plot data (hashtag out if not using)
+  
+  # count for iNat vs Museum
+  out <- df_full %>%
+    group_by(basisOfRecord) %>% 
+    count(year)
+  
+  out2 <- df_id_urban_filtered %>%
+    group_by(basisOfRecord) %>% 
+    count(year)
+  
+  xints <- vector()
+  for(i in 1:(n_intervals+1)){
+    xints[i] <- (era_start - 0.5) + n_visits*(i - 1)
+  }
+  
+  xints2 <- vector()
+  for(i in 1:(n_intervals*n_visits + 1)){
+    xints2[i] <- (era_start - 0.5) + (i - 1)
+  }
+  
+  # Chronological record counts split by basis of record (any)
+  ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+    xlim(2000, 2023) + # choose some years for the axes
+    geom_line() +
+    scale_colour_manual(name = "Basis of records", 
+                        labels = c("Citizen science records", "Museum records"),
+                        values=c("red","blue")) +
+    geom_vline(xintercept=xints, 
+               linewidth=3, alpha=0.5) +
+    geom_vline(xintercept=xints2, 
+      linewidth=1, alpha=0.7, linetype = 'dotted') +
+    theme_bw() +
+    xlab("Year") +
+    ylab("Number of Records \n(continental U.S.)") +
+    theme(legend.position = c(0.15, 0.8),
+          legend.title = element_text(colour="black", size=14, 
+                                      face="bold"),
+          legend.text = element_text(colour="black", size=12),
+          axis.text = element_text(size = 16),
+          axis.title = element_text(size = 16)
+    )
+  
+  ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_full.pdf"),
+         width = 11, height = 8, units = "in") 
+  
+  # Chronological record counts split by basis of record (sites only)
+  ggplot(out2, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+    xlim(2000, 2023) + # choose some years for the axes
+    geom_line() +
+    scale_colour_manual(name = "Basis of Records", 
+                        labels = c("Citizen science records", "Museum records"),
+                        values=c("red","blue")) +
+    geom_vline(xintercept=xints, 
+               linewidth=3, alpha=0.5) +
+    geom_vline(xintercept=xints2, 
+               linewidth=1, alpha=0.7, linetype = 'dotted') +
+    theme_bw() +
+    xlab("Year") +
+    ylab("Number of Records \n(urban sites)") +
+    theme(legend.position = c(0.15, 0.8),
+          legend.title = element_text(colour="black", size=14, 
+                                      face="bold"),
+          legend.text = element_text(colour="black", size=12),
+          axis.text = element_text(size = 16),
+          axis.title = element_text(size = 16)
+    )
+  
+  ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_urban_sites.pdf"),
+         width = 11, height = 8, units = "in") 
+  
   
   ## --------------------------------------------------
   # assign study dimensions
@@ -451,19 +634,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # I use the list of all species and all sites 
   # rather than species and sites sampled potentially by only citizen science or by only museums
   # to generate these master lists of all possible sites and species
-  
-  ## Get unique species 
-  # create an alphabetized list of all species encountered across all sites*intervals*visits
-  species_list <- df_filtered %>%
-    group_by(species) %>%
-    slice(1) %>% # take one row per species (the name of each species)
-    ungroup() %>%
-    dplyr::select(species) # extract species names column as vector
-  
-  # get vectors of species, sites, intervals, and visits 
-  # these are all species that were observed at least min_records_per_species
-  species_vector <- species_list %>%
-    pull(species)
   
   ## Get unique sites 
   # create an alphabetized list of all sites
@@ -762,7 +932,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     museum_records = museum_records,
     museum_detections = museum_detections,
     species_counts = species_counts,
-    species_detections = species_detections
+    species_detections = species_detections,
+    
+    total_records_full = total_records_since_2000_full,
+    total_records_since_study_full = total_records_since_2000_full,
+    citsci_records_full = citsci_records_full,
+    museum_records_full = museum_records_full,
+    species_counts_full = species_counts_full
     
   ))
   

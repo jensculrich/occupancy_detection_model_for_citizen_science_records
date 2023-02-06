@@ -13,7 +13,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 15 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
+grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 500 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
@@ -34,15 +34,15 @@ remove_unidentified_species = TRUE
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
-era_start = 2008 # must define start date of the GBIF dataset
+era_start = 2011 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 3 # must define number of intervals to break up the era into
-n_visits = 5 # must define the number of repeat obs years within each interval
+n_intervals = 4 # must define number of intervals to break up the era into
+n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 4 # filters species with less than this many records (total between both datasets)..
-# within the time span defined above
-grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_records_per_species = 1 # filters species with less than this many records (total between both datasets)..
+# within the time span defined above (is only from urban sites, should redefine to be from anywhere)
+grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 500 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
@@ -54,11 +54,13 @@ min_year_for_species_ranges = 2000 # use all data from after this year to infer 
 taxon = "bombus" # taxon to analyze, either "syrphidae" or "bombus"
 # minimum site area (proportion of grid_sizeXgrid_size that is in the admin area mask and not open water)
 # if sites are super tiny, the observation process could likely be very unstable
-min_site_area = 0.10
+min_site_area = 0.20
 # remove specimens lacking species-level id before calculating summary statistics?
 # Note, they will get removed before sending to the model either way, but this turns on/off
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
 remove_unidentified_species = TRUE
+consider_species_occurring_outside_sites = TRUE  # consider species that were detected outside of the sites but not at sites?
+min_records_per_species_full = 20 # min rec threshold if above is true
 
 
 source("./occupancy/data_prep/prep_data.R")
@@ -78,7 +80,9 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      min_year_for_species_ranges = min_year_for_species_ranges,
                      taxon,
                      min_site_area,
-                     remove_unidentified_species
+                     remove_unidentified_species,
+                     consider_species_occurring_outside_sites,
+                     min_records_per_species_full
                      
 )
 
@@ -98,6 +102,7 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/_",
                           n_intervals, "_", n_visits, "_",
                           ".rds"))
 
+# best to restart R or offload all of the spatial data packages before running the model
 gc()
 
 library(rstan)
@@ -139,6 +144,7 @@ correlation_matrix <- my_data$correlation_matrix
 
 species_counts <- my_data$species_counts
 species_detections <- my_data$species_detections
+species_counts_full <- my_data$species_counts_full
 
 raw_pop_density <- my_data$raw_pop_density
 
@@ -148,6 +154,11 @@ citsci_records <- my_data$citsci_records
 citsci_detections <- my_data$citsci_detections
 museum_records <- my_data$museum_records
 museum_detections <- my_data$museum_detections
+
+total_records_full <- my_data$total_records_since_2000_full
+total_records_since_study_full <- my_data$total_records_since_2000_full
+citsci_records_full <- my_data$citsci_records_full
+museum_records_full <- my_data$museum_records_full
 
 # intervals will cause issues if you try to run on only 1 interval
 # since it's no longer sent in as a vector of intervals (can you force a single
@@ -209,9 +220,9 @@ if(taxon == "bombus"){
   
   
   # MCMC settings
-  n_iterations <- 1200
+  n_iterations <- 1000
   n_thin <- 1
-  n_burnin <- 600
+  n_burnin <- 500
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.9
@@ -376,8 +387,13 @@ stan_out <- readRDS(paste0(
 # print main effects
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
+          "sigma_psi_site",
+          "sigma_psi_ecoregion_three",
+          "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
+          "sigma_psi_herb_shrub_forest",
           "mu_psi_open_developed",
+          "sigma_psi_open_developed",
           "psi_site_area"))
 
 
@@ -395,6 +411,8 @@ print(stan_out, digits = 3, pars=
           "sigma_p_museum_site",
           "sigma_p_museum_ecoregion_three",
           "p_museum_total_records"))
+
+View(as.data.frame(species_names))
 
 # print sampled random effects
 print(stan_out, digits = 3, pars=
