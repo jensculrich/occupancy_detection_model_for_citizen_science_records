@@ -13,10 +13,8 @@ data {
   int<lower=1> n_sites;  // (number of) sites within region (level-2 clusters)
   int<lower=1, upper=n_sites> sites[n_sites];  // vector of sites
   int<lower=1> n_ecoregion_three;  // (number of) fine-scale (3) ecoregion areas (level-3 clusters)
-  int<lower=1, upper=n_sites> ecoregion_three[n_sites];  // vector of (3) ecoregion 
   int<lower=1> n_ecoregion_one;  // (number of) broad-scale (1) ecoregion areas (level-4 clusters)
-  int<lower=1, upper=n_sites> ecoregion_one[n_sites];  // vector of (1) ecoregion 
-  
+
   int<lower=1> ecoregion_three_lookup[n_sites]; // level-3 cluster look up vector for level-2 cluster
   int<lower=1> ecoregion_one_lookup[n_ecoregion_three]; // level-4 cluster look up vector for level-3 cluster
   
@@ -248,13 +246,13 @@ model {
   psi_species ~ normal(0, sigma_psi_species); 
   // occupancy intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_species ~ normal(0, 1); //informative prior
+  sigma_psi_species ~ normal(0, 0.5); //informative prior
   
   // level-2 spatial grouping
   psi_site ~ normal(0, sigma_psi_site); 
   // occupancy intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_site ~ normal(0, 0.2); // informative prior
+  sigma_psi_site ~ normal(0, 0.25); // informative prior
   // level-3 spatial grouping
   psi_ecoregion_three ~ normal(0, sigma_psi_ecoregion_three); 
   // prob of success intercept for each site drawn from the community

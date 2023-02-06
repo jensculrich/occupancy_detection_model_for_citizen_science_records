@@ -258,7 +258,7 @@ simulate_data <- function(n_genera,
             psi_species_nested[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
-            psi_open_developed[species]*open_developed[site] + # a species specific effect
+            # psi_open_developed[species]*open_developed[site] + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -607,7 +607,7 @@ genus_lookup <- my_simulated_data$genus_lookup
 
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
-open_developed <- my_simulated_data$open_developed
+# open_developed <- my_simulated_data$open_developed
 herb_shrub_forest <- my_simulated_data$herb_shrub_forest
 museum_total_records <- my_simulated_data$total_records_museum
 
@@ -618,7 +618,7 @@ stan_data <- c("V_citsci", "V_museum",
                "species", "n_genera", "genus_lookup",
                "sites", "n_ecoregion_three", "n_ecoregion_one",
                "ecoregion_three_lookup", "ecoregion_one_lookup",
-               "pop_densities", "site_areas", "open_developed", 
+               "pop_densities", "site_areas", 
                "herb_shrub_forest", "museum_total_records") 
 
 # Parameters monitored
@@ -628,8 +628,6 @@ params <- c("mu_psi_0",
             "sigma_psi_site",
             "sigma_psi_ecoregion_three",
             "sigma_psi_ecoregion_one",
-            "mu_psi_open_developed",
-            "sigma_psi_open_developed",
             "mu_psi_herb_shrub_forest",
             "sigma_psi_herb_shrub_forest",
             "psi_site_area",
@@ -662,8 +660,6 @@ parameter_value <- c(mu_psi_0,
                      sigma_psi_site,
                      sigma_psi_ecoregion_three,
                      sigma_psi_ecoregion_one,
-                     mu_psi_open_developed,
-                     sigma_psi_open_developed,
                      mu_psi_herb_shrub_forest,
                      sigma_psi_herb_shrub_forest,
                      psi_site_area,
@@ -708,8 +704,6 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_site = runif(1, 0, 1),
        sigma_psi_ecoregion_three = runif(1, 0, 1),
        sigma_psi_ecoregion_one = runif(1, 0, 1),
-       mu_psi_open_developed = runif(1, -1, 1),
-       sigma_psi_open_developed = runif(1, 0, 1),
        mu_psi_herb_shrub_forest = runif(1, -1, 1),
        sigma_psi_herb_shrub_forest = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
