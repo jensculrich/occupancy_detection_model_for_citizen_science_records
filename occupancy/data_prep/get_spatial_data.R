@@ -353,7 +353,9 @@ get_spatial_data <- function(
       filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110)) %>%
       
       # filter out records with high location uncertainty (threshold at 10km)
-      filter(coordinateUncertaintyInMeters < 10000 || is.na(coordinateUncertaintyInMeters))
+      # assuming na uncertainty (large portion of records) is under threshold
+      mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
+      filter(coordinateUncertaintyInMeters < 10000)
     
     # free unused space
     rm(df, df_sf, df_trans)

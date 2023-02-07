@@ -152,7 +152,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    psi_site_nested[i] <- ecoregion_one_intercepts[i] + 
+    psi_site_nested[i] <- mu_psi_0 + ecoregion_one_intercepts[i] + 
       ecoregion_three_intercepts[i] + site_intercepts[i]
     
   }
@@ -191,7 +191,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_citsci_site_nested[i] <- ecoregion_three_intercepts_p_citsci[i] + site_intercepts_p_citsci[i]
+    p_citsci_site_nested[i] <- mu_p_citsci_0 + ecoregion_three_intercepts_p_citsci[i] + site_intercepts_p_citsci[i]
     
   }
   
@@ -211,7 +211,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_museum_site_nested[i] <- ecoregion_three_intercepts_p_museum[i] + site_intercepts_p_museum[i]
+    p_museum_site_nested[i] <- mu_p_museum_0 + ecoregion_three_intercepts_p_museum[i] + site_intercepts_p_museum[i]
     
   }
   
@@ -236,7 +236,7 @@ simulate_data <- function(n_species,
       for(interval in 1:n_intervals) { # for each species
         
         logit_psi_matrix[species, site, interval] <- # occupancy is equal to
-          mu_psi_0 + # a baseline intercept
+          #mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
@@ -246,14 +246,14 @@ simulate_data <- function(n_species,
         for(visit in 1:n_visits) { # for each visit
           
           logit_p_matrix_citsci[species, site, interval, visit] <- # detection is equal to 
-            mu_p_citsci_0 + # a baseline intercept
+            #mu_p_citsci_0 + # a baseline intercept
               p_citsci_species[species] + # a species specific intercept
               p_citsci_site_nested[site] + # a spatiotemporally specific intercept
               p_citsci_interval*intervals[interval] + # an overall effect of time on detection
               p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           logit_p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
-            mu_p_museum_0 + # a baseline intercept
+            #mu_p_museum_0 + # a baseline intercept
               p_museum_species[species] + # a species specific intercept
               p_museum_site_nested[site] + # a spatiotemporally specific intercept
               p_museum_total_records*total_records_museum[site,interval]
@@ -452,11 +452,11 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
-n_ecoregion_one = 7
-n_ecoregion_three_per_one = 7 # ecoregion3 per ecoregion1
+n_species = 12 ## number of species
+n_ecoregion_one = 8
+n_ecoregion_three_per_one = 5 # ecoregion3 per ecoregion1
 n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
-n_sites_per_ecoregion_three = 8
+n_sites_per_ecoregion_three = 5
 n_sites = n_sites_per_ecoregion_three*n_ecoregion_three ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 3 ## number of samples per year
@@ -704,7 +704,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./occupancy/models/model_bombus.stan"
+stan_model <- "./occupancy/models/model_bombus_vectorized.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,

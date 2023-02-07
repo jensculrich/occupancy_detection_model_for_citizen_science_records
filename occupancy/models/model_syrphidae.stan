@@ -321,27 +321,27 @@ model {
   p_citsci_pop_density ~ normal(0, 1);
   
   // museum records
-  
-  mu_p_museum_0 ~ normal(0, 2); // global intercept for detection
+  // strongly-informative priors for the sparse museum data (strong pooling across groups)
+  mu_p_museum_0 ~ normal(0, 1); // global intercept for detection
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ normal(0, 0.5);
+  sigma_p_museum_species ~ normal(0, 0.25);
   
   // level-2 spatial grouping
   p_museum_site ~ normal(0, sigma_p_museum_site);
   // detection intercept for each site drawn from the spatially heterogenous
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_site ~ normal(0, 0.25); // spatial variance
+  sigma_p_museum_site ~ normal(0, 0.1); // spatial variance
   // level-3 spatial grouping
   p_museum_ecoregion_three ~ normal(0, sigma_p_museum_ecoregion_three); 
   // prob of success intercept for each site drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_ecoregion_three ~ normal(0, 0.5); // weakly informative prior
+  sigma_p_museum_ecoregion_three ~ normal(0, 0.1); // weakly informative prior
   
   // an effect of total records at the site during the interval
-  p_museum_total_records ~ normal(0, 1);
+  p_museum_total_records ~ normal(0, 0.25);
   
   // LIKELIHOOD
   

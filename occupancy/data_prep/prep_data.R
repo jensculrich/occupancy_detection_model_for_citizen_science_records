@@ -192,7 +192,19 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # read either the syrphidae data or the bombus data
   df_full <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv")) %>%
-    filter(species != "")
+    filter(species != "") %>% 
+    
+    # and perform any further initial data filters
+    
+    # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
+    # (filter out occurrences west of 105 Longitude)
+    filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
+    filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110)) %>%
+    
+    # filter out records with high location uncertainty (threshold at 10km)
+    # assuming na uncertainty (large portion of records) is under threshold
+    mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
+    filter(coordinateUncertaintyInMeters < 10000)
   
   # total records from time period
   total_records_since_2000_full <- nrow(df_full)
@@ -204,7 +216,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # citsci and museum records from time period
   citsci_records_full <- df_full %>%
     filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
-    filter(year >= era_start) %>%
     nrow()
   
   # citsci and museum records from time period
@@ -217,7 +228,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   museum_records_full <- df_full %>%
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
-    filter(year >= era_start) %>%
     nrow()
   
   #museum_detections <- df_full %>%
@@ -229,21 +239,18 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species counts
   species_counts_full <- df_full %>%
-    filter(year > era_start) %>%
     group_by(species) %>%
     count(name="total_count")
   
   # species counts
   species_counts_citsci_full <- df_full %>%
     filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
-    filter(year > era_start) %>%
     group_by(species) %>%
     count(name="citsci_count")
   
   # species counts
   species_counts_museum_full <- df_full %>%
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
-    filter(year > era_start) %>%
     group_by(species) %>%
     count(name="museum_count")
   
@@ -261,6 +268,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     ## Get unique species 
     # create an alphabetized list of all species encountered across all sites*intervals*visits
     species_list <- df_full %>%
+      
       # remove species with total observations (n) < min_records_per_species 
       group_by(species) %>%
       add_tally() %>%
@@ -291,6 +299,25 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # these are all species that were observed at least min_records_per_species
     species_vector <- species_list %>%
       pull(species)
+    
+  }
+  
+  ## --------------------------------------------------
+  # get genus for phylogenetic clustering
+  if(taxon == "syrphidae"){
+    
+    genus_lookup <- species_list %>%
+      mutate(genus = word(species, 1)) %>%
+      pull(genus)
+    
+    genus_vector <- species_list %>%
+      mutate(genus = word(species, 1)) %>%
+      group_by(genus) %>%
+      slice(1) %>%
+      ungroup() %>%
+      pull(genus) 
+    
+    n_genera <- length(genus_vector)
     
   }
   
@@ -404,10 +431,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(visit = (occ_year %% n_visits)) %>%
     
     # remove species with total observations (n) < min_records_per_species 
-    group_by(species) %>%
-    add_tally() %>%
-    filter(n >= min_records_per_species) %>%
-    ungroup() %>%
+    filter(species %in% species_vector) %>%
     
     # # one unique row per site*species*occ_interval*visit combination
     # group_by(grid_id, species, occ_interval, visit) %>% 
@@ -444,11 +468,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(visit = (occ_year %% n_visits)) %>%
     
     # remove species with total observations (n) < min_records_per_species
-    # these are records across all citizen science AND preserved specimen records
-    group_by(species) %>%
-    add_tally() %>%
-    filter(n >= min_records_per_species) %>%
-    ungroup() %>%
+    # remove species with total observations (n) < min_records_per_species 
+    filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
     filter(basisOfRecord == "HUMAN_OBSERVATION") %>% 
@@ -489,11 +510,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(visit = (occ_year %% n_visits)) %>%
     
     # remove species with total observations (n) < min_records_per_species
-    # these are records across all citizen science AND preserved specimen records
-    group_by(species) %>%
-    add_tally() %>%
-    filter(n >= min_records_per_species) %>%
-    ungroup() %>%
+    filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
@@ -540,11 +557,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(visit = (occ_year %% n_visits)) %>%
     
     # remove species with total observations (n) < min_records_per_species
-    # these are records across all citizen science AND preserved specimen records
-    group_by(species) %>%
-    add_tally() %>%
-    filter(n >= min_records_per_species) %>%
-    ungroup() %>%
+    filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
@@ -594,11 +607,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(visit = (occ_year %% n_visits)) %>%
     
     # remove species with total observations (n) < min_records_per_species
-    # these are records across all citizen science AND preserved specimen records
-    group_by(species) %>%
-    add_tally() %>%
-    filter(n >= min_records_per_species) %>%
-    ungroup() %>%
+    filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
     filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
@@ -905,6 +914,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     intervals = interval_vector,
     sites = site_vector,
     species = species_vector,
+    n_genera = n_genera,
+    genera = genus_vector,
+    genus_lookup = genus_lookup,
     
     raw_pop_density = raw_pop_density,
     pop_densities = pop_density_vector,
