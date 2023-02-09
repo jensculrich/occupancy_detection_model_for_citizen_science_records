@@ -704,7 +704,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./occupancy/models/model_bombus_vectorized.stan"
+stan_model <- "./occupancy/models/model_bombus.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,

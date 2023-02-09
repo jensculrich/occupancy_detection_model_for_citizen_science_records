@@ -283,22 +283,22 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 2); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
-  p_museum_site ~ normal(0, 1);
-  sigma_p_museum_site ~ normal(0,0.5);
+  p_museum_site ~ normal(0, 0.5);
+  sigma_p_museum_site ~ normal(0,0.1);
   //level-3 spatial grouping
-  p_museum_ecoregion_three  ~ normal(0, 1);
-  sigma_p_museum_ecoregion_three ~ normal(0,0.5);
+  p_museum_ecoregion_three  ~ normal(0, 0.5);
+  sigma_p_museum_ecoregion_three ~ normal(0,0.1);
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ normal(0, 0.5);
+  sigma_p_museum_species ~ normal(0, 0.1);
   
   // an effect of total records at the site during the interval
-  p_museum_total_records ~ normal(0, 1);
+  p_museum_total_records ~ normal(0, 0.5);
   
   // LIKELIHOOD
   

@@ -44,7 +44,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 50000 # e.g., 25000 = 25km x 25 km sites
+grid_size <- 20000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # Albers equal area
@@ -57,7 +57,7 @@ crs <- 5070
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
-min_population_size <- 500 
+min_population_size <- 1000 
 
 # minimum site area 
 # if sites are super tiny, the observation process could likely be very unstable
@@ -119,13 +119,13 @@ raster::crs(land)
 #prj_states <- st_transform(states, crs_raster)
 
 # crop to smaller bounding box to make more manageable 
-extent(land)
-new_extent <- extent(-2400000, -1800000, 1250000, 1800000)
-land_cropped <- crop(x = land, y = new_extent)
+#extent(land)
+#new_extent <- extent(-2400000, -1800000, 1250000, 1800000)
+#land_cropped <- crop(x = land, y = new_extent)
 
-extent(land)
-new_extent <- extent(-2075000, -1925000, 1400000, 1525000)
-land_cropped_zoom <- crop(x = land_cropped, y = new_extent)
+#extent(land)
+#new_extent <- extent(-2075000, -1925000, 1400000, 1525000)
+#land_cropped_zoom <- crop(x = land_cropped, y = new_extent)
 
 # finally, mask the raster to the study area (prj_states)
 #land <- raster::mask(land, prj_states)
@@ -160,7 +160,7 @@ grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 # view the grid on the polygons
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
+  #geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
   # geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
   coord_sf(datum = NA)  +
   labs(x = "") +
@@ -336,6 +336,14 @@ plot(prj1, colour = NA, add = TRUE) +
 
 # then extract values and cbind with the grid_pop_dens
 # extract raster values to list object
+# make sure that the grid is still projected to the raster
+crs_raster <- sf::st_crs(raster::crs(land))
+prj1 <- st_transform(grid_pop_dens, crs_raster)
+
+# project the states to the raster
+crs_raster <- sf::st_crs(raster::crs(land))
+prj_states <- st_transform(states_trans, crs_raster)
+
 
 r.vals_land <- exactextractr::exact_extract(land, prj1)
 gc()

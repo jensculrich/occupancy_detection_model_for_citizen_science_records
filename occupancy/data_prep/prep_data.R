@@ -319,6 +319,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     
     n_genera <- length(genus_vector)
     
+  } else {
+    
+    # no generic clustering for bumblebees
+    genus_lookup <- NULL
+    genus_vector <- NULL
+    n_genera <- NULL
+    
   }
   
   ## --------------------------------------------------

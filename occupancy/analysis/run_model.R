@@ -44,8 +44,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 1 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 500 # min pop density in the grid cell (per km^2)
+grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 750 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -124,7 +124,7 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-#saveRDS(species_names, "./figures/syrphidae_names_15min.RDS")
+#saveRDS(species_names, "./figures/bombus_names_20min.RDS")
 
 pop_densities <- my_data$pop_densities
 open_developed <- my_data$developed_open
@@ -213,6 +213,7 @@ if(taxon == "bombus"){
               "sigma_p_museum_ecoregion_three",
               "p_museum_total_records",
               
+              "psi_species",
               "psi_open_developed",
               "psi_herb_shrub_forest",
               
@@ -227,9 +228,9 @@ if(taxon == "bombus"){
   
   
   # MCMC settings
-  n_iterations <- 1000
+  n_iterations <- 1200
   n_thin <- 1
-  n_burnin <- 500
+  n_burnin <- 600
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.9
@@ -257,11 +258,11 @@ if(taxon == "bombus"){
          p_citsci_interval = runif(1, -1, 1),
          p_citsci_pop_density = runif(1, -1, 1),
          
-         mu_p_museum_0 = runif(1, -1, 0),
-         sigma_p_museum_species = runif(1, 0, 0.5),
-         sigma_p_museum_site = runif(1, 0, 0.5),
-         sigma_p_museum_ecoregion_three = runif(1, 0, 0.5),
-         p_museum_total_records = runif(1, -1, 1)
+         mu_p_museum_0 = runif(1, -0.5, 0.5),
+         sigma_p_museum_species = runif(1, 0, 0.1),
+         sigma_p_museum_site = runif(1, 0, 0.1),
+         sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
+         p_museum_total_records = runif(1,  -0.5, 0.5)
          
     )
   )
@@ -303,6 +304,7 @@ if(taxon == "bombus"){
               "sigma_p_museum_ecoregion_three",
               "p_museum_total_records",
               
+              "psi_species",
               "psi_herb_shrub_forest",
               
               #"T_rep_citsci",
@@ -347,11 +349,11 @@ if(taxon == "bombus"){
          p_citsci_interval = runif(1, -1, 1),
          p_citsci_pop_density = runif(1, -1, 1),
          
-         mu_p_museum_0 = runif(1, -1, 0),
-         sigma_p_museum_species = runif(1, 0, 0.5),
-         sigma_p_museum_site = runif(1, 0, 0.5),
-         sigma_p_museum_ecoregion_three = runif(1, 0, 0.5),
-         p_museum_total_records = runif(1, -1, 1)
+         mu_p_museum_0 = runif(1, -0.5, 0.5),
+         sigma_p_museum_species = runif(1, 0, 0.1),
+         sigma_p_museum_site = runif(1, 0, 0.1),
+         sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
+         p_museum_total_records = runif(1,  -0.5, 0.5)
          
     )
   )
@@ -468,7 +470,7 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  #"mu_psi_open_developed",
+  "mu_psi_open_developed",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -479,11 +481,11 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  "sigma_psi_genus",
+  #"sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  #"sigma_psi_open_developed",
+  "sigma_psi_open_developed",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
