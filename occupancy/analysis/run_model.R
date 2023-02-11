@@ -5,16 +5,16 @@
 ## --------------------------------------------------
 # input data preparation choices - SYRPHIDAE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
-era_start = 2014 # must define start date of the GBIF dataset
+era_start = 2011 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 3 # must define number of intervals to break up the era into
-n_visits = 3 # must define the number of repeat obs years within each interval
+n_intervals = 2 # must define number of intervals to break up the era into
+n_visits = 6 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 15 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 400 # min pop density in the grid cell (per km^2)
+grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 750 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -25,7 +25,7 @@ min_year_for_species_ranges = 2000 # use all data from after this year to infer 
 taxon = "syrphidae" # taxon to analyze, either "syrphidae" or "bombus"
 # minimum site area 
 # if sites are super tiny, the observation process could likely be very unstable
-min_site_area = 0.10
+min_site_area = 0.20
 # remove specimens lacking species-level id before calculating summary statistics?
 # Note, they will get removed before sending to the model either way, but this turns on/off
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
@@ -401,8 +401,8 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          "mu_psi_open_developed",
-          "sigma_psi_open_developed",
+          #"mu_psi_open_developed",
+          #"sigma_psi_open_developed",
           "psi_site_area"))
 
 
@@ -470,7 +470,7 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  "mu_psi_open_developed",
+  #"mu_psi_open_developed",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -485,7 +485,7 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_open_developed",
+  #"sigma_psi_open_developed",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",

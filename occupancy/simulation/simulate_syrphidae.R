@@ -170,7 +170,7 @@ simulate_data <- function(n_genera,
   
   for(i in 1:n_sites){
     
-    psi_site_nested[i] <- ecoregion_one_intercepts[i] + 
+    psi_site_nested[i] <- mu_psi_0 + ecoregion_one_intercepts[i] + 
       ecoregion_three_intercepts[i] + site_intercepts[i]
     
   }
@@ -209,7 +209,7 @@ simulate_data <- function(n_genera,
   
   for(i in 1:n_sites){
     
-    p_citsci_site_nested[i] <- ecoregion_three_intercepts_p_citsci[i] + site_intercepts_p_citsci[i]
+    p_citsci_site_nested[i] <- mu_p_citsci_0 + ecoregion_three_intercepts_p_citsci[i] + site_intercepts_p_citsci[i]
     
   }
   
@@ -229,7 +229,7 @@ simulate_data <- function(n_genera,
   
   for(i in 1:n_sites){
     
-    p_museum_site_nested[i] <- ecoregion_three_intercepts_p_museum[i] + site_intercepts_p_museum[i]
+    p_museum_site_nested[i] <- mu_p_museum_0 + ecoregion_three_intercepts_p_museum[i] + site_intercepts_p_museum[i]
     
   }
   
@@ -254,7 +254,7 @@ simulate_data <- function(n_genera,
       for(interval in 1:n_intervals) { # for each species
         
         logit_psi_matrix[species, site, interval] <- # occupancy is equal to
-          mu_psi_0 + # a baseline intercept
+          #mu_psi_0 + # a baseline intercept
             psi_species_nested[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
@@ -264,14 +264,14 @@ simulate_data <- function(n_genera,
         for(visit in 1:n_visits) { # for each visit
           
           logit_p_matrix_citsci[species, site, interval, visit] <- # detection is equal to 
-            mu_p_citsci_0 + # a baseline intercept
+            #mu_p_citsci_0 + # a baseline intercept
               p_citsci_species[species] + # a species specific intercept
               p_citsci_site_nested[site] + # a spatiotemporally specific intercept
               p_citsci_interval*intervals[interval] + # an overall effect of time on detection
               p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           logit_p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
-            mu_p_museum_0 + # a baseline intercept
+            #mu_p_museum_0 + # a baseline intercept
               p_museum_species[species] + # a species specific intercept
               p_museum_site_nested[site] + # a spatiotemporally specific intercept
               p_museum_total_records*total_records_museum[site,interval]
@@ -473,13 +473,13 @@ simulate_data <- function(n_genera,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_genera = 10 ## number of genera
+n_genera = 7 ## number of genera
 n_species_per_genera = 4 ## number of species
 n_species = n_genera*n_species_per_genera
 n_ecoregion_one = 7
 n_ecoregion_three_per_one = 7 # ecoregion3 per ecoregion1
 n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
-n_sites_per_ecoregion_three = 8
+n_sites_per_ecoregion_three = 4
 n_sites = n_sites_per_ecoregion_three*n_ecoregion_three ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 3 ## number of samples per year
@@ -687,7 +687,7 @@ parameter_value <- c(mu_psi_0,
 
 # MCMC settings
 n_iterations <- 800
-n_thin <- 1
+n_thin <- 2
 n_burnin <- 400
 n_chains <- 4
 n_cores <- 4
@@ -755,7 +755,6 @@ stan_out_sim <- readRDS("./occupancy/simulation/stan_out_sim_syrphidae.rds")
 traceplot(stan_out_sim, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  "mu_psi_open_developed",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -770,7 +769,6 @@ traceplot(stan_out_sim, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_open_developed",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
