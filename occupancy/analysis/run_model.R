@@ -7,8 +7,8 @@
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
 era_start = 2011 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 2 # must define number of intervals to break up the era into
-n_visits = 6 # must define the number of repeat obs years within each interval
+n_intervals = 4 # must define number of intervals to break up the era into
+n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 15 # filters species with less than this many records (total between both datasets)..
@@ -363,7 +363,7 @@ if(taxon == "bombus"){
 
 ## --------------------------------------------------
 ### Run model
-stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+stan_model <- paste0("./occupancy/models/model_", taxon, "_sq.stan")
 
 ## Call Stan from R
 stan_out <- stan(stan_model,
@@ -381,7 +381,7 @@ saveRDS(stan_out, paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
   "km_", min_population_size, "minpop", 
   min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, ".RDS"
+  n_intervals, "_", n_visits, "_sq.RDS"
 )
 )
 
