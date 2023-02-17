@@ -124,7 +124,7 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-#saveRDS(species_names, "./figures/bombus_names_20min.RDS")
+# saveRDS(species_names, "./figures/syrphidae_names_15min.RDS")
 
 pop_densities <- my_data$pop_densities
 open_developed <- my_data$developed_open
