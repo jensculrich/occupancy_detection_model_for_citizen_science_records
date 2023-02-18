@@ -320,12 +320,23 @@ get_spatial_data <- function(
     # Occurrence data
     
     # read either the syrphidae data or the bombus data
-    df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
+    if(taxon == "syrphidae"){
+      df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
+    } else {
+      df <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
+    }
     
     ## --------------------------------------------------
     # Prep the data
     
     # make the df into a spatial file
+    df$decimalLongitude <- na_if(df$decimalLongitude, '')
+    df$decimalLatitude <- na_if(df$decimalLatitude, '')
+    
+    df <- df %>% 
+      filter(!is.na(decimalLongitude)) %>%
+      filter(!is.na(decimalLatitude))
+    
     (df_sf <- st_as_sf(df,
                        coords = c("decimalLongitude", "decimalLatitude"), 
                        crs = 4326))
@@ -349,9 +360,8 @@ get_spatial_data <- function(
     
       # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
       # (filter out occurrences west of 105 Longitude)
-      filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
-      filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110)) %>%
-      
+      filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
+
       # filter out records with high location uncertainty (threshold at 10km)
       # assuming na uncertainty (large portion of records) is under threshold
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%

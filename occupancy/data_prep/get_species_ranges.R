@@ -28,7 +28,14 @@ get_species_ranges <- function(
   # read occurrence data
   # this is occurrence data from all time records, not just from the study time span 
   # read the occurrence data for the given taxon
-  df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv")) %>%
+  # read either the syrphidae data or the bombus data
+  if(taxon == "syrphidae"){
+    df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
+  } else {
+    df <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
+  }
+  
+  df <- df %>%
     
     # filter out records with high location uncertainty (threshold at 10km)
     # assuming na uncertainty (large portion of records) is under threshold
@@ -38,9 +45,8 @@ get_species_ranges <- function(
     # filter any ranges to core range if desired
     # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
     # (filter out occurrences west of 105 Longitude)
-    filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
-    filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110))
-  
+    filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
+
   urban_grid <- urban_grid %>% rename("geometry" = ".")
   
   

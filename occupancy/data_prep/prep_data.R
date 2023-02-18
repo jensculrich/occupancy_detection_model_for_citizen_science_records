@@ -100,25 +100,25 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # citsci and museum records from time period
   citsci_records <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(basisOfRecord == "community_science") %>%
     filter(year >= era_start) %>%
     nrow()
   
   # citsci and museum records from time period
   citsci_detections <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(basisOfRecord == "community_science") %>%
     filter(year >= era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
     nrow()
   
   museum_records <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(basisOfRecord == "research_collection") %>%
     filter(year >= era_start) %>%
     nrow()
   
   museum_detections <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(basisOfRecord == "research_collection") %>%
     filter(year >= era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
@@ -132,14 +132,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species counts
   species_counts_citsci <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(basisOfRecord == "community_science") %>%
     filter(year > era_start) %>%
     group_by(species) %>%
     count(name="citsci_count")
   
   # species counts
   species_counts_museum <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(basisOfRecord == "research_collection") %>%
     filter(year > era_start) %>%
     group_by(species) %>%
     count(name="museum_count")
@@ -162,7 +162,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species detections
   species_detections_citsci <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(basisOfRecord == "community_science") %>%
     filter(year > era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
@@ -172,7 +172,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species detections
   species_detections_museum <- df_id_urban_filtered %>%
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(basisOfRecord == "research_collection") %>%
     filter(year > era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
@@ -191,16 +191,22 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # occurrence data FROM ANYWHERE IN CONTINENTAL US
   
   # read either the syrphidae data or the bombus data
-  df_full <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv")) %>%
+  # read either the syrphidae data or the bombus data
+  if(taxon == "syrphidae"){
+    df_full <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
+  } else {
+    df_full <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
+  }
+  
+  df_full <- df_full %>%
     filter(species != "") %>% 
     
     # and perform any further initial data filters
     
     # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
     # (filter out occurrences west of 105 Longitude)
-    filter(!(species == "Bombus impatiens" & decimalLongitude < -105)) %>%
-    filter(!(species == "Bombus pensylvanicus" & decimalLongitude < -110)) %>%
-    
+    filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
+
     # filter out records with high location uncertainty (threshold at 10km)
     # assuming na uncertainty (large portion of records) is under threshold
     mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
@@ -215,23 +221,23 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # citsci and museum records from time period
   citsci_records_full <- df_full %>%
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(basisOfRecord == "community_science") %>%
     nrow()
   
   # citsci and museum records from time period
   #citsci_detections_full <- df_full %>%
-    #filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    #filter(basisOfRecord == "community_science") %>%
     #filter(year >= era_start) %>%
     # group_by(species, grid_id, year) %>%
     #slice(1) %>%
     #nrow()
   
   museum_records_full <- df_full %>%
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(basisOfRecord == "research_collection") %>%
     nrow()
   
   #museum_detections <- df_full %>%
-    #filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    #filter(basisOfRecord == "research_collection") %>%
     #filter(year >= era_start) %>%
     #group_by(species, grid_id, year) %>%
     #slice(1) %>%
@@ -244,13 +250,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species counts
   species_counts_citsci_full <- df_full %>%
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>%
+    filter(basisOfRecord == "community_science") %>%
     group_by(species) %>%
     count(name="citsci_count")
   
   # species counts
   species_counts_museum_full <- df_full %>%
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>%
+    filter(basisOfRecord == "research_collection") %>%
     group_by(species) %>%
     count(name="museum_count")
   
@@ -289,7 +295,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     
     ## Get unique species 
     # create an alphabetized list of all species encountered across all sites*intervals*visits
-    species_list <- df_filtered %>%
+    species_list <- df_id_urban_filtered %>%
       group_by(species) %>%
       slice(1) %>% # take one row per species (the name of each species)
       ungroup() %>%
@@ -355,7 +361,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     xlim(2000, 2023) + # choose some years for the axes
     geom_line() +
     scale_colour_manual(name = "Basis of records", 
-                        labels = c("Citizen science records", "Museum records"),
+                        labels = c("Community science records", "Research collections"),
                         values=c("red","blue")) +
     geom_vline(xintercept=xints, 
                linewidth=3, alpha=0.5) +
@@ -380,7 +386,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     xlim(2000, 2023) + # choose some years for the axes
     geom_line() +
     scale_colour_manual(name = "Basis of Records", 
-                        labels = c("Citizen science records", "Museum records"),
+                        labels = c("Community science records", "Research collections"),
                         values=c("red","blue")) +
     geom_vline(xintercept=xints, 
                linewidth=3, alpha=0.5) +
@@ -479,7 +485,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
-    filter(basisOfRecord == "HUMAN_OBSERVATION") %>% 
+    filter(basisOfRecord == "community_science") %>% 
     
     # one unique row per site*species*occ_interval*visit combination
     # contrast this line with the abundance models!
@@ -520,7 +526,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
+    filter(basisOfRecord == "research_collection") %>% 
     
     # determine whether a community sampling event occurred
     # using collector name might be overly conservative because for example
@@ -544,52 +550,108 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   ## --------------------------------------------------
   # museum community samples
   
-  community_samples <- df_id_urban_filtered %>%
+  # group by institution for syrphidae, by observers for bumble bees
+  
+  if(taxon == "syrphidae"){
     
-    # remove records (if any) missing species level identification
-    filter(species != "") %>%
+    community_samples <- df_id_urban_filtered %>%
+      
+      # remove records (if any) missing species level identification
+      filter(species != "") %>%
+      
+      # assign year as - year after era_start
+      mutate(occ_year = (year - era_start)) %>%
+      
+      # remove years before the start date
+      filter(occ_year >= 0) %>%
+      # remove years after end date
+      filter(occ_year < total_years) %>%
+      
+      # now assign the years into 1:n_intervals
+      mutate(occ_interval = occ_year %/% n_visits) %>%
+      
+      # add a sampling round (1:n)
+      mutate(visit = (occ_year %% n_visits)) %>%
+      
+      # remove species with total observations (n) < min_records_per_species
+      filter(species %in% species_vector) %>%
+      
+      # filter to citizen science data only
+      filter(basisOfRecord == "research_collection") %>% 
+      
+      # determine whether a community sampling event occurred
+      # using collector name might be overly conservative because for example
+      # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
+      # instead grouping by collections housed in the same institution from the same year
+      # within a site
+      group_by(institutionCode, year, grid_id) %>%
+      mutate(n_species_sampled = n_distinct(species)) %>%
+      ungroup() %>%
+      dplyr::select(grid_id, occ_interval, occ_year, visit, species, n_species_sampled) %>%
+      group_by(grid_id, occ_interval, occ_year, visit) %>%
+      # slice max in case there are multiple institutions collecting from a site in a year
+      slice_max(n_species_sampled) %>%
+      # then take one per year
+      slice(1) %>%
+      mutate(community_sampled = ifelse(
+        n_species_sampled >= min_species_for_community_sampling_event,
+        1, 0)) %>%
+      dplyr::select(-species, -n_species_sampled) %>%
+      mutate(occ_interval = as.character(occ_interval),
+             visit = as.character(visit))
+    # end pipe
     
-    # assign year as - year after era_start
-    mutate(occ_year = (year - era_start)) %>%
+  } else {
     
-    # remove years before the start date
-    filter(occ_year >= 0) %>%
-    # remove years after end date
-    filter(occ_year < total_years) %>%
+    community_samples <- df_id_urban_filtered %>%
+      
+      # remove records (if any) missing species level identification
+      filter(species != "") %>%
+      
+      # assign year as - year after era_start
+      mutate(occ_year = (year - era_start)) %>%
+      
+      # remove years before the start date
+      filter(occ_year >= 0) %>%
+      # remove years after end date
+      filter(occ_year < total_years) %>%
+      
+      # now assign the years into 1:n_intervals
+      mutate(occ_interval = occ_year %/% n_visits) %>%
+      
+      # add a sampling round (1:n)
+      mutate(visit = (occ_year %% n_visits)) %>%
+      
+      # remove species with total observations (n) < min_records_per_species
+      filter(species %in% species_vector) %>%
+      
+      # filter to citizen science data only
+      filter(basisOfRecord == "research_collection") %>% 
+      
+      # determine whether a community sampling event occurred
+      # using collector name might be overly conservative because for example
+      # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
+      # instead grouping by collections housed in the same institution from the same year
+      # within a site
+      group_by(observers, year, grid_id) %>%
+      mutate(n_species_sampled = n_distinct(species)) %>%
+      ungroup() %>%
+      dplyr::select(grid_id, occ_interval, occ_year, visit, species, n_species_sampled) %>%
+      group_by(grid_id, occ_interval, occ_year, visit) %>%
+      # slice max in case there are multiple institutions collecting from a site in a year
+      slice_max(n_species_sampled) %>%
+      # then take one per year
+      slice(1) %>%
+      mutate(community_sampled = ifelse(
+        n_species_sampled >= min_species_for_community_sampling_event,
+        1, 0)) %>%
+      dplyr::select(-species, -n_species_sampled) %>%
+      mutate(occ_interval = as.character(occ_interval),
+             visit = as.character(visit))
+    # end pipe
     
-    # now assign the years into 1:n_intervals
-    mutate(occ_interval = occ_year %/% n_visits) %>%
-    
-    # add a sampling round (1:n)
-    mutate(visit = (occ_year %% n_visits)) %>%
-    
-    # remove species with total observations (n) < min_records_per_species
-    filter(species %in% species_vector) %>%
-    
-    # filter to citizen science data only
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
-    
-    # determine whether a community sampling event occurred
-    # using collector name might be overly conservative because for example
-    # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
-    # instead grouping by collections housed in the same institution from the same year
-    # within a site
-    group_by(institutionCode, year, grid_id) %>%
-    mutate(n_species_sampled = n_distinct(species)) %>%
-    ungroup() %>%
-    dplyr::select(grid_id, occ_interval, occ_year, visit, species, n_species_sampled) %>%
-    group_by(grid_id, occ_interval, occ_year, visit) %>%
-    # slice max in case there are multiple institutions collecting from a site in a year
-    slice_max(n_species_sampled) %>%
-    # then take one per year
-    slice(1) %>%
-    mutate(community_sampled = ifelse(
-      n_species_sampled >= min_species_for_community_sampling_event,
-      1, 0)) %>%
-    dplyr::select(-species, -n_species_sampled) %>%
-    mutate(occ_interval = as.character(occ_interval),
-           visit = as.character(visit))
-  # end pipe
+  }
+  
   
   ## --------------------------------------------------
   # records per sampling event
@@ -617,7 +679,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
-    filter(basisOfRecord == "PRESERVED_SPECIMEN") %>% 
+    filter(basisOfRecord == "research_collection") %>% 
     
     # determine whether a community sampling event occurred
     # using collector name might be overly conservative because for example
