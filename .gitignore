@@ -3,8 +3,7 @@
 .RData
 .Ruserdata
 data/
-figures/
-abundance-occupancy/figures/
+abundance-occupancy/
 figures/occurrence_data/
 figures/environmental_data/
 data/occurrence_data/bbna_private
