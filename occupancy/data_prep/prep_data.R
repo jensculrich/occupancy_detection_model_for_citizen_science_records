@@ -309,6 +309,56 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   }
   
   ## --------------------------------------------------
+  # assign study dimensions
+  
+  total_years <- era_end - era_start + 1
+  remainder <- total_years %% n_intervals
+  n_visits <- n_visits
+  min_records_per_species <- min_records_per_species
+  
+  ## --------------------------------------------------
+  # occurrence data from sites during time span
+  # assign occupancy visits and intervals and reduce to one
+  # sample per species per site per visit
+  
+  df_filtered <- df_id_urban_filtered %>%
+    
+    # remove records (if any) missing species level identification
+    filter(species != "") %>%
+    
+    # assign year as - year after era_start
+    mutate(occ_year = (year - era_start)) %>% 
+    
+    # remove data from years that are in the remainder
+    # occupancy intervals have to be equal in length for the model to process
+    # e.g. we can't have intervals of 3 years and then one interval with only 1 year
+    # filter(occ_year %in% (remainder:1)) %>%
+    
+    # remove years before the start date
+    filter(occ_year >= 0) %>%
+    # remove years after end date
+    filter(occ_year < total_years) %>%
+    
+    # now assign the years into 1:n_intervals
+    mutate(occ_interval = occ_year %/% n_visits) %>%
+    
+    # add a sampling round (1:n)
+    mutate(visit = (occ_year %% n_visits)) %>%
+    
+    # remove species with total observations (n) < min_records_per_species 
+    filter(species %in% species_vector) %>%
+    
+    # # one unique row per site*species*occ_interval*visit combination
+    # group_by(grid_id, species, occ_interval, visit) %>% 
+    # slice(1) %>%
+    # ungroup() %>%
+    
+    # for now, reducing down to mandatory data columns
+    dplyr::select(species, grid_id, occ_interval, occ_year, visit) %>%
+    arrange((occ_year))
+  # end pipe
+  
+  ## --------------------------------------------------
   # get genus for phylogenetic clustering
   if(taxon == "syrphidae"){
     
@@ -408,55 +458,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   
   ## --------------------------------------------------
-  # assign study dimensions
-  
-  total_years <- era_end - era_start + 1
-  remainder <- total_years %% n_intervals
-  n_visits <- n_visits
-  min_records_per_species <- min_records_per_species
-  
-  ## --------------------------------------------------
-  # assign occupancy visits and intervals and reduce to one
-  # sample per species per site per visit
-  
-  df_filtered <- df_id_urban_filtered %>%
-    
-    # remove records (if any) missing species level identification
-    filter(species != "") %>%
-    
-    # assign year as - year after era_start
-    mutate(occ_year = (year - era_start)) %>% 
-    
-    # remove data from years that are in the remainder
-    # occupancy intervals have to be equal in length for the model to process
-    # e.g. we can't have intervals of 3 years and then one interval with only 1 year
-    # filter(occ_year %in% (remainder:1)) %>%
-    
-    # remove years before the start date
-    filter(occ_year >= 0) %>%
-    # remove years after end date
-    filter(occ_year < total_years) %>%
-    
-    # now assign the years into 1:n_intervals
-    mutate(occ_interval = occ_year %/% n_visits) %>%
-    
-    # add a sampling round (1:n)
-    mutate(visit = (occ_year %% n_visits)) %>%
-    
-    # remove species with total observations (n) < min_records_per_species 
-    filter(species %in% species_vector) %>%
-    
-    # # one unique row per site*species*occ_interval*visit combination
-    # group_by(grid_id, species, occ_interval, visit) %>% 
-    # slice(1) %>%
-    # ungroup() %>%
-    
-    # for now, reducing down to mandatory data columns
-    dplyr::select(species, grid_id, occ_interval, occ_year, visit) %>%
-    arrange((occ_year))
-  # end pipe
-  
-  ## --------------------------------------------------
   # filter to citizen science records
   # assign occupancy visits and intervals and reduce to one
   # sample per species per site per visit
@@ -533,8 +534,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
     # instead grouping by collections housed in the same institution from the same year
     # within a site
-    group_by(institutionCode, year, grid_id) %>%
-    mutate(n_species_sampled = n_distinct(species)) %>%
+    #group_by(institutionCode, year, grid_id) %>%
+    #mutate(n_species_sampled = n_distinct(species)) %>%
     # filter(n_species_sampled >= min_species_for_community_sampling_event) %>%
     
     # one unique row per site*species*occ_interval*visit combination

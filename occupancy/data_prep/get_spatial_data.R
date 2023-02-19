@@ -361,6 +361,8 @@ get_spatial_data <- function(
       # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
       # (filter out occurrences west of 105 Longitude)
       filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
+      # ref (Indiana/Ohio border)
+      filter(!(species == "Bombus affinis" & decimalLongitude > -84.8)) %>%
 
       # filter out records with high location uncertainty (threshold at 10km)
       # assuming na uncertainty (large portion of records) is under threshold

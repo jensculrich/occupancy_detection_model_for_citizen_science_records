@@ -46,7 +46,16 @@ get_species_ranges <- function(
     # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
     # (filter out occurrences west of 105 Longitude)
     filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
+    filter(!(species == "Bombus affinis" & decimalLongitude > -84.8))
 
+  # make the df into a spatial file
+  df$decimalLongitude <- na_if(df$decimalLongitude, '')
+  df$decimalLatitude <- na_if(df$decimalLatitude, '')
+  
+  df <- df %>% 
+    filter(!is.na(decimalLongitude)) %>%
+    filter(!is.na(decimalLatitude))
+  
   urban_grid <- urban_grid %>% rename("geometry" = ".")
   
   

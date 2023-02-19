@@ -287,10 +287,10 @@ model {
   
   // level-2 spatial grouping
   p_museum_site ~ normal(0, 0.5);
-  sigma_p_museum_site ~ normal(0,0.1);
+  sigma_p_museum_site ~ normal(0,0.25);
   //level-3 spatial grouping
   p_museum_ecoregion_three  ~ normal(0, 0.5);
-  sigma_p_museum_ecoregion_three ~ normal(0,0.1);
+  sigma_p_museum_ecoregion_three ~ normal(0,0.25);
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community

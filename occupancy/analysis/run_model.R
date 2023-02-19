@@ -44,8 +44,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 750 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -102,7 +102,7 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/_",
                           "km", "_", min_population_size, "_", "minpop", "_",
                           min_records_per_species, "_", "minpersp", "_",
                           n_intervals, "_", n_visits, "_",
-                          ".rds"))
+                          "_bbna.rds"))
 
 # best to restart R or offload all of the spatial data packages before running the model
 gc()
@@ -381,7 +381,7 @@ saveRDS(stan_out, paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
   "km_", min_population_size, "minpop", 
   min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, "_sq.RDS"
+  n_intervals, "_", n_visits, "_bbna.RDS"
 )
 )
 
@@ -401,7 +401,7 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          #"mu_psi_open_developed",
+          "mu_psi_open_developed",
           #"sigma_psi_open_developed",
           "psi_site_area"))
 
@@ -470,7 +470,7 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  #"mu_psi_open_developed",
+  "mu_psi_open_developed",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -485,7 +485,7 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  #"sigma_psi_open_developed",
+  "sigma_psi_open_developed",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
@@ -517,4 +517,6 @@ pairs(stan_out, pars = c(
   # "p_museum_pop_density"
 ))
 
-# should now also write a posterior predictive check into the model
+x=seq(0,3,1)
+y=-4.5+0.4*x^2
+plot(x,y, col='violet',type='o',lwd=2,lty=1)
