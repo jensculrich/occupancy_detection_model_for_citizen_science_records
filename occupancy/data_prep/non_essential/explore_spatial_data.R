@@ -44,7 +44,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 20000 # e.g., 25000 = 25km x 25 km sites
+grid_size <- 15000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # Albers equal area
@@ -63,8 +63,8 @@ min_population_size <- 1000
 # if sites are super tiny, the observation process could likely be very unstable
 min_site_area = 0.10
 
-taxon = "syrphidae"
-#taxon = "bombus"
+#taxon = "syrphidae"
+taxon = "bombus"
 
 
 ## --------------------------------------------------
@@ -160,7 +160,7 @@ grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 # view the grid on the polygons
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  #geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
+  geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
   # geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
   coord_sf(datum = NA)  +
   labs(x = "") +
@@ -182,14 +182,14 @@ prj_states <- st_transform(states_trans, crs_raster)
 crs_raster <- sf::st_crs(raster::crs(pop_raster))
 prj1 <- st_transform(grid, crs_raster)
 
-plot(log(pop_raster+1),
-     col=rev(terrain.colors(10)),
-     alpha=1,
-     legend=T,
-     main=expression("(log) Population Density/km"^2),
-     xlab="Longitude", ylab="Latitude",)
+#plot(log(pop_raster+1),
+#     col=rev(terrain.colors(10)),
+#     alpha=1,
+#     legend=T,
+#     main=expression("(log) Population Density/km"^2),
+#     xlab="Longitude", ylab="Latitude",)
 
-plot(prj_states, colour = NA, add = TRUE)
+#plot(prj_states, colour = NA, add = TRUE)
 # plot(prj1, colour = NA, add = TRUE)
 
 # Extract raster values to list object and then summarize by the mean value
@@ -293,11 +293,11 @@ my_metrics = sample_lsm(temp, prj1,
 # Extract environmental variables from each remaining site
 
 # make sure that the grid is still projected to the raster
-crs_raster <- sf::st_crs(raster::crs(land_cropped))
+crs_raster <- sf::st_crs(raster::crs(land))
 prj1 <- st_transform(grid_pop_dens, crs_raster)
 
 # project the states to the raster
-crs_raster <- sf::st_crs(raster::crs(land_cropped))
+crs_raster <- sf::st_crs(raster::crs(land))
 prj_states <- st_transform(states_trans, crs_raster)
 
 # project the grid labels

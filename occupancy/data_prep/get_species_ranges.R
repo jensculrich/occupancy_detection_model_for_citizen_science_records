@@ -17,7 +17,8 @@ get_species_ranges <- function(
   species_vector,
   n_species,
   min_year_for_species_ranges,
-  taxon
+  taxon,
+  make_range_plot
 ){
   
   species_ranges <- vector(mode = "list", length = n_species)
@@ -44,9 +45,12 @@ get_species_ranges <- function(
     
     # filter any ranges to core range if desired
     # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
-    # (filter out occurrences west of 105 Longitude)
-    filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
-    filter(!(species == "Bombus affinis" & decimalLongitude > -84.8))
+    # (filter out occurrences west of 100 Longitude)
+    filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
+    filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+    filter(!(species == "affinis" & (!(state.prov %in% 
+                                         c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+                                           "Indiana", "Ohio", "West Virginia", "Virginia")))))
 
   # make the df into a spatial file
   df$decimalLongitude <- na_if(df$decimalLongitude, '')
@@ -88,17 +92,72 @@ get_species_ranges <- function(
     
     species_ranges[[i]] <- intersecting_range$intersect
     
-    # test plot for visualization
-    #plot(urban_grid$geometry)
-    #plot(ch, col = alpha("skyblue", 0.5), add = TRUE)
-    #plot(filtered_prj$geometry, col = alpha("black", 0.25), pch=19, add=TRUE)
-    #legend("topright",
-    #       legend = c("sites", "range"),
-    #       fill = c("white", alpha("skyblue", 0.5)),       # Color of the squares
-    #       border = "black") # Color of the border of the squares
-    #title(main = paste0("Inferred range for ", species_name))
     
-    # now see which sites (that are being included) overlap with the range
+    ##--------------------------------------------------------------------------
+    # make plots
+    if(make_range_plot == TRUE){
+      
+      library(tigris) # get state shapefile
+      # spatial data - state shapefile
+      states <- tigris::states() %>%
+        #filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
+        # lower 48 + DC
+        filter(REGION != 9) %>%
+        filter(!NAME %in% c("Alaska", "Hawaii"))
+      states_trans <- states  %>% 
+        st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
+      
+      # get 'out of core range' affinis points
+      #df <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
+      
+      # filtered points for affinis
+      #temp <- df %>%
+        
+        # filter out records with high location uncertainty (threshold at 10km)
+        # assuming na uncertainty (large portion of records) is under threshold
+      #  mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
+      #  filter(coordinateUncertaintyInMeters < 10000) %>%
+        
+      #  filter(species == "affinis") %>%
+      #  filter((!(state.prov %in% c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+      #                              "Indiana", "Ohio", "West Virginia", "Virginia"))))
+      
+      # make the df into a spatial file
+      #temp$decimalLongitude <- na_if(temp$decimalLongitude, '')
+      #temp$decimalLatitude <- na_if(temp$decimalLatitude, '')
+      
+      #temp <- temp %>% 
+      #  filter(!is.na(decimalLongitude)) %>%
+      #  filter(!is.na(decimalLatitude))
+      
+      #species_name <- species_vector[i]
+      
+      # filter to records for species from decided time frame
+      #filtered_2 <- temp %>%
+      #  filter(species == species_name,
+      #         year > min_year_for_species_ranges) %>%
+      #  dplyr::select(decimalLatitude, decimalLongitude)
+      
+      # project the filtered data
+      #filtered_prj_2 <- st_as_sf(filtered_2,
+      #                           coords = c("decimalLongitude", "decimalLatitude"), 
+      #                           crs = 4326) %>% 
+      #  st_transform(., crs = crs)
+      
+      
+      # range map plot
+      ggplot() +
+        geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+        geom_sf(data = urban_grid, fill = "transparent", lwd = 0.3) +
+        geom_sf(data = ch, fill = 'skyblue', alpha = 0.5) +
+        geom_sf(data = filtered_prj, alpha = 0.5) +
+        #geom_sf(data = filtered_prj_2, shape = 4, size = 5, color = "red") +
+        ggtitle(paste0("Inferred range for B.", species_name)) +
+        labs(x = "Longitude") +
+        labs(y = "Latitude") 
+      # now see which sites (that are being included) overlap with the range
+      
+    }
     
   }
   

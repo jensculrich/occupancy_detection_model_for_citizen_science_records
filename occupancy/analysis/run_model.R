@@ -32,6 +32,9 @@ min_site_area = 0.20
 remove_unidentified_species = TRUE
 consider_species_occurring_outside_sites = FALSE  # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
+make_range_plot = FALSE
+urban_sites = TRUE
+non_urban_subsample_n = 250
 
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS
@@ -44,8 +47,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 # for reference, 38people/km^2 is ~100people/mile^2
 # 100/km^2 is about 250/mile^sq
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -56,13 +59,16 @@ min_year_for_species_ranges = 2000 # use all data from after this year to infer 
 taxon = "bombus" # taxon to analyze, either "syrphidae" or "bombus"
 # minimum site area (proportion of grid_sizeXgrid_size that is in the admin area mask and not open water)
 # if sites are super tiny, the observation process could likely be very unstable
-min_site_area = 0.20
+min_site_area = 0.25
 # remove specimens lacking species-level id before calculating summary statistics?
 # Note, they will get removed before sending to the model either way, but this turns on/off
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
 remove_unidentified_species = TRUE
 consider_species_occurring_outside_sites = FALSE  # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 20 # min rec threshold if above is true
+make_range_plot = FALSE
+urban_sites = TRUE
+non_urban_subsample_n = 500
 
 
 source("./occupancy/data_prep/prep_data.R")
@@ -84,7 +90,10 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      min_site_area,
                      remove_unidentified_species,
                      consider_species_occurring_outside_sites,
-                     min_records_per_species_full
+                     min_records_per_species_full,
+                     make_range_plot,
+                     urban_sites,
+                     non_urban_subsample_n
                      
 )
 
@@ -494,6 +503,9 @@ traceplot(stan_out, pars = c(
   "sigma_p_citsci_species",
   "sigma_p_museum_species"
 ))
+
+traceplot(stan_out, pars=
+        c("psi_herb_shrub_forest[25]"))
 
 # pairs plot
 pairs(stan_out, pars = c(

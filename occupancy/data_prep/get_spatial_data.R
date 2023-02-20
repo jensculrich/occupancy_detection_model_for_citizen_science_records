@@ -37,7 +37,9 @@ get_spatial_data <- function(
   grid_size, # square edge dimensions of a site, in meters
   min_population_size, # minimum pop density of a site to be considered "urban"
   taxon, # prepare data for syrphidae or bombus
-  min_site_area # min land area (in the state admin areas) of a site to be included
+  min_site_area, # min land area (in the state admin areas) of a site to be included
+  urban_sites,
+  non_urban_subsample_n
 ){
   
   ## --------------------------------------------------
@@ -102,17 +104,12 @@ get_spatial_data <- function(
     
     # spatial data - state shapefile
     states <- tigris::states() %>%
-      #filter(NAME %in% c("California", "Oregon", "Washington", "Arizona", "Nevada"))
       # lower 48 + DC
       filter(REGION != 9) %>%
       filter(!NAME %in% c("Alaska", "Hawaii"))
     
-    str(states)
-    st_crs(states)
-    
-    # California only
-    #states_trans <- states  %>% 
-      #st_transform(., 26910) # NAD83 / UTM Zone 10N
+    #str(states)
+    #st_crs(states)
     
     states_trans <- states  %>% 
       st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
@@ -155,10 +152,18 @@ get_spatial_data <- function(
     
     grid_pop_dens <- cbind(grid, r.vals) %>% 
       rename("pop_density_per_km2" = "r.vals")
+    
     # now filter out the non-urban areas (areas below our pop density threshold)
-    # and make a scaled response variable
-    grid_pop_dens <- grid_pop_dens %>%
-      filter(pop_density_per_km2 > min_population_size) 
+    # or if urban_sites is false, filter to some non-urban areas and subsample n rows
+    if(urban_sites == TRUE){
+      grid_pop_dens <- grid_pop_dens %>%
+        filter(pop_density_per_km2 > min_population_size) 
+    } else{
+      grid_pop_dens <- grid_pop_dens %>%
+        filter(pop_density_per_km2 < min_population_size) %>%
+        sample_n(., non_urban_subsample_n)
+    }
+    
     
     # free unused space
     rm(pop_raster, prj1, r.vals, crs_raster)
@@ -358,12 +363,15 @@ get_spatial_data <- function(
       
       # and perform any further initial data filters
     
-      # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
-      # (filter out occurrences west of 105 Longitude)
-      filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
-      # ref (Indiana/Ohio border)
-      filter(!(species == "Bombus affinis" & decimalLongitude > -84.8)) %>%
-
+      # filter any ranges to core range if desired
+      # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
+      # (filter out occurrences west of 100 Longitude)
+      filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
+      filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+      filter(!(species == "affinis" & (!(state.prov %in% 
+                                           c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+                                             "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
+    
       # filter out records with high location uncertainty (threshold at 10km)
       # assuming na uncertainty (large portion of records) is under threshold
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%

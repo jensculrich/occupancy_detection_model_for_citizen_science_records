@@ -27,7 +27,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       min_site_area,
                       remove_unidentified_species,
                       consider_species_occurring_outside_sites,
-                      min_records_per_species_full
+                      min_records_per_species_full,
+                      make_range_plot,
+                      urban_sites,
+                      non_urban_subsample_n
 ) {
   
   ## --------------------------------------------------
@@ -41,7 +44,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
-    grid_size, min_population_size, taxon, min_site_area)
+    grid_size, min_population_size, taxon, min_site_area,
+    urban_sites, non_urban_subsample_n)
   
   # save the data in case you want to make tweaks to the prep data
   # without redoing the raster extractions
@@ -95,7 +99,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   total_records_since_2000 <- nrow(df_id_urban_filtered)
   
   total_records_since_study <- df_id_urban_filtered %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     nrow()
   
   # citsci and museum records from time period
@@ -126,21 +130,21 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species counts
   species_counts <- df_id_urban_filtered %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     group_by(species) %>%
     count(name="total_count")
   
   # species counts
   species_counts_citsci <- df_id_urban_filtered %>%
     filter(basisOfRecord == "community_science") %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     group_by(species) %>%
     count(name="citsci_count")
   
   # species counts
   species_counts_museum <- df_id_urban_filtered %>%
     filter(basisOfRecord == "research_collection") %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     group_by(species) %>%
     count(name="museum_count")
   
@@ -153,7 +157,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # species detections
   species_detections <- df_id_urban_filtered %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
     ungroup() %>%
@@ -163,7 +167,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # species detections
   species_detections_citsci <- df_id_urban_filtered %>%
     filter(basisOfRecord == "community_science") %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
     ungroup() %>%
@@ -173,7 +177,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # species detections
   species_detections_museum <- df_id_urban_filtered %>%
     filter(basisOfRecord == "research_collection") %>%
-    filter(year > era_start) %>%
+    filter(year >= era_start) %>%
     group_by(species, grid_id, year) %>%
     slice(1) %>%
     ungroup() %>%
@@ -203,9 +207,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     
     # and perform any further initial data filters
     
-    # filter out B. impatiens outside of it's recently expanding native range (Looney et al.)
-    # (filter out occurrences west of 105 Longitude)
-    filter(!(species == "Bombus impatiens" & decimalLongitude < -100)) %>%
+    # filter any ranges to core range if desired
+    # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
+    # (filter out occurrences west of 100 Longitude)
+    filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
+    filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+    filter(!(species == "affinis" & (!(state.prov %in% 
+                                         c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+                                           "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
 
     # filter out records with high location uncertainty (threshold at 10km)
     # assuming na uncertainty (large portion of records) is under threshold
@@ -236,7 +245,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     filter(basisOfRecord == "research_collection") %>%
     nrow()
   
-  #museum_detections <- df_full %>%
+  #museum_detections_full <- df_full %>%
     #filter(basisOfRecord == "research_collection") %>%
     #filter(year >= era_start) %>%
     #group_by(species, grid_id, year) %>%
@@ -264,6 +273,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   species_counts_full <- species_counts_full %>%
     left_join(., species_counts_citsci_full) %>%
     left_join(., species_counts_museum_full)
+  
+  rm(species_counts_citsci_full, species_counts_museum_full)
   
   ## --------------------------------------------------
   # assign species list based on whether we want occurrences from anywhere in the extent or sites only 
@@ -296,6 +307,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     ## Get unique species 
     # create an alphabetized list of all species encountered across all sites*intervals*visits
     species_list <- df_id_urban_filtered %>%
+      filter(year >= era_start) %>%
       group_by(species) %>%
       slice(1) %>% # take one row per species (the name of each species)
       ungroup() %>%
@@ -870,7 +882,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                                        species_vector,
                                        n_species,
                                        min_year_for_species_ranges,
-                                       taxon)
+                                       taxon,
+                                       make_range_plot)
   
   gc()
   
