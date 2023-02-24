@@ -199,7 +199,7 @@ transformed parameters {
           logit_p_citsci[i,j,k] = // the inverse of the log odds of detection is equal to..
             p_citsci_species[species[i]] + // a species specific intercept
             p0_citsci_site[sites[j]] + // a spatially specific intercept
-            p_citsci_interval*intervals[k] + // an overall effect of time on detection
+            p_citsci_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
@@ -287,10 +287,10 @@ model {
   
   // level-2 spatial grouping
   p_museum_site ~ normal(0, 0.5);
-  sigma_p_museum_site ~ normal(0,0.2);
+  sigma_p_museum_site ~ normal(0,0.25);
   //level-3 spatial grouping
   p_museum_ecoregion_three  ~ normal(0, 0.5);
-  sigma_p_museum_ecoregion_three ~ normal(0,0.2);
+  sigma_p_museum_ecoregion_three ~ normal(0,0.25);
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community

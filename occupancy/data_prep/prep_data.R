@@ -45,12 +45,12 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size, taxon, min_site_area,
-    urban_sites, non_urban_subsample_n)
+    urban_sites, non_urban_subsample_n, min_records_per_species)
   
   # save the data in case you want to make tweaks to the prep data
   # without redoing the raster extractions
   # saveRDS(my_spatial_data, "./occupancy/analysis/prepped_data/spatial_data_list.rds")
-  # my_spatial_data <- readRDS("./occupancy/analysis/prepped_data/spatial_data_list.rds")
+  #my_spatial_data <- readRDS("./occupancy/analysis/prepped_data/spatial_data_list.rds")
   gc()
   
   df_id_urban_filtered <- as.data.frame(my_spatial_data$df_id_urban_filtered)
@@ -211,15 +211,19 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
     # (filter out occurrences west of 100 Longitude)
     filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
-    filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
-    filter(!(species == "affinis" & (!(state.prov %in% 
-                                         c("Minnesota", "Iowa", "Wisconsin", "Illinois",
-                                           "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
 
     # filter out records with high location uncertainty (threshold at 10km)
     # assuming na uncertainty (large portion of records) is under threshold
     mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
     filter(coordinateUncertaintyInMeters < 10000)
+  
+  if(taxon == "bombus"){
+    df_full <- df_full %>% 
+      filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+      filter(!(species == "affinis" & (!(state.prov %in% 
+                                           c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+                                             "Indiana", "Ohio", "West Virginia", "Virginia")))))
+  }
   
   # total records from time period
   total_records_since_2000_full <- nrow(df_full)
@@ -275,6 +279,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     left_join(., species_counts_museum_full)
   
   rm(species_counts_citsci_full, species_counts_museum_full)
+  gc()
   
   ## --------------------------------------------------
   # assign species list based on whether we want occurrences from anywhere in the extent or sites only 
@@ -326,7 +331,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   total_years <- era_end - era_start + 1
   remainder <- total_years %% n_intervals
   n_visits <- n_visits
-  min_records_per_species <- min_records_per_species
   
   ## --------------------------------------------------
   # occurrence data from sites during time span
@@ -357,7 +361,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
-    # remove species with total observations (n) < min_records_per_species 
+    # filter to species observed at least once
     filter(species %in% species_vector) %>%
     
     # # one unique row per site*species*occ_interval*visit combination
@@ -468,6 +472,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_urban_sites.pdf"),
          width = 11, height = 8, units = "in") 
   
+  rm(df_full)
+  gc()
   
   ## --------------------------------------------------
   # filter to citizen science records
@@ -493,8 +499,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
-    # remove species with total observations (n) < min_records_per_species
-    # remove species with total observations (n) < min_records_per_species 
+    # filter to species observed at least once 
     filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
@@ -535,7 +540,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
-    # remove species with total observations (n) < min_records_per_species
+    # filter to species observed at least once
     filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
@@ -586,7 +591,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
       # add a sampling round (1:n)
       mutate(visit = (occ_year %% n_visits)) %>%
       
-      # remove species with total observations (n) < min_records_per_species
+      # filter to species observed at least once
       filter(species %in% species_vector) %>%
       
       # filter to citizen science data only
@@ -635,7 +640,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
       # add a sampling round (1:n)
       mutate(visit = (occ_year %% n_visits)) %>%
       
-      # remove species with total observations (n) < min_records_per_species
+      # filter to species observed at least once
       filter(species %in% species_vector) %>%
       
       # filter to citizen science data only
@@ -688,7 +693,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # add a sampling round (1:n)
     mutate(visit = (occ_year %% n_visits)) %>%
     
-    # remove species with total observations (n) < min_records_per_species
+    # filter to species observed at least once
     filter(species %in% species_vector) %>%
     
     # filter to citizen science data only
@@ -768,7 +773,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # now join with all sites columns (so that we include sites where no species captured during 
         # this interval*visit but which might actually have some species that went undetected)
         mutate(grid_id = as.character(grid_id)) %>%
-        full_join(site_list, by="grid_id") %>%
+        full_join(site_list, by="grid_id")%>%
         # have to convert back to integer to get correct ordering from low to high
         # MUST MATCH SITE NAMES VECTOR
         mutate(grid_id = as.integer(grid_id)) %>%
@@ -837,7 +842,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         # if some sites had no species, this workflow will construct a row for species = NA
         # we want to filter out this row ONLY if this happens and so need to filter out rows
         # for SPECIES not in SPECIES list
-        filter(species  %in% levels(as.factor(species_list$species)))
+        filter(species %in% levels(as.factor(species_list$species)))
       
       
       # convert from dataframe to matrix
@@ -905,13 +910,15 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
            "grid_id" = "V2",
            "community_sample" = "V3",
            "in_range" = "V4") %>%
+    
+    # if range is 0, then sampled will evaluate to 0
     mutate(sampled = as.numeric(community_sample)*
              as.numeric(in_range),
            grid_id = as.integer(grid_id)) %>%
     left_join(all_species_site_visits, .) 
   
   V_citsci_NA <- array(data = df_citsci_visits$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
-  # check <- which(V_citsci>V_citsci_NA) # should NEVER have occurrences where the species can't be sampled,
+  check <- which(V_citsci>V_citsci_NA) # should NEVER have occurrences where the species can't be sampled,
   # thus check should be empty
   
   ## --------------------------------------------------
@@ -932,6 +939,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
            visit = as.integer(visit)) %>%
     dplyr::select(-occ_year)
   
+  # remove species from community sampling if site is outside of range
   ranges <- as.data.frame(cbind(rep(species_vector, each=n_sites),
                                 rep(site_vector, times = n_species),
                                 unlist(species_ranges))) %>%

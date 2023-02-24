@@ -39,7 +39,8 @@ get_spatial_data <- function(
   taxon, # prepare data for syrphidae or bombus
   min_site_area, # min land area (in the state admin areas) of a site to be included
   urban_sites,
-  non_urban_subsample_n
+  non_urban_subsample_n,
+  min_records_per_species
 ){
   
   ## --------------------------------------------------
@@ -155,19 +156,23 @@ get_spatial_data <- function(
     
     # now filter out the non-urban areas (areas below our pop density threshold)
     # or if urban_sites is false, filter to some non-urban areas and subsample n rows
-    if(urban_sites == TRUE){
-      grid_pop_dens <- grid_pop_dens %>%
-        filter(pop_density_per_km2 > min_population_size) 
-    } else{
+    if(urban_sites == FALSE){
       grid_pop_dens <- grid_pop_dens %>%
         filter(pop_density_per_km2 < min_population_size) %>%
-        sample_n(., non_urban_subsample_n)
+            slice_sample(., n = non_urban_subsample_n, replace = FALSE) %>%
+        # need to make grid id in ascending numeric order otherwise chaos 
+        # will ensue later if trying to set up the NA indicator array! 
+        # when you use slice_sample (or any form of sample) they are randomly ordered
+        mutate(grid_id = row_number())
+    } else {
+      grid_pop_dens <- grid_pop_dens %>%
+        filter(pop_density_per_km2 > min_population_size) 
     }
     
     
     # free unused space
     rm(pop_raster, prj1, r.vals, crs_raster)
-    gc(verbose = FALSE)
+    gc()
     
     ## --------------------------------------------------
     # Extract environmental variables from each remaining site
@@ -232,12 +237,21 @@ get_spatial_data <- function(
                             } 
     )
     
-    r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
-                                function(x) { 
-                                  (length(which(x %in% c(52,71,41,42,43))) / length(x))
-                                } 
-    ) 
-    
+    if(taxon == "bombus"){
+      r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
+                                         function(x) { 
+                                           (length(which(x %in% c(52,71,41,42,43))) / length(x))
+                                         } 
+      )
+    } else {
+      # also include wetlands for syrphidae
+      r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
+                                         function(x) { 
+                                           (length(which(x %in% c(52,71,41,42,43,90,95))) / length(x))
+                                         } 
+      )
+    }
+     
     grid_pop_dens <- cbind(grid_pop_dens,
                            unlist(r.site_area),
                            unlist(r.mean_herb_shrub),
@@ -340,7 +354,15 @@ get_spatial_data <- function(
     
     df <- df %>% 
       filter(!is.na(decimalLongitude)) %>%
-      filter(!is.na(decimalLatitude))
+      filter(!is.na(decimalLatitude)) %>%
+      
+      # filter out species that we have so few records that we can't 
+      # confidently say which cities they could occur in
+      group_by(species) %>%
+      add_tally(name="records_per_species") %>%
+      filter(records_per_species > min_records_per_species) %>%
+      ungroup()
+      
     
     (df_sf <- st_as_sf(df,
                        coords = c("decimalLongitude", "decimalLatitude"), 
@@ -367,15 +389,19 @@ get_spatial_data <- function(
       # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
       # (filter out occurrences west of 100 Longitude)
       filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
-      filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
-      filter(!(species == "affinis" & (!(state.prov %in% 
-                                           c("Minnesota", "Iowa", "Wisconsin", "Illinois",
-                                             "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
     
       # filter out records with high location uncertainty (threshold at 10km)
       # assuming na uncertainty (large portion of records) is under threshold
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
       filter(coordinateUncertaintyInMeters < 10000)
+    
+    if(taxon == "bombus"){
+      df_id_dens <- df_id_dens %>% 
+        filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+        filter(!(species == "affinis" & (!(state.prov %in% 
+                                             c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+                                               "Indiana", "Ohio", "West Virginia", "Virginia")))))
+    }
     
     # free unused space
     rm(df, df_sf, df_trans)

@@ -211,7 +211,7 @@ transformed parameters {
             mu_p_citsci_0 + // a baseline intercept
             p_citsci_species[species[i]] + // a species specific intercept
             p0_citsci_site[sites[j]] + // a spatially specific intercept
-            p_citsci_interval*intervals[k] + // an overall effect of time on detection
+            p_citsci_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
@@ -237,6 +237,7 @@ model {
   // Occupancy (Ecological Process)
   mu_psi_0 ~ normal(0, 2); // global intercept for occupancy rate
   
+  //  non-centered site interceptes
   // level-2 spatial grouping
   psi_site ~ normal(0, 1);
   sigma_psi_site ~ normal(0,0.5);
@@ -250,12 +251,12 @@ model {
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, 1); 
   // occupancy intercept for each species drawn from the community
-  // distribution (variance defined by sigma), centered at 0. 
+  // distribution (variance defined by sigma), non-centered . 
   sigma_psi_species ~ normal(0, 0.5); //informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(0, 1); 
   // occupancy intercept for each genus drawn from the community
-  // distribution (variance defined by sigma), centered at 0. 
+  // distribution (variance defined by sigma),  non-centered . 
   sigma_psi_genus ~ normal(0, 0.5); //informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);

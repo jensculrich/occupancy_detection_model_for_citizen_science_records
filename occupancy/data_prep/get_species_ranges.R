@@ -46,12 +46,17 @@ get_species_ranges <- function(
     # filter any ranges to core range if desired
     # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
     # (filter out occurrences west of 100 Longitude)
-    filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
-    filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
-    filter(!(species == "affinis" & (!(state.prov %in% 
-                                         c("Minnesota", "Iowa", "Wisconsin", "Illinois",
-                                           "Indiana", "Ohio", "West Virginia", "Virginia")))))
-
+    filter(decimalLatitude < 50) # remove any points from alaska (or untagged with state name but from alaska)
+    
+  
+  if(taxon == "bombus"){
+    df <- df %>%
+      filter(!(species == "impatiens" & decimalLongitude < -100)) 
+      filter(!(species == "affinis" & (!(state.prov %in% 
+                                           c("Minnesota", "Iowa", "Wisconsin", "Illinois",
+                                             "Indiana", "Ohio", "West Virginia", "Virginia")))))
+  }
+  
   # make the df into a spatial file
   df$decimalLongitude <- na_if(df$decimalLongitude, '')
   df$decimalLatitude <- na_if(df$decimalLatitude, '')
