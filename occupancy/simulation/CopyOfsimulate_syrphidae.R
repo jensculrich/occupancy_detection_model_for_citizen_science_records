@@ -53,7 +53,9 @@ simulate_data <- function(n_genera,
                           visits_missing,
                           
                           sites_in_range_beta1,
-                          sites_in_range_beta2
+                          sites_in_range_beta2,
+                          
+                          simple
 ){
   
   ## ilogit and logit functions
@@ -67,6 +69,11 @@ simulate_data <- function(n_genera,
   sites <- seq(1, n_sites, by=1)
   species <- seq(1, n_species, by=1)
   
+  if(simple == TRUE){
+    cov1_switch <- 0 # turn off covariates for occurrence if sending to simple model w no covariates
+  } else{
+    cov1_switch <- 1
+  }
   
   ## --------------------------------------------------
   ### Generate covariate data
@@ -257,8 +264,7 @@ simulate_data <- function(n_genera,
           #mu_psi_0 + # a baseline intercept
             psi_species_nested[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
-            psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
-            # psi_open_developed[species]*open_developed[site] + # a species specific effect
+            psi_herb_shrub_forest[species]*herb_shrub_forest[site]*cov1_switch + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -397,35 +403,68 @@ simulate_data <- function(n_genera,
   ## --------------------------------------------------
   # museum NAs
   
-  # choose random sites that didn't get visited (for all species) by museum collecting visits
-  site_missed = sample.int(n_sites, sites_missing)
-  interval_missed = sample.int(n_intervals, intervals_missing)
-  visit_missed = sample.int(n_visits, visits_missing)
+  if(infer_detections_genus == FALSE){
+    # choose random sites that didn't get visited (for all species) by museum collecting visits
+    site_missed = sample.int(n_sites, sites_missing)
+    interval_missed = sample.int(n_intervals, intervals_missing)
+    visit_missed = sample.int(n_visits, visits_missing)
+    
+    # we will make an array that holds values of 1 if sampling occurred
+    # or 0 if sampling did not occur at the site*interval*visit.
+    V_museum_NA <- V_museum 
+    V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
+    
+    # replace all other values with 1 (was sampled)
+    V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
+    # and now replace all NAs with 0, which will act as an indicator for the likelihood function
+    # to skip over this sample by contracting the total possible number of observations that could have occurred
+    V_museum_NA[is.na(V_museum_NA)] <- 0
+    
+    # now multiply by whether a site was in a range or not,
+    # 1 means the species at the site in the time was BOTH..
+    # a target of a community sample AND
+    # the site is in the species's range
+    V_museum_NA <- V_museum_NA*ranges
+    
+    # now we want to replace the detection data with 0's where sampling did not occur
+    # so that we are saying that a a species occurs at a site*interval..
+    # was not observed at the visit to the site in the interval..
+    # BUT the model will remove this from contributing to the probability density by removing
+    # the max number of sightings that could have occurred for 
+    # each visit in the site*interval with a 0 in V_museum_NA
+    V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
+  } else{
+    # choose random sites that didn't get visited (for all species) by museum collecting visits
+    site_missed = sample.int(n_sites, sites_missing)
+    interval_missed = sample.int(n_intervals, intervals_missing)
+    visit_missed = sample.int(n_visits, visits_missing)
+    
+    # we will make an array that holds values of 1 if sampling occurred
+    # or 0 if sampling did not occur at the site*interval*visit.
+    V_museum_NA <- V_museum 
+    V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
+    
+    # replace all other values with 1 (was sampled)
+    V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
+    # and now replace all NAs with 0, which will act as an indicator for the likelihood function
+    # to skip over this sample by contracting the total possible number of observations that could have occurred
+    V_museum_NA[is.na(V_museum_NA)] <- 0
+    
+    # now multiply by whether a site was in a range or not,
+    # 1 means the species at the site in the time was BOTH..
+    # a target of a community sample AND
+    # the site is in the species's range
+    V_museum_NA <- V_museum_NA*ranges
+    
+    # now we want to replace the detection data with 0's where sampling did not occur
+    # so that we are saying that a a species occurs at a site*interval..
+    # was not observed at the visit to the site in the interval..
+    # BUT the model will remove this from contributing to the probability density by removing
+    # the max number of sightings that could have occurred for 
+    # each visit in the site*interval with a 0 in V_museum_NA
+    V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
+  }
   
-  # we will make an array that holds values of 1 if sampling occurred
-  # or 0 if sampling did not occur at the site*interval*visit.
-  V_museum_NA <- V_museum 
-  V_museum_NA[1:n_species, site_missed, interval_missed, visit_missed] <- NA
-  
-  # replace all other values with 1 (was sampled)
-  V_museum_NA <- replace(V_museum_NA, V_museum_NA==0, 1)
-  # and now replace all NAs with 0, which will act as an indicator for the likelihood function
-  # to skip over this sample by contracting the total possible number of observations that could have occurred
-  V_museum_NA[is.na(V_museum_NA)] <- 0
-  
-  # now multiply by whether a site was in a range or not,
-  # 1 means the species at the site in the time was BOTH..
-  # a target of a community sample AND
-  # the site is in the species's range
-  V_museum_NA <- V_museum_NA*ranges
-  
-  # now we want to replace the detection data with 0's where sampling did not occur
-  # so that we are saying that a a species occurs at a site*interval..
-  # was not observed at the visit to the site in the interval..
-  # BUT the model will remove this from contributing to the probability density by removing
-  # the max number of sightings that could have occurred for 
-  # each visit in the site*interval with a 0 in V_museum_NA
-  V_museum[1:n_species, site_missed, interval_missed, visit_missed] <- 0
   
   # should NEVER have a V_museum detection outside of the range and community sampling events
   # check <- which(V_museum>V_museum_NA)  
@@ -521,6 +560,9 @@ visits_missing = 1
 sites_in_range_beta1 = 2
 sites_in_range_beta2 = 2
 
+simple = FALSE # TRUE means to turn off effects of site covariates on occurrence (besides site area)
+infer_detections_genus = TRUE # infer detection/non-detection at genus rather than family level
+
 ## --------------------------------------------------
 ### Simulate data
 set.seed(3)
@@ -569,7 +611,10 @@ my_simulated_data <- simulate_data(n_genera,
                                    visits_missing,
                                    
                                    sites_in_range_beta1,
-                                   sites_in_range_beta2)
+                                   sites_in_range_beta2,
+                                   
+                                   simple,
+                                   infer_detections_genus)
 
 ## --------------------------------------------------
 ### Prepare data for model
