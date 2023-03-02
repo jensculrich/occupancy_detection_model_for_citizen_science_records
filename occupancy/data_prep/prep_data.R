@@ -30,8 +30,15 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       min_records_per_species_full,
                       make_range_plot,
                       urban_sites,
-                      non_urban_subsample_n
+                      non_urban_subsample_n,
+                      infer_detections_at_genus,
+                      generate_temporal_plots
 ) {
+  
+  if((era_end - era_start + 1) %% n_intervals != 0){
+    print("WARNING: duration of years in the era is not evenly divisible by number of intervals. The STAN program is not built to handle intervals of variable length. Please choose a number of intervals that evenly divides the duration of years where: (era_end - era_start + 1) %% n_intervals == 0 ; e.g. (2022 - 2011 + 1) %% 4 == 0")
+    stop()
+  }
   
   ## --------------------------------------------------
   ## Operation Functions
@@ -401,76 +408,78 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   }
   
   ## --------------------------------------------------
-  # auto generate plot data (hashtag out if not using)
+  # auto generate plot data 
   
-  # count for iNat vs Museum
-  out <- df_full %>%
-    group_by(basisOfRecord) %>% 
-    count(year)
-  
-  out2 <- df_id_urban_filtered %>%
-    group_by(basisOfRecord) %>% 
-    count(year)
-  
-  xints <- vector()
-  for(i in 1:(n_intervals+1)){
-    xints[i] <- (era_start - 0.5) + n_visits*(i - 1)
+  if(generate_temporal_plots == TRUE){
+    # count for iNat vs Museum
+    out <- df_full %>%
+      group_by(basisOfRecord) %>% 
+      count(year)
+    
+    out2 <- df_id_urban_filtered %>%
+      group_by(basisOfRecord) %>% 
+      count(year)
+    
+    xints <- vector()
+    for(i in 1:(n_intervals+1)){
+      xints[i] <- (era_start - 0.5) + n_visits*(i - 1)
+    }
+    
+    xints2 <- vector()
+    for(i in 1:(n_intervals*n_visits + 1)){
+      xints2[i] <- (era_start - 0.5) + (i - 1)
+    }
+    
+    # Chronological record counts split by basis of record (any)
+    ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+      xlim(2000, 2023) + # choose some years for the axes
+      geom_line() +
+      scale_colour_manual(name = "Basis of records", 
+                          labels = c("Community science records", "Research collections"),
+                          values=c("red","blue")) +
+      geom_vline(xintercept=xints, 
+                 linewidth=3, alpha=0.5) +
+      geom_vline(xintercept=xints2, 
+                 linewidth=1, alpha=0.7, linetype = 'dotted') +
+      theme_bw() +
+      xlab("Year") +
+      ylab("Number of Records \n(continental U.S.)") +
+      theme(legend.position = c(0.15, 0.8),
+            legend.title = element_text(colour="black", size=14, 
+                                        face="bold"),
+            legend.text = element_text(colour="black", size=12),
+            axis.text = element_text(size = 16),
+            axis.title = element_text(size = 16)
+      )
+    
+    ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_full.pdf"),
+           width = 11, height = 8, units = "in") 
+    
+    # Chronological record counts split by basis of record (sites only)
+    ggplot(out2, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+      xlim(2000, 2023) + # choose some years for the axes
+      geom_line() +
+      scale_colour_manual(name = "Basis of Records", 
+                          labels = c("Community science records", "Research collections"),
+                          values=c("red","blue")) +
+      geom_vline(xintercept=xints, 
+                 linewidth=3, alpha=0.5) +
+      geom_vline(xintercept=xints2, 
+                 linewidth=1, alpha=0.7, linetype = 'dotted') +
+      theme_bw() +
+      xlab("Year") +
+      ylab("Number of Records \n(urban sites)") +
+      theme(legend.position = c(0.15, 0.8),
+            legend.title = element_text(colour="black", size=14, 
+                                        face="bold"),
+            legend.text = element_text(colour="black", size=12),
+            axis.text = element_text(size = 16),
+            axis.title = element_text(size = 16)
+      )
+    
+    ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_urban_sites.pdf"),
+           width = 11, height = 8, units = "in") 
   }
-  
-  xints2 <- vector()
-  for(i in 1:(n_intervals*n_visits + 1)){
-    xints2[i] <- (era_start - 0.5) + (i - 1)
-  }
-  
-  # Chronological record counts split by basis of record (any)
-  ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
-    xlim(2000, 2023) + # choose some years for the axes
-    geom_line() +
-    scale_colour_manual(name = "Basis of records", 
-                        labels = c("Community science records", "Research collections"),
-                        values=c("red","blue")) +
-    geom_vline(xintercept=xints, 
-               linewidth=3, alpha=0.5) +
-    geom_vline(xintercept=xints2, 
-      linewidth=1, alpha=0.7, linetype = 'dotted') +
-    theme_bw() +
-    xlab("Year") +
-    ylab("Number of Records \n(continental U.S.)") +
-    theme(legend.position = c(0.15, 0.8),
-          legend.title = element_text(colour="black", size=14, 
-                                      face="bold"),
-          legend.text = element_text(colour="black", size=12),
-          axis.text = element_text(size = 16),
-          axis.title = element_text(size = 16)
-    )
-  
-  ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_full.pdf"),
-         width = 11, height = 8, units = "in") 
-  
-  # Chronological record counts split by basis of record (sites only)
-  ggplot(out2, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
-    xlim(2000, 2023) + # choose some years for the axes
-    geom_line() +
-    scale_colour_manual(name = "Basis of Records", 
-                        labels = c("Community science records", "Research collections"),
-                        values=c("red","blue")) +
-    geom_vline(xintercept=xints, 
-               linewidth=3, alpha=0.5) +
-    geom_vline(xintercept=xints2, 
-               linewidth=1, alpha=0.7, linetype = 'dotted') +
-    theme_bw() +
-    xlab("Year") +
-    ylab("Number of Records \n(urban sites)") +
-    theme(legend.position = c(0.15, 0.8),
-          legend.title = element_text(colour="black", size=14, 
-                                      face="bold"),
-          legend.text = element_text(colour="black", size=12),
-          axis.text = element_text(size = 16),
-          axis.title = element_text(size = 16)
-    )
-  
-  ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_urban_sites.pdf"),
-         width = 11, height = 8, units = "in") 
   
   rm(df_full)
   gc()
@@ -572,52 +581,104 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   if(taxon == "syrphidae"){
     
-    community_samples <- df_id_urban_filtered %>%
-      
-      # remove records (if any) missing species level identification
-      filter(species != "") %>%
-      
-      # assign year as - year after era_start
-      mutate(occ_year = (year - era_start)) %>%
-      
-      # remove years before the start date
-      filter(occ_year >= 0) %>%
-      # remove years after end date
-      filter(occ_year < total_years) %>%
-      
-      # now assign the years into 1:n_intervals
-      mutate(occ_interval = occ_year %/% n_visits) %>%
-      
-      # add a sampling round (1:n)
-      mutate(visit = (occ_year %% n_visits)) %>%
-      
-      # filter to species observed at least once
-      filter(species %in% species_vector) %>%
-      
-      # filter to citizen science data only
-      filter(basisOfRecord == "research_collection") %>% 
-      
-      # determine whether a community sampling event occurred
-      # using collector name might be overly conservative because for example
-      # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
-      # instead grouping by collections housed in the same institution from the same year
-      # within a site
-      group_by(institutionCode, year, grid_id) %>%
-      mutate(n_species_sampled = n_distinct(species)) %>%
-      ungroup() %>%
-      dplyr::select(grid_id, occ_interval, occ_year, visit, species, n_species_sampled) %>%
-      group_by(grid_id, occ_interval, occ_year, visit) %>%
-      # slice max in case there are multiple institutions collecting from a site in a year
-      slice_max(n_species_sampled) %>%
-      # then take one per year
-      slice(1) %>%
-      mutate(community_sampled = ifelse(
-        n_species_sampled >= min_species_for_community_sampling_event,
-        1, 0)) %>%
-      dplyr::select(-species, -n_species_sampled) %>%
-      mutate(occ_interval = as.character(occ_interval),
-             visit = as.character(visit))
-    # end pipe
+    # infer detection/nondetection at family level
+    if(infer_detections_at_genus == FALSE){
+      community_samples <- df_id_urban_filtered %>%
+        
+        # remove records (if any) missing species level identification
+        filter(species != "") %>%
+        
+        # assign year as - year after era_start
+        mutate(occ_year = (year - era_start)) %>%
+        
+        # remove years before the start date
+        filter(occ_year >= 0) %>%
+        # remove years after end date
+        filter(occ_year < total_years) %>%
+        
+        # now assign the years into 1:n_intervals
+        mutate(occ_interval = occ_year %/% n_visits) %>%
+        
+        # add a sampling round (1:n)
+        mutate(visit = (occ_year %% n_visits)) %>%
+        
+        # filter to species observed at least once
+        filter(species %in% species_vector) %>%
+        
+        # filter to citizen science data only
+        filter(basisOfRecord == "research_collection") %>% 
+        
+        # determine whether a community sampling event occurred
+        # using collector name might be overly conservative because for example
+        # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
+        # instead grouping by collections housed in the same institution from the same year
+        # within a site
+        group_by(institutionCode, year, grid_id) %>%
+        mutate(n_species_sampled = n_distinct(species)) %>%
+        ungroup() %>%
+        dplyr::select(grid_id, occ_interval, occ_year, visit, species, n_species_sampled) %>%
+        group_by(grid_id, occ_interval, occ_year, visit) %>%
+        # slice max in case there are multiple institutions collecting from a site in a year
+        slice_max(n_species_sampled) %>%
+        # then take one per year
+        slice(1) %>%
+        mutate(community_sampled = ifelse(
+          n_species_sampled >= min_species_for_community_sampling_event,
+          1, 0)) %>%
+        dplyr::select(-species, -n_species_sampled) %>%
+        mutate(occ_interval = as.character(occ_interval),
+               visit = as.character(visit))
+      # end pipe
+    } else{ # infer detection/nondetection at genus level
+      community_samples <- df_id_urban_filtered %>%
+        
+        # remove records (if any) missing species level identification
+        filter(species != "") %>%
+        
+        # assign year as - year after era_start
+        mutate(occ_year = (year - era_start)) %>%
+        
+        # remove years before the start date
+        filter(occ_year >= 0) %>%
+        # remove years after end date
+        filter(occ_year < total_years) %>%
+        
+        # now assign the years into 1:n_intervals
+        mutate(occ_interval = occ_year %/% n_visits) %>%
+        
+        # add a sampling round (1:n)
+        mutate(visit = (occ_year %% n_visits)) %>%
+        
+        # filter to species observed at least once
+        filter(species %in% species_vector) %>%
+        
+        # filter to citizen science data only
+        filter(basisOfRecord == "research_collection") %>% 
+        
+        # determine whether a community sampling event occurred
+        # using collector name might be overly conservative because for example
+        # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
+        # instead grouping by collections housed in the same institution from the same year
+        # within a site
+        group_by(institutionCode, year, grid_id, genus) %>%
+        mutate(n_species_sampled = n_distinct(species)) %>%
+        ungroup() %>%
+        dplyr::select(grid_id, occ_interval, occ_year, visit, genus, species, n_species_sampled) %>%
+        group_by(grid_id, occ_interval, occ_year, visit, genus) %>%
+        # slice max in case there are multiple institutions collecting from a site in a year
+        slice_max(n_species_sampled) %>%
+        # then take one per year
+        slice(1) %>%
+        ungroup() %>%
+        group_by(genus) %>%
+        mutate(community_sampled = ifelse(
+          n_species_sampled >= min_species_for_community_sampling_event,
+          1, 0)) %>%
+        dplyr::select(-species, -n_species_sampled) %>%
+        mutate(occ_interval = as.character(occ_interval),
+               visit = as.character(visit))
+      # end pipe
+    }
     
   } else {
     
@@ -931,13 +992,29 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # want to keep detections for species that were detected in isolation
   # but not infer that other species could be detected if we just have a few records
   
-  all_visits_museum_visits_joined <- left_join(all_species_site_visits, community_samples, 
-                                               by=c("grid_id", "occ_interval", "visit")) %>%
-    # create an indicator if the site visit was a sample or not
-    mutate(community_sampled = replace_na(community_sampled, 0),
-           occ_interval = as.integer(occ_interval),
-           visit = as.integer(visit)) %>%
-    dplyr::select(-occ_year)
+  # propagate nondetections to any species in the family
+  if(infer_detections_at_genus == FALSE){
+    all_visits_museum_visits_joined <- left_join(all_species_site_visits, community_samples, 
+                                                 by=c("grid_id", "occ_interval", "visit")) %>%
+      # create an indicator if the site visit was a sample or not
+      mutate(community_sampled = replace_na(community_sampled, 0),
+             occ_interval = as.integer(occ_interval),
+             visit = as.integer(visit)) %>%
+      dplyr::select(-occ_year)
+  } else{  # propagate nondetections only to any species in the same genus
+    all_visits_museum_visits_joined <- left_join(all_species_site_visits, community_samples, 
+                                                 by=c("grid_id", "occ_interval", "visit")) %>%
+      # pull out genus name from each species
+      mutate(genus_all = word(species, 1)) %>%
+      # if it does not match the genus from the community samples then we need to make community_sampled = 0
+      mutate(community_sampled = ifelse(genus != genus_all, 0, community_sampled)) %>%
+      # create an indicator if the site visit was a sample or not
+      mutate(community_sampled = replace_na(community_sampled, 0),
+             occ_interval = as.integer(occ_interval),
+             visit = as.integer(visit)) %>%
+      dplyr::select(-occ_year)
+  }
+  
   
   # remove species from community sampling if site is outside of range
   ranges <- as.data.frame(cbind(rep(species_vector, each=n_sites),
@@ -952,8 +1029,22 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(sampled = as.numeric(community_sampled)*
              as.numeric(in_range))
   
+  # if inferring at genus there will be replucated rows for each species if multiple genera sampled from a site
+  if(infer_detections_at_genus == TRUE){
+    all_visits_museum_visits_joined <- all_visits_museum_visits_joined %>% 
+      # reduce replicates from multiple genera surveyed at a site in a time
+      group_by(grid_id, occ_interval, visit, species) %>%
+      slice(1) %>%
+      ungroup() %>%
+      dplyr::select(-genus, -genus_all) %>%
+      relocate(occ_interval, visit, grid_id, species)
+    
+    all_visits_museum_visits_joined <- arrange(all_visits_museum_visits_joined, visit, occ_interval, grid_id, species)
+      #with(all_visits_museum_visits_joined, order(occ_interval, visit, grid_id, species))
+  } 
+  
   # for < min_species_for_community_sampling_event with a sampled indicator
-  # i.e., keep the data for the singletons and doubletons, while not inferring abscense for the rest of the community
+  # i.e., keep the data for the singletons and doubletons, while not inferring absence for the rest of the community
   df_museum <- df_museum %>%
     # if the species was sampled than at least that species was sampled (may also be a comm sample)
     mutate(non_comm_sample = 1) 

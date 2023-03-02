@@ -384,17 +384,17 @@ get_spatial_data <- function(
         df, id, decimalLatitude, decimalLongitude), by="id") %>% 
       
       # and perform any further initial data filters
-    
-      # filter any ranges to core range if desired
-      # filter out B. impatiens from it's recently expanding introduced range (Looney et al.)
-      # (filter out occurrences west of 100 Longitude)
+      
       filter(decimalLatitude < 50) %>% # remove any points from alaska (or untagged with state name but from alaska)
     
       # filter out records with high location uncertainty (threshold at 10km)
       # assuming na uncertainty (large portion of records) is under threshold
+      # here we assume records with no listed uncertainty are precise or at least precise enough to fall within our big sites
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
       filter(coordinateUncertaintyInMeters < 10000)
     
+    # manually crop bombus occurrences from outside of core range
+    # later, share references for "core range" and show plots for excluded and included record points
     if(taxon == "bombus"){
       df_id_dens <- df_id_dens %>% 
         filter(!(species == "impatiens" & decimalLongitude < -100)) %>%

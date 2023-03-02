@@ -11,30 +11,30 @@ n_intervals = 4 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
-min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above
-grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 750 # min pop density in the grid cell (per km^2)
-# for reference, 38people/km^2 is ~100people/mile^2
-# 100/km^2 is about 250/mile^sq
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
+
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
 # min records_for_community_sampling_event sets a minimum threshold, if the number
 # of records for the taxonomic group within a site within a year is 
 min_year_for_species_ranges = 2000 # use all data from after this year to infer species ranges
 taxon = "syrphidae" # taxon to analyze, either "syrphidae" or "bombus"
-# minimum site area 
-# if sites are super tiny, the observation process could likely be very unstable
-min_site_area = 0.25
+min_site_area = 0.25 # if sites are super tiny, the observation process could likely be very unstable
+
 # remove specimens lacking species-level id before calculating summary statistics?
 # Note, they will get removed before sending to the model either way, but this turns on/off
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
-remove_unidentified_species = TRUE
-consider_species_occurring_outside_sites = FALSE  # consider species that were detected outside of the sites but not at sites?
+remove_unidentified_species = TRUE # default to TRUE
+consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
-make_range_plot = FALSE
-urban_sites = FALSE
-non_urban_subsample_n = 500
+make_range_plot = FALSE # default to FALSE # plot ranges
+urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+non_urban_subsample_n = 100 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
+infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
+generate_temporal_plots = FALSE # default to FALSE
 
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS
@@ -44,13 +44,12 @@ era_end = 2022 # must define start date of the GBIF dataset
 n_intervals = 4 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
-# (era_end - era_start) / n_intervals has a remainder > 0,
+# (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
 grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1000 # min pop density in the grid cell (per km^2)
-# for reference, 38people/km^2 is ~100people/mile^2
-# 100/km^2 is about 250/mile^sq
+
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
 # min records_for_community_sampling_event sets a minimum threshold, if the number
@@ -60,16 +59,18 @@ taxon = "bombus" # taxon to analyze, either "syrphidae" or "bombus"
 # minimum site area (proportion of grid_sizeXgrid_size that is in the admin area mask and not open water)
 # if sites are super tiny, the observation process could likely be very unstable
 min_site_area = 0.25
+
 # remove specimens lacking species-level id before calculating summary statistics?
 # Note, they will get removed before sending to the model either way, but this turns on/off
 # whether they are included in the counts of obs per data set, per species, in museums v cit sci, etc.
-remove_unidentified_species = TRUE
-consider_species_occurring_outside_sites = FALSE  # consider species that were detected outside of the sites but not at sites?
-min_records_per_species_full = NULL # min rec threshold if above is true
-make_range_plot = FALSE
-urban_sites = FALSE
-non_urban_subsample_n = 400
-
+remove_unidentified_species = TRUE # default to TRUE
+consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
+min_records_per_species_full = 15 # min rec threshold if above is true
+make_range_plot = FALSE # default to FALSE # plot ranges
+urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+non_urban_subsample_n = 100 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
+infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
+generate_temporal_plots = FALSE # default to FALSE
 
 source("./occupancy/data_prep/prep_data.R")
 
@@ -77,13 +78,9 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      era_end = era_end, # must define start date of the GBIF dataset
                      n_intervals = n_intervals, # must define number of intervals to break up the era into
                      n_visits = n_visits, # must define the number of repeat obs years within each interval
-                     # note, should introduce throw error if..
-                     # (era_end - era_start) / n_intervals has a remainder > 0,
                      min_records_per_species = min_records_per_species,
                      grid_size = grid_size, # 25km x 25 km 
                      min_population_size = min_population_size, # min pop density in the grid cell (per km^2)
-                     # for reference, 38people/km^2 is ~100people/mile^2
-                     # 100/km^2 is about 250/mile^sq
                      min_records_for_community_sampling_event = min_records_for_community_sampling_event,
                      min_year_for_species_ranges = min_year_for_species_ranges,
                      taxon,
@@ -93,7 +90,9 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      min_records_per_species_full,
                      make_range_plot,
                      urban_sites,
-                     non_urban_subsample_n
+                     non_urban_subsample_n,
+                     infer_detections_at_genus,
+                     generate_temporal_plots
                      
 )
 
@@ -181,8 +180,8 @@ museum_records_full <- my_data$museum_records_full
 # since it's no longer sent in as a vector of intervals (can you force a single
 # integer to be a vector if you truly want to treat all as a single interval?)
 intervals_raw <- as.vector(seq(1, n_intervals, by=1)) 
-# intervals <- intervals_raw - 1
-intervals <- intervals_raw
+intervals <- intervals_raw - 1
+# intervals <- intervals_raw
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
 
