@@ -35,7 +35,7 @@ data {
   
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
-  vector[n_sites] open_developed; // (scaled) developed open surface cover of each site
+  vector[n_sites] avg_income; // (scaled) developed open surface cover of each site
   vector[n_sites] herb_shrub_forest; // (scaled) undeveloped open surface cover of each site
   real museum_total_records[n_sites, n_intervals]; // (scaled) number of records
   
@@ -75,9 +75,9 @@ parameters {
   real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
   
   // random slope for species specific open low development effects on occupancy
-  vector[n_species] psi_open_developed; // vector of species specific slope estimates
-  real mu_psi_open_developed; // community mean of species specific slopes
-  real<lower=0> sigma_psi_open_developed; // variance in species slopes
+  vector[n_species] psi_income; // vector of species specific slope estimates
+  real mu_psi_income; // community mean of species specific slopes
+  real<lower=0> sigma_psi_income; // variance in species slopes
   
   // fixed effect of site area on occupancy
   real psi_site_area;
@@ -184,7 +184,7 @@ transformed parameters {
             psi_species[species[i]] + // a species specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
-            psi_open_developed[species[i]]*open_developed[j] + // an effect
+            psi_income[species[i]]*avg_income[j] + // an effect
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -247,13 +247,13 @@ model {
   mu_psi_herb_shrub_forest ~ normal(0, 1); // community mean
   sigma_psi_herb_shrub_forest ~ normal(0, 0.5); // community variance
   
-  psi_open_developed ~ normal(mu_psi_open_developed, sigma_psi_open_developed);
+  psi_income ~ normal(mu_psi_income, sigma_psi_income);
   // occupancy slope (population density effect on occupancy) for each species drawn from the 
   // community distribution (variance defined by sigma), centered at mu_psi_interval. 
   // centering on mu (rather than 0) allows us to estimate the average effect of
   // the management on abundance across all species.
-  mu_psi_open_developed ~ normal(0, 1); // community mean
-  sigma_psi_open_developed ~ normal(0, 0.5); // community variance
+  mu_psi_income ~ normal(0, 1); // community mean
+  sigma_psi_income ~ normal(0, 0.5); // community variance
   
   psi_site_area ~ normal(0, 1); // effect of site area on occupancy
   

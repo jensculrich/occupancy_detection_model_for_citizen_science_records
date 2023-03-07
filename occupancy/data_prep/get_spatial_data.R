@@ -116,19 +116,6 @@ get_spatial_data <- function(
       st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
     
     ## --------------------------------------------------
-    # Environmental data rasters
-    
-    # pop density raster
-    # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
-    # 2015 pop density at 1km resolution
-    pop_raster=raster("./data/spatial_data/population_density/gpw_v4_population_density_rev11_2015_30_sec.tif")
-    
-    # land cover raster 30m x 30m
-    # https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
-    # land cover data from 2016 
-    land=raster::raster("./data/spatial_data/land_cover/land_cover/nlcd_2016_land_cover_l48_20210604.img")
-    
-    ## --------------------------------------------------
     # Overlay the shapefile with a grid of sites of size == 'grid_size' 
     
     # create _km grid - here you can substitute by specifying grid_size above
@@ -137,6 +124,11 @@ get_spatial_data <- function(
     
     ## --------------------------------------------------
     # Extract mean population density in each grid cell
+    
+    # pop density raster
+    # https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download
+    # 2015 pop density at 1km resolution
+    pop_raster=raster("./data/spatial_data/population_density/gpw_v4_population_density_rev11_2015_30_sec.tif")
     
     pop_raster <- crop(pop_raster, states)
     pop_raster <- mask(pop_raster, states)
@@ -175,7 +167,47 @@ get_spatial_data <- function(
     gc()
     
     ## --------------------------------------------------
+    # Extract median household income from each census block group and then average out across grid cell
+    
+    # census block-group income data
+    # 2020 income data 
+    # B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
+    #https://data2.nhgis.org/main
+    # Typically, Block Groups have a population of 600 to 3,000 people.
+    income=st_read("./data/spatial_data/socioeconomic_data/US_blck_grp_2020.shp")
+    gc()
+    income_data <- read.csv("./data/spatial_data/socioeconomic_data/nhgis0001_ds249_20205_blck_grp.csv")
+    income_data <- income_data %>%
+      dplyr::select(GISJOIN, AMR8E001)
+    
+    income <- left_join(income, income_data, by="GISJOIN")
+    rm(income_data)
+    gc()
+    
+    # transform state shapefile to crs
+    income_trans <- st_transform(income, crs) # albers equal area
+    
+    grid_pop_dens <- st_join(grid_pop_dens, income_trans)
+    grid_pop_dens <- grid_pop_dens %>%
+      group_by(grid_id) %>%
+      mutate(avg_income = mean(AMR8E001, na.rm = TRUE)) %>%
+      slice(1) %>%
+      ungroup() %>%
+      dplyr::select(grid_id, pop_density_per_km2, avg_income) %>%
+      filter(!is.na(avg_income)) %>%
+      mutate(scaled_avg_income = center_scale(avg_income))
+    
+    rm(income, income_trans)
+    gc()
+    
+    
+    ## --------------------------------------------------
     # Extract environmental variables from each remaining site
+    
+    # land cover raster 30m x 30m
+    # https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
+    # land cover data from 2016 
+    land=raster::raster("./data/spatial_data/land_cover/land_cover/nlcd_2016_land_cover_l48_20210604.img")
     
     # make sure that the grid is still projected to the raster
     crs_raster <- sf::st_crs(raster::crs(land))
@@ -417,7 +449,8 @@ get_spatial_data <- function(
                                                   grid_pop_dens$scaled_developed_med_high,
                                                   grid_pop_dens$scaled_herb_shrub_cover,
                                                   grid_pop_dens$scaled_forest,
-                                                  grid_pop_dens$scaled_herb_shrub_forest)))
+                                                  grid_pop_dens$scaled_herb_shrub_forest,
+                                                  grid_pop_dens$scaled_avg_income)))
     
     colnames(correlation_matrix) <- c("scaled_pop_den_km2", 
                                       "scaled_site_area", 
@@ -425,7 +458,8 @@ get_spatial_data <- function(
                                       "scaled_developed_med_high",
                                       "scaled_herb_shrub_cover",
                                       "scaled_forest",
-                                      "scaled_herb_shrub_forest")
+                                      "scaled_herb_shrub_forest",
+                                      "scaled_avg_income")
     
     rownames(correlation_matrix) <- c("scaled_pop_den_km2", 
                                       "scaled_site_area", 
@@ -433,7 +467,8 @@ get_spatial_data <- function(
                                       "scaled_developed_med_high",
                                       "scaled_herb_shrub_cover",
                                       "scaled_forest",
-                                      "scaled_herb_shrub_forest")
+                                      "scaled_herb_shrub_forest",
+                                      "scaled_avg_income")
     
   #} # end else
   

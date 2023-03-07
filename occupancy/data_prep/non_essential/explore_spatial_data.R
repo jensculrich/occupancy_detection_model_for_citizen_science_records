@@ -57,7 +57,7 @@ crs <- 5070
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
-min_population_size <- 1000 
+min_population_size <- 1200 
 
 # minimum site area 
 # if sites are super tiny, the observation process could likely be very unstable
@@ -88,14 +88,6 @@ st_crs(states)
 # 2015 pop density at 1km resolution
 pop_raster=raster("./data/spatial_data/population_density/gpw_v4_population_density_rev11_2015_30_sec.tif")
 crs(pop_raster)
-
-# MRLC data https://www.mrlc.gov/data
-
-# DO NOT READ IF USING THE AGGREGATED/CROPPED FILE PRODUCED ONE TIME ONLY BELOW
-# land cover raster 30m x 30m
-# 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
-land=raster::raster("./data/spatial_data/land_cover/land_cover/nlcd_2016_land_cover_l48_20210604.img")
-raster::crs(land)
 
 ## --------------------------------------------------
 # Data Aggregation 
@@ -206,91 +198,49 @@ grid_pop_dens <- grid_pop_dens %>%
   filter(pop_density_per_km2 > min_population_size) 
 
 ## --------------------------------------------------
-# Connect sites for spatial autocorrelation smoothing
-# https://github.com/ConnorDonegan/Stan-IAR
+# Try extracting median household income from each block
 
-# cite: Donegan, Connor. Flexible Functions for ICAR, BYM, and BYM2 Models in Stan. 
-# Code Repository. 2021. 
-# Available online: https://github.com/ConnorDonegan/Stan-IAR (access date).
+# census block income data
+# 2020 income data 
+# B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
+#https://data2.nhgis.org/main
+# Typically, Block Groups have a population of 600 to 3,000 people.
+income=st_read("./data/spatial_data/socioeconomic_data/US_blck_grp_2020.shp")
+gc()
+income_data <- read.csv("./data/spatial_data/socioeconomic_data/nhgis0001_ds249_20205_blck_grp.csv")
+income_data <- income_data %>%
+  dplyr::select(GISJOIN, AMR8E001)
 
-# should do this AFTER removing any small sites
+income <- left_join(income, income_data, by="GISJOIN")
+rm(income_data)
+gc()
 
-C <- spdep::nb2mat(spdep::poly2nb(grid_pop_dens, queen = TRUE), style = "B", zero.policy = TRUE)
+# transform state shapefile to crs
+income_trans <- st_transform(income, crs) # albers equal area
 
-edges <- function (w) {
-  lw <- apply(w, 1, function(r) {
-    which(r != 0)
-  })
-  all.edges <- lapply(1:length(lw), function(i) {
-    nbs <- lw[[i]]
-    if (length(nbs)) 
-      data.frame(node1 = i, node2 = nbs, weight = w[i, nbs])
-  })
-  all.edges <- do.call("rbind", all.edges)
-  edges <- all.edges[which(all.edges$node1 < all.edges$node2), ]
-  return(edges)
-}
+grid_pop_dens <- st_join(grid_pop_dens, income_trans)
+grid_pop_dens <- grid_pop_dens %>%
+  group_by(grid_id) %>%
+  mutate(avg_income = mean(AMR8E001, na.rm = TRUE)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  dplyr::select(grid_id, pop_density_per_km2, avg_income) %>%
+  filter(!is.na(avg_income)) %>%
+  mutate(scaled_avg_income = center_scale(avg_income))
 
-prep_icar_data <- function (C, inv_sqrt_scale_factor = NULL) {
-  n <- nrow(C)
-  E <- edges(C)
-  G <- list(np = nrow(C), from = E$node1, to = E$node2, nedges = nrow(E))
-  class(G) <- "Graph"
-  nb2 <- spdep::n.comp.nb(spdep::graph2nb(G))
-  k = nb2$nc
-  if (inherits(inv_sqrt_scale_factor, "NULL")) inv_sqrt_scale_factor <- array(rep(1, k), dim = k)
-  group_idx = NULL
-  for (j in 1:k) group_idx <- c(group_idx, which(nb2$comp.id == j))
-  group_size <- NULL
-  for (j in 1:k) group_size <- c(group_size, sum(nb2$comp.id == j))
-  # intercept per connected component of size > 1, if multiple.
-  m <- sum(group_size > 1) - 1
-  if (m) {
-    GS <- group_size
-    ID <- nb2$comp.id
-    change.to.one <- which(GS == 1)
-    ID[which(ID == change.to.one)] <- 1
-    A = model.matrix(~ factor(ID))
-    A <- as.matrix(A[,-1])
-  } else {
-    A <- model.matrix(~ 0, data.frame(C))
-  }
-  l <- list(k = k, 
-            group_size = array(group_size, dim = k), 
-            n_edges = nrow(E), 
-            node1 = E$node1, 
-            node2 = E$node2, 
-            group_idx = array(group_idx, dim = n), 
-            m = m,
-            A = A,
-            inv_sqrt_scale_factor = inv_sqrt_scale_factor, 
-            comp_id = nb2$comp.id)
-  return(l)
-}
-
-icar.data <- prep_icar_data(C)
-
-## --------------------------------------------------
-# Try quantifying landscape configuration
-library(landscapemetrics)
-
-check_landscape(land)
-
-# make sure that the grid is still projected to the raster
-crs_raster <- sf::st_crs(raster::crs(land))
-prj1 <- st_transform(grid_pop_dens, crs_raster)
-
-# natural habitat
-temp <- reclassify(land, cbind(c(41, 42, 43, 52, 71), 1))
-temp <- reclassify(temp, cbind(c(0, 11, 12, 21, 22, 23, 24, 31, 51, 72, 73, 74, 81, 82, 90, 95), NA))
-
-plot(temp)
-
-my_metrics = sample_lsm(temp, prj1, 
-                        level = "landscape", metric = c("enn_mn"))
+rm(income, income_trans)
+gc()
 
 ## --------------------------------------------------
 # Extract environmental variables from each remaining site
+
+# MRLC data https://www.mrlc.gov/data
+
+# DO NOT READ IF USING THE AGGREGATED/CROPPED FILE PRODUCED ONE TIME ONLY BELOW
+# land cover raster 30m x 30m
+# 2016 land cover data https://www.mrlc.gov/data/nlcd-2016-land-cover-conus
+land=raster::raster("./data/spatial_data/land_cover/land_cover/nlcd_2016_land_cover_l48_20210604.img")
+raster::crs(land)
 
 # make sure that the grid is still projected to the raster
 crs_raster <- sf::st_crs(raster::crs(land))
@@ -307,23 +257,23 @@ prj_grid_lab <- st_transform(grid_lab, crs_raster)
 # 11, 12, 21, 22, 23, 24, 31, 41, 42, 43, 51, 52, 71, 72, 73, 74, 81, 82, 90, 95
 
 # natural habitat
-temp <- reclassify(land_cropped_zoom, cbind(c(41, 42, 43, 52, 71), 1))
-temp <- reclassify(temp, cbind(c(0, 11, 12, 21, 22, 23, 24, 31, 51, 72, 73, 74, 81, 82, 90, 95), NA))
+#temp <- reclassify(land_cropped_zoom, cbind(c(41, 42, 43, 52, 71), 1))
+#temp <- reclassify(temp, cbind(c(0, 11, 12, 21, 22, 23, 24, 31, 51, 72, 73, 74, 81, 82, 90, 95), NA))
 
 # open developed habitat
-temp <- reclassify(land_cropped_zoom, cbind(c(21), 1))
-temp <- reclassify(temp, cbind(c(0, 11, 12, 22, 23, 24, 31, 41, 42, 43, 51, 52, 71, 72, 73, 74, 81, 82, 90, 95), NA))
+#temp <- reclassify(land_cropped_zoom, cbind(c(21), 1))
+#temp <- reclassify(temp, cbind(c(0, 11, 12, 22, 23, 24, 31, 41, 42, 43, 51, 52, 71, 72, 73, 74, 81, 82, 90, 95), NA))
 
 # open dev
-temp <- land_cropped_zoom
-temp[temp != 21] <- NA
+#temp <- land_cropped_zoom
+#temp[temp != 21] <- NA
 
 # natural
-temp <- land_cropped_zoom
-temp[temp != c( 41, 42, 43, 52, 71)] <- NA
+#temp <- land_cropped_zoom
+#temp[temp != c( 41, 42, 43, 52, 71)] <- NA
 
-rasterVis::levelplot(temp, xlab = "Longitude", ylab = "Latitude", 
-                     colorkey=FALSE) 
+#rasterVis::levelplot(temp, xlab = "Longitude", ylab = "Latitude", 
+#                     colorkey=FALSE) 
 
 plot(temp, 
      xlab = "Longitude", ylab = "Latitude",
@@ -483,6 +433,17 @@ ggplot() +
   labs(y = "Latitude") 
 # coord_sf(datum = NA)
 
+# view sites only with scaled income
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_income), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled median household income") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  ggtitle("Avg. household income in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
 # scaled shrub and herb cover
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
@@ -547,7 +508,8 @@ df <- cbind(grid_pop_dens$scaled_pop_den_km2,
             grid_pop_dens$scaled_developed_open,
             grid_pop_dens$scaled_developed_med_high,
             grid_pop_dens$scaled_herb_shrub_cover,
-            grid_pop_dens$scaled_forest)
+            grid_pop_dens$scaled_forest,
+            grid_pop_dens$scaled_avg_income)
 
 (variable_correlations <- cor(df))
 
@@ -556,16 +518,18 @@ colnames(variable_correlations) <- c("scaled_pop_den_km2",
                                      "scaled_developed_open",
                                      "scaled_developed_med_high",
                                      "scaled_herb_shrub_cover",
-                                     "scaled_forest")
+                                     "scaled_forest",
+                                     "scaled_avg_income")
 
 rownames(variable_correlations) <- c("scaled_pop_den_km2", 
                                      "scaled_site_area", 
                                      "scaled_developed_open",
                                      "scaled_developed_med_high",
                                      "scaled_herb_shrub_cover",
-                                     "scaled_forest")
+                                     "scaled_forest",
+                                     "scaled_avg_income")
 
-(variable_correlations)
+View(as.data.frame(variable_correlations))
 
 ## --------------------------------------------------
 # Occurrence data
@@ -636,3 +600,88 @@ df_id_dens <- df_trans %>%
 #  "_occurrence_records_30km_200minpop_.RDS")) 
 
 # end file
+
+## --------------------------------------------------
+# Try quantifying landscape configuration
+library(landscapemetrics)
+
+check_landscape(land)
+
+# make sure that the grid is still projected to the raster
+crs_raster <- sf::st_crs(raster::crs(land))
+prj1 <- st_transform(grid_pop_dens, crs_raster)
+
+# natural habitat
+temp <- reclassify(land, cbind(c(41, 42, 43, 52, 71), 1))
+temp <- reclassify(temp, cbind(c(0, 11, 12, 21, 22, 23, 24, 31, 51, 72, 73, 74, 81, 82, 90, 95), NA))
+
+plot(temp)
+
+my_metrics = sample_lsm(temp, prj1, 
+                        level = "landscape", metric = c("enn_mn"))
+
+
+## --------------------------------------------------
+# Connect sites for spatial autocorrelation smoothing
+# https://github.com/ConnorDonegan/Stan-IAR
+
+# cite: Donegan, Connor. Flexible Functions for ICAR, BYM, and BYM2 Models in Stan. 
+# Code Repository. 2021. 
+# Available online: https://github.com/ConnorDonegan/Stan-IAR (access date).
+
+# should do this AFTER removing any small sites
+
+C <- spdep::nb2mat(spdep::poly2nb(grid_pop_dens, queen = TRUE), style = "B", zero.policy = TRUE)
+
+edges <- function (w) {
+  lw <- apply(w, 1, function(r) {
+    which(r != 0)
+  })
+  all.edges <- lapply(1:length(lw), function(i) {
+    nbs <- lw[[i]]
+    if (length(nbs)) 
+      data.frame(node1 = i, node2 = nbs, weight = w[i, nbs])
+  })
+  all.edges <- do.call("rbind", all.edges)
+  edges <- all.edges[which(all.edges$node1 < all.edges$node2), ]
+  return(edges)
+}
+
+prep_icar_data <- function (C, inv_sqrt_scale_factor = NULL) {
+  n <- nrow(C)
+  E <- edges(C)
+  G <- list(np = nrow(C), from = E$node1, to = E$node2, nedges = nrow(E))
+  class(G) <- "Graph"
+  nb2 <- spdep::n.comp.nb(spdep::graph2nb(G))
+  k = nb2$nc
+  if (inherits(inv_sqrt_scale_factor, "NULL")) inv_sqrt_scale_factor <- array(rep(1, k), dim = k)
+  group_idx = NULL
+  for (j in 1:k) group_idx <- c(group_idx, which(nb2$comp.id == j))
+  group_size <- NULL
+  for (j in 1:k) group_size <- c(group_size, sum(nb2$comp.id == j))
+  # intercept per connected component of size > 1, if multiple.
+  m <- sum(group_size > 1) - 1
+  if (m) {
+    GS <- group_size
+    ID <- nb2$comp.id
+    change.to.one <- which(GS == 1)
+    ID[which(ID == change.to.one)] <- 1
+    A = model.matrix(~ factor(ID))
+    A <- as.matrix(A[,-1])
+  } else {
+    A <- model.matrix(~ 0, data.frame(C))
+  }
+  l <- list(k = k, 
+            group_size = array(group_size, dim = k), 
+            n_edges = nrow(E), 
+            node1 = E$node1, 
+            node2 = E$node2, 
+            group_idx = array(group_idx, dim = n), 
+            m = m,
+            A = A,
+            inv_sqrt_scale_factor = inv_sqrt_scale_factor, 
+            comp_id = nb2$comp.id)
+  return(l)
+}
+
+icar.data <- prep_icar_data(C)

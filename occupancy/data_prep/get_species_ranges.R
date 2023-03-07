@@ -50,8 +50,8 @@ get_species_ranges <- function(
     
   
   if(taxon == "bombus"){
-    df <- df %>%
-      filter(!(species == "impatiens" & decimalLongitude < -100)) 
+    df <- df %>% 
+      filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
       filter(!(species == "affinis" & (!(state.prov %in% 
                                            c("Minnesota", "Iowa", "Wisconsin", "Illinois",
                                              "Indiana", "Ohio", "West Virginia", "Virginia")))))
