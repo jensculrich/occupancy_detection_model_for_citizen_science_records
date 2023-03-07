@@ -269,21 +269,12 @@ get_spatial_data <- function(
                             } 
     )
     
-    if(taxon == "bombus"){
-      r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
-                                         function(x) { 
-                                           (length(which(x %in% c(52,71,41,42,43))) / length(x))
-                                         } 
-      )
-    } else {
-      # also include wetlands for syrphidae
-      r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
-                                         function(x) { 
-                                           (length(which(x %in% c(52,71,41,42,43,90,95))) / length(x))
-                                         } 
-      )
-    }
-     
+    r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
+                                       function(x) { 
+                                         (length(which(x %in% c(52,71,41,42,43,90,95))) / length(x))
+                                       }
+    )                                
+                                       
     grid_pop_dens <- cbind(grid_pop_dens,
                            unlist(r.site_area),
                            unlist(r.mean_herb_shrub),

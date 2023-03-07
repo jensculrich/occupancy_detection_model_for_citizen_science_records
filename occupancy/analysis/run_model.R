@@ -222,6 +222,7 @@ if(taxon == "bombus"){
                 "sigma_p_citsci_species",
                 "sigma_p_citsci_site",
                 "sigma_p_citsci_ecoregion_three",
+                "sigma_p_citsci_ecoregion_one",
                 "p_citsci_interval",
                 "p_citsci_pop_density", 
                 
@@ -229,6 +230,7 @@ if(taxon == "bombus"){
                 "sigma_p_museum_species",
                 "sigma_p_museum_site",
                 "sigma_p_museum_ecoregion_three",
+                "sigma_p_museum_ecoregion_one",
                 "p_museum_total_records",
                 
                 "psi_species",
@@ -273,6 +275,7 @@ if(taxon == "bombus"){
            sigma_p_citsci_species = runif(1, 0, 0.5),
            sigma_p_citsci_site = runif(1, 0, 0.5),
            sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
+           sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
            p_citsci_interval = runif(1, -1, 1),
            p_citsci_pop_density = runif(1, -1, 1),
            
@@ -280,6 +283,7 @@ if(taxon == "bombus"){
            sigma_p_museum_species = runif(1, 0, 0.1),
            sigma_p_museum_site = runif(1, 0, 0.1),
            sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
+           sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
            p_museum_total_records = runif(1,  -0.5, 0.5)
            
       )
@@ -308,6 +312,7 @@ if(taxon == "bombus"){
                 "sigma_p_citsci_species",
                 "sigma_p_citsci_site",
                 "sigma_p_citsci_ecoregion_three",
+                "sigma_p_citsci_ecoregion_one",
                 "p_citsci_interval",
                 "p_citsci_pop_density", 
                 
@@ -315,6 +320,7 @@ if(taxon == "bombus"){
                 "sigma_p_museum_species",
                 "sigma_p_museum_site",
                 "sigma_p_museum_ecoregion_three",
+                "sigma_p_museum_ecoregion_one",
                 "p_museum_total_records",
                 
                 "psi_species",
@@ -353,6 +359,7 @@ if(taxon == "bombus"){
            sigma_p_citsci_species = runif(1, 0, 0.5),
            sigma_p_citsci_site = runif(1, 0, 0.5),
            sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
+           sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
            p_citsci_interval = runif(1, -1, 1),
            p_citsci_pop_density = runif(1, -1, 1),
            
@@ -360,6 +367,7 @@ if(taxon == "bombus"){
            sigma_p_museum_species = runif(1, 0, 0.1),
            sigma_p_museum_site = runif(1, 0, 0.1),
            sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
+           sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
            p_museum_total_records = runif(1,  -0.5, 0.5)
            
       )
@@ -375,11 +383,10 @@ if(taxon == "bombus"){
                    "ranges", "V_museum_NA",
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
-                   "n_genera", "genus_lookup",
                    "n_ecoregion_three", "n_ecoregion_one",
                    "ecoregion_three", "ecoregion_one",
                    "ecoregion_three_lookup", "ecoregion_one_lookup",
-                   "pop_densities", "site_areas", 
+                   "pop_densities", "site_areas", "avg_income", 
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
@@ -389,6 +396,8 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
+                "mu_psi_income",
+                "sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
                 "psi_site_area",
@@ -397,6 +406,7 @@ if(taxon == "bombus"){
                 "sigma_p_citsci_species",
                 "sigma_p_citsci_site",
                 "sigma_p_citsci_ecoregion_three",
+                "sigma_p_citsci_ecoregion_one",
                 "p_citsci_interval",
                 "p_citsci_pop_density", 
                 
@@ -404,9 +414,11 @@ if(taxon == "bombus"){
                 "sigma_p_museum_species",
                 "sigma_p_museum_site",
                 "sigma_p_museum_ecoregion_three",
+                "sigma_p_museum_ecoregion_one",
                 "p_museum_total_records",
                 
                 "psi_species",
+                "psi_income",
                 "psi_herb_shrub_forest",
                 
                 #"T_rep_citsci",
@@ -434,12 +446,12 @@ if(taxon == "bombus"){
       
       list(mu_psi_0 = runif(1, -1, 1),
            sigma_psi_species = runif(1, 0, 0.5),
-           sigma_psi_site = runif(1, 0, 0.5),
+           sigma_psi_genus = runif(1, 0, 0.5),
            sigma_psi_site = runif(1, 0, 0.5),
            sigma_psi_ecoregion_three = runif(1, 0, 0.5),
            sigma_psi_ecoregion_one = runif(1, 0, 0.5),
-           mu_psi_open_developed = runif(1, -1, 1),
-           sigma_psi_open_developed = runif(1, 0, 0.5),
+           mu_psi_income = runif(1, -1, 1),
+           sigma_psi_income = runif(1, 0, 0.5),
            mu_psi_herb_shrub_forest = runif(1, -1, 1),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
@@ -448,6 +460,7 @@ if(taxon == "bombus"){
            sigma_p_citsci_species = runif(1, 0, 0.5),
            sigma_p_citsci_site = runif(1, 0, 0.5),
            sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
+           sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
            p_citsci_interval = runif(1, -1, 1),
            p_citsci_pop_density = runif(1, -1, 1),
            
@@ -455,6 +468,7 @@ if(taxon == "bombus"){
            sigma_p_museum_species = runif(1, 0, 0.1),
            sigma_p_museum_site = runif(1, 0, 0.1),
            sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
+           sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
            p_museum_total_records = runif(1,  -0.5, 0.5)
            
       )
@@ -485,6 +499,7 @@ if(taxon == "bombus"){
               "sigma_p_citsci_species",
               "sigma_p_citsci_site",
               "sigma_p_citsci_ecoregion_three",
+              "sigma_p_citsci_ecoregion_one",
               "p_citsci_interval",
               "p_citsci_pop_density", 
               
@@ -492,6 +507,7 @@ if(taxon == "bombus"){
               "sigma_p_museum_species",
               "sigma_p_museum_site",
               "sigma_p_museum_ecoregion_three",
+              "sigma_p_museum_ecoregion_one",
               "p_museum_total_records",
               
               "psi_species",
@@ -507,7 +523,7 @@ if(taxon == "bombus"){
   
   
   # MCMC settings
-  n_iterations <- 1000
+  n_iterations <- 1200
   n_thin <- 1
   n_burnin <- 600
   n_chains <- 4
@@ -521,7 +537,7 @@ if(taxon == "bombus"){
     
     list(mu_psi_0 = runif(1, -1, 1),
          sigma_psi_species = runif(1, 0, 0.5),
-         sigma_psi_site = runif(1, 0, 0.5),
+         sigma_psi_genus = runif(1, 0, 0.5),
          sigma_psi_site = runif(1, 0, 0.5),
          sigma_psi_ecoregion_three = runif(1, 0, 0.5),
          sigma_psi_ecoregion_one = runif(1, 0, 0.5),
@@ -552,7 +568,6 @@ if(taxon == "bombus"){
 
 if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
-  #stan_model <- paste0("./occupancy/models/model_", taxon, "_wide_priors.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -588,6 +603,10 @@ stan_out <- readRDS(paste0(
 )
 )
 
+#stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3wide_priors.RDS")
+#stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3_bbna.RDS")
+
+  
 # print main effects
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
