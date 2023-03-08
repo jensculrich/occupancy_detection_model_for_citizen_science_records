@@ -47,7 +47,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+grid_size = 30000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -67,8 +67,8 @@ remove_unidentified_species = TRUE # default to TRUE
 consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
-urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
-non_urban_subsample_n = 100 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
+urban_sites = FALSE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+non_urban_subsample_n = 600 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
 
@@ -99,17 +99,20 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
 # save the data in case you want to make tweaks to the model run
 # without redoing the data prep
 saveRDS(my_data, paste("./occupancy/analysis/prepped_data/", 
-                       taxon, grid_size / 1000, 
-                       "km", min_population_size, "minpop", 
-                       min_records_per_species, "minpersp",
-                       n_intervals, n_visits,
-                       ".rds", sep = "_"))
+                       taxon, "/", grid_size / 1000, 
+                       "km_", min_population_size, "minpop_", 
+                       min_records_per_species, "minpersp_",
+                       n_intervals, "ints_", n_visits, "visits",
+                       #"_nonurban",
+                       ".rds", sep = ""))
 
-my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/_",
-                          taxon, "_", grid_size / 1000, "_",
-                          "km", "_", min_population_size, "_", "minpop", "_",
-                          min_records_per_species, "_", "minpersp", "_",
-                          n_intervals, "_", n_visits, "_",
+my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
+                          taxon, "/", grid_size / 1000, "km_",
+                          min_population_size, "minpop_",
+                          min_records_per_species, "minpersp", "_",
+                          n_intervals, "ints_",
+                          n_visits, "visits",
+                          "_nonurban",
                           ".rds"))
 
 # best to restart R or offload all of the spatial data packages before running the model
@@ -132,7 +135,7 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-#saveRDS(species_names, "./figures/bombus_names_15km_urban.RDS")
+#saveRDS(species_names, "./figures/species_names/bombus_names_30km_nonurban.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
 pop_densities <- my_data$pop_densities
@@ -248,7 +251,7 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1200
+    n_iterations <- 1600
     n_thin <- 1
     n_burnin <- 600
     n_chains <- 4
@@ -336,7 +339,7 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1200
+    n_iterations <- 1600
     n_thin <- 1
     n_burnin <- 600
     n_chains <- 4
@@ -432,7 +435,7 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1200
+    n_iterations <- 1600
     n_thin <- 1
     n_burnin <- 600
     n_chains <- 4
@@ -523,7 +526,7 @@ if(taxon == "bombus"){
   
   
   # MCMC settings
-  n_iterations <- 1200
+  n_iterations <- 1600
   n_thin <- 1
   n_burnin <- 600
   n_chains <- 4
@@ -586,12 +589,11 @@ stan_out <- stan(stan_model,
 
 saveRDS(stan_out, paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
-  "km_", min_population_size, "minpop", 
-  min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, 
+  "km_", min_population_size, "minpop_", 
+  min_records_per_species, "minpersp_",
+  n_intervals, "ints_", n_visits, "visits_",
   #"nonurban.RDS"  # use if saving a non-urban model run
-  #".RDS
-  "wide_priors.RDS"
+  ".RDS"
 )
 )
 
@@ -613,9 +615,9 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_site",
           "sigma_psi_ecoregion_three",
           "sigma_psi_ecoregion_one",
-          "mu_psi_herb_shrub_forest",
+          #"mu_psi_herb_shrub_forest",
           #"sigma_psi_herb_shrub_forest",
-          "mu_psi_income",
+          #"mu_psi_income",
           #"sigma_psi_open_developed",
           "psi_site_area"))
 
@@ -626,6 +628,7 @@ print(stan_out, digits = 3, pars=
           "sigma_p_citsci_species",
           "sigma_p_citsci_site",
           "sigma_p_citsci_ecoregion_three",
+          "sigma_p_citsci_ecoregion_one",
           "p_citsci_interval",
           "p_citsci_pop_density", 
 
@@ -633,6 +636,7 @@ print(stan_out, digits = 3, pars=
           "sigma_p_museum_species",
           "sigma_p_museum_site",
           "sigma_p_museum_ecoregion_three",
+          "sigma_p_museum_ecoregion_one",
           "p_museum_total_records"))
 
 View(as.data.frame(species_names))
@@ -706,8 +710,10 @@ traceplot(stan_out, pars = c(
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
+  "sigma_p_citsci_ecoregion_one",
   "sigma_p_museum_site",
   "sigma_p_museum_ecoregion_three",
+  "sigma_p_museum_ecoregion_one",
   "sigma_p_citsci_species",
   "sigma_p_museum_species"
 ))
