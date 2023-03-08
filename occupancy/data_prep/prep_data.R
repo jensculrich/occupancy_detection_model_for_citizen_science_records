@@ -211,6 +211,18 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     df_full <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
   }
   
+  # if not doing urban sites, we want to filter the occurrence data so that 
+  # we still only fit a model for the species that we see in the urban sites
+  # there are more species that occur anywhere than in urban sites alone
+  if(urban_sites == FALSE){
+    species_names <- readRDS(paste0("./figures/species_names/", 
+                                    taxon,
+                                    "_names_15km_urban.RDS"))
+  }
+  
+  df_full <- df_full %>% 
+    filter(species %in% species_names)
+  
   df_full <- df_full %>%
     filter(species != "") %>% 
     

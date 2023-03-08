@@ -6,11 +6,11 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1200minpop10minpersp4_3_bbna.RDS")
-stan_out2 <- readRDS("./occupancy/model_outputs/bombus_30km_1000minpop10minpersp4_3nonurban_bbna.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop_10minpersp_4ints_3visits.RDS")
+stan_out2 <- readRDS("./occupancy/model_outputs/bombus_30km_1000minpop_10minpersp_4ints_3visits_nonurban.RDS")
 
-species_names <- readRDS("./figures/bombus_names_15km.RDS")
-species_names2 <- readRDS("./figures/bombus_names_30km_nonurban.RDS")
+species_names <- readRDS("./figures/species_names/bombus_names_15km_urban.RDS")
+species_names2 <- readRDS("./figures/species_names/bombus_names_30km_nonurban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
 list_of_draws2 <- as.data.frame(stan_out2)
@@ -22,7 +22,7 @@ n_species2 <- length(species_names)
 # these occur in species_names2 but not in species_names
 # 17 is the number of columns before psi species starts
 check <- which(is.na(charmatch(species_names2, species_names)))
-check_plus <- which(is.na(charmatch(species_names2, species_names))) + 17
+check_plus <- which(is.na(charmatch(species_names2, species_names))) + 19
 
 species_names2 <- species_names2[-(c(check))]
 # which(is.na(charmatch(species_names2, species_names)))
@@ -41,11 +41,11 @@ for(draw in 1:n_draws){
     # for each species, draw a random sample from the posterior for:
     # psi0 non-urban habitat (starts at column 18) from list_of_draws2
     samples[species,1] <- list_of_draws2[sample.int(posterior_length, 1),
-                                        17+species] 
+                                        19+species] 
     # and psi species natural habitat (starts at column 104) 
     # from list_of_draws
     samples[species,2] <- list_of_draws[sample.int(posterior_length, 1),
-                                        103+species]
+                                        89+species]
     
     # calculate the correlation between the two terms across all species
     # and add to a vector of correlations, then
@@ -78,7 +78,7 @@ hist(corr, breaks = 20,
      species-specific effect of natural habitat on urban occupancy")
 abline(v = mean, col="black", lwd=3, lty=1)
 abline(v = cbind(lower95, upper95), col="blue", lwd=3, lty=2)
-abline(v = cbind(lower90, upper90), col="red", lwd=3, lty=2)
+abline(v = cbind(lower90, upper90), col="green", lwd=3, lty=2)
 abline(v = cbind(lower50, upper50), col="red", lwd=3, lty=2)
 
 # there is a weak negative association between need for natural habitat and range-wide occupancy

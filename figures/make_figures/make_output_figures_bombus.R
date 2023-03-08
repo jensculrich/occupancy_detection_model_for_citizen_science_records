@@ -6,9 +6,8 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus_25km_750minpop1minpersp4_3_sq.RDS")
-species_names <- readRDS("./figures/bombus_names_20min.RDS")
-
+stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop_10minpersp_4ints_3visits.RDS")
+species_names <- readRDS("./figures/species_names/bombus_names_15km_urban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
 
@@ -30,7 +29,7 @@ n_species <- length(species_names)
 # parameter means
 X_eco <- c(1, 2, 3, 4) # 4 ecological params of interest
 # mean of eco params
-Y_eco <- c(fit_summary$summary[6,1], # mu psi open developed
+Y_eco <- c(fit_summary$summary[6,1], # mu psi income
            fit_summary$summary[8,1], # mu psi herb shrub forest
            fit_summary$summary[10,1], # psi site area
            fit_summary$summary[1,1] # mu psi 0
@@ -60,10 +59,10 @@ species_estimates <- data.frame()
 for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
-  species_estimates[1,i] <- fit_summary$summary[21+i,1] # psi species
+  species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[2,i] <- NA # site area
-  species_estimates[3,i] <- fit_summary$summary[103+i,1] # herb shrub forest
-  species_estimates[4,i] <- fit_summary$summary[62+i,1] # open dev
+  species_estimates[3,i] <- fit_summary$summary[89+i,1] # herb shrub forest
+  species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
   
 }
 
@@ -76,7 +75,7 @@ for(i in 1:n_species){
     theme_bw() +
     # scale_color_viridis(discrete=TRUE) +
     scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
-                       labels=c(bquote(psi[open.developed]),
+                       labels=c(bquote(psi[income]),
                                 bquote(psi[natural.habitat]),
                                 bquote(psi[site.area]), 
                                 bquote(psi[0]))) +
@@ -127,30 +126,30 @@ X_citsci <- c(1, 2, 3, 4, 5) # 6 detection params of interest
 # mean of cit sci params and museum params
 Y_citsci <- c(
            # museum 
-          fit_summary$summary[21,1], # p total records
-          fit_summary$summary[17,1], # mu p 0
+          fit_summary$summary[23,1], # p total records
+          fit_summary$summary[18,1], # mu p 0
            # cit sci
-           fit_summary$summary[16,1], # p pop dens
-           fit_summary$summary[15,1], # p interval
+           fit_summary$summary[17,1], # p pop dens
+           fit_summary$summary[16,1], # p interval
            fit_summary$summary[11,1]) # mu p 0
 
 # confidence intervals
 lower_95_citsci <- c(
   # museum 
-  fit_summary$summary[21,4], # p total records
-  fit_summary$summary[17,4], # mu p 0
+  fit_summary$summary[23,4], # p total records
+  fit_summary$summary[18,4], # mu p 0
   # cit sci
-  fit_summary$summary[16,4], # p pop dens
-  fit_summary$summary[15,4], # p interval
+  fit_summary$summary[17,4], # p pop dens
+  fit_summary$summary[16,4], # p interval
   fit_summary$summary[11,4]) # mu p 0
 
 upper_95_citsci <- c(
   # museum 
-  fit_summary$summary[21,8], # p total records
-  fit_summary$summary[17,8], # mu p 0
+  fit_summary$summary[23,8], # p total records
+  fit_summary$summary[18,8], # mu p 0
   # cit sci
-  fit_summary$summary[16,8], # p pop dens
-  fit_summary$summary[15,8], # p interval
+  fit_summary$summary[17,8], # p pop dens
+  fit_summary$summary[16,8], # p interval
   fit_summary$summary[11,8]) # mu p 0
 
 df_estimates_citsci <- as.data.frame(cbind(X_citsci, Y_citsci, 
@@ -165,10 +164,10 @@ species_estimates_det <- data.frame()
 for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
-  species_estimates_det[1,i] <- fit_summary$summary[21+i,1] # mu p 0 citsci
+  #species_estimates_det[1,i] <- fit_summary$summary[21+i,1] # mu p 0 citsci
   species_estimates_det[2,i] <- NA # p interval
-  species_estimates_det[3,i] <- fit_summary$summary[103+i,1] # p pop dens
-  species_estimates_det[4,i] <- fit_summary$summary[103+i,1] # mu p 0 mus
+  #species_estimates_det[3,i] <- fit_summary$summary[103+i,1] # p pop dens
+  #species_estimates_det[4,i] <- fit_summary$summary[103+i,1] # mu p 0 mus
   species_estimates_det[5,i] <- NA # p total records
   
 }
@@ -190,7 +189,7 @@ for(i in 1:n_species){
                       bquote(p.citsci[time.interval^2]), 
                       bquote(p.citsci[0]))) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-4.5, 2)) +
+                      limits = c(-5, 2)) +
    guides(color = guide_legend(title = "")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
@@ -241,79 +240,73 @@ for(i in 1:n_species){
 fit_summary <- rstan::summary(stan_out)
 
 # parameter means
-params = 5
+params = 3
 
 x <- (rep(1:params, each=n_species)) # parameter reference
-y = (rep(1:n_species, times=params)) # species reference
+y <- (rep(1:n_species, times=params)) # species reference
 
 
 estimate <-  c(
   # param 1 (psi_species)
-  fit_summary$summary[22:62,1],
-  # param 2 (psi natural)
-  fit_summary$summary[104:144,1],
-  # param 3 (psi open developed)
-  fit_summary$summary[63:103,1], 
-  # param 4 (Freeman Tukey P cit sci)
-  fit_summary$summary[145:185,1], 
-  # param 5 (Freeman Tukey P museum)
-  fit_summary$summary[186:226,1]
+  fit_summary$summary[24:56,1],
+  # param 2 (psi income)
+  fit_summary$summary[57:89,1],
+  # param 3 (psi natural)
+  fit_summary$summary[90:122,1]
 )
-
-
 
 lower <- c(
   # param 1 (psi_species)
-  fit_summary$summary[22:62,4],
-  # param 2 (psi natural)
-  fit_summary$summary[104:144,4],
-  # param 3 (psi open developed)
-  fit_summary$summary[63:103,4], 
-  # param 4 (Freeman Tukey P cit sci)
-  fit_summary$summary[145:185,4], 
-  # param 5 (Freeman Tukey P museum)
-  fit_summary$summary[186:226,4]
+  fit_summary$summary[24:56,4],
+  # param 2 (psi income)
+  fit_summary$summary[57:89,4],
+  # param 3 (psi natural)
+  fit_summary$summary[90:122,4]
 ) 
 
 upper <- c(
   # param 1 (psi_species)
-  fit_summary$summary[22:62,8],
-  # param 2 (psi natural)
-  fit_summary$summary[104:144,8],
-  # param 3 (psi open developed)
-  fit_summary$summary[63:103,8], 
-  # param 4 (Freeman Tukey P cit sci)
-  fit_summary$summary[145:185,8], 
-  # param 5 (Freeman Tukey P museum)
-  fit_summary$summary[186:226,8]
+  fit_summary$summary[24:56,8],
+  # param 2 (psi income)
+  fit_summary$summary[57:89,8],
+  # param 3 (psi natural)
+  fit_summary$summary[90:122,8]
 ) 
 
-df = as.data.frame(cbind(x,y,estimate, lower, upper)) %>%
+# species_names_label <- str_replace_all(species_names,'Bombus','B.')
+species_names_label <- paste0("B. ", species_names) 
+
+df <- as.data.frame(cbind(x, y, estimate, lower, upper 
+                          )) %>%
   mutate(x = as.factor(x),
          y = as.factor(y))
 
-species_names <- str_replace_all(species_names,'Bombus','B.')
 
-ggplot(df, aes(x, y, width=1, height=1)) +
+
+# converting the result to dataframe
+#df <- as.data.frame(rev_data_frame)
+
+p1 <- ggplot(df, aes(x, y, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5),
+  scale_x_discrete(name="", breaks = c(1, 2, 3),
                    labels=c(bquote(psi[species]),
-                            bquote(psi[species[natural]]),
-                            bquote(psi[species[open.dev]]),
-                            bquote(FTP[citsci]),
-                            bquote(FTP[museum])
+                            bquote(psi[species[income]]),
+                            bquote(psi[species[natural.hab]])
+                            #bquote(FTP[citsci]),
+                            #bquote(FTP[museum])
                             )) +
   scale_y_discrete(name="", breaks = rep(1:n_species),
-                   labels=species_names) +
+                   labels=species_names_label) +
   scale_fill_gradient2(low = ("firebrick2")) +
-  geom_text(data = df, 
-        aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
-  
   #geom_text(data = df, 
-      #      aes(x = x, y = y, label = paste0(signif(estimate, 2),
-      #          "\n(", signif(lower,2), ", ", signif(upper,2), ")")),
-       #         size = 6) +
+   #     aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+  
+  geom_text(data = df, 
+            aes(x = x, y = y, label = paste0(
+              #signif(estimate, 2),"\n(", 
+              "(", signif(lower,2), ", ", signif(upper,2), ")")),
+                size = 3.5) +
   theme(legend.position = "none",
         #legend.text=element_text(size=14),
         #legend.title=element_text(size=16),
@@ -323,5 +316,234 @@ ggplot(df, aes(x, y, width=1, height=1)) +
         axis.title.y = element_text(size = 12),
         plot.title = element_text(size = 12),
         panel.border = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_blank())
+
+
+# parameter means
+params = 2
+
+x2 <- (rep(1:params, each=n_species)) # parameter reference
+y2 = (rep(1:n_species, times=params)) # species reference
+
+
+estimate2 <-  c(
+  # param 4 (Freeman Tukey P cit sci)
+  fit_summary$summary[123:155,1], 
+  # param 5 (Freeman Tukey P museum)
+  fit_summary$summary[156:188,1]
+)
+
+df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%
+  mutate(x2 = as.factor(x2),
+         y2 = as.factor(y2))
+
+p2 <- ggplot(df2, aes(x2, y2, width=.8, height=1)) +
+  geom_tile(aes(fill = estimate2)) +
+  theme_bw() +
+  scale_x_discrete(name="", breaks = c(1, 2),
+                   labels=c(
+                            bquote(FTP[citsci]),
+                            bquote(FTP[museum])
+                   )) +
+  scale_y_discrete(name="", breaks = "",
+                   labels="") +
+  scale_fill_gradient2(low = ("firebrick2")) +
+  geom_text(data = df2, colour = "white",
+       aes(x = x2, y = y2, label = signif(estimate2, 2)), size = 3.5) +
+  theme(legend.position = "none",
+        #legend.text=element_text(size=14),
+        #legend.title=element_text(size=16),
+        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+        axis.text.y = element_text(size = 11),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        plot.margin = unit(c(0,0,0,0), "cm"),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_blank())
+
+library(cowplot)
+plot_grid(p1, p2, align = "h", axis = "bt", rel_widths = c(1, .6))
+
+
+# Prediction versus covariate
+## ilogit and logit functions
+ilogit <- function(x) exp(x)/(1+exp(x))
+logit <- function(x) log(x/(1-x))
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1))
+curve(ilogit(fit_summary$summary[8,1]*x), add=TRUE, col = "blue", lwd = 3)
+curve(ilogit(fit_summary$summary[8,4]*x), add=TRUE)
+curve(ilogit(fit_summary$summary[8,8]*x), add=TRUE)
+
+# intercept and effect
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 2)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,1]
+  params[i,2] <- list_of_draws[row,8]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Natural habitat area (scaled)",
+     ylab = "Pr(Occupancy)")
+
+for(i in 1:n_lines){
+  curve(ilogit(params[i,1] + params[i,2]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(fit_summary$summary[1,1] + fit_summary$summary[8,1]*x), 
+      add=TRUE, col = "blue", lwd = 3)
+
+# effect and all others held at mean
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,8]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Natural habitat area (scaled)",
+     ylab = "Pr(Occupancy)")
+
+for(i in 1:n_lines){
+  curve(ilogit(
+    fit_summary$summary[1,1] + # intercept
+      # should add non-centered random effects
+    fit_summary$summary[6,1] + # income  
+    fit_summary$summary[10,1] + # site area 
+      params[i,1]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(
+  fit_summary$summary[1,1] + # intercept
+    # should add non-centered random effects
+    fit_summary$summary[6,1] + # income  
+    fit_summary$summary[10,1] + # site area 
+    fit_summary$summary[8,1]*x), 
+      add=TRUE, col = "blue", lwd = 3)
+
+# just effect
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,8]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Natural habitat area (scaled)",
+     ylab = "Pr(Occupancy)")
+
+for(i in 1:n_lines){
+  curve(ilogit(params[i,1]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(fit_summary$summary[8,1]*x), 
+      add=TRUE, col = "blue", lwd = 3)
+
+# income
+# just effect
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,6]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Household income (scaled)",
+     ylab = "Pr(Occupancy)")
+
+for(i in 1:n_lines){
+  curve(ilogit(params[i,1]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(fit_summary$summary[6,1]*x), 
+      add=TRUE, col = "blue", lwd = 3)
+
+# site area
+# just effect
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,10]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Site area (scaled)",
+     ylab = "Pr(Occupancy)")
+
+for(i in 1:n_lines){
+  curve(ilogit(params[i,1]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(fit_summary$summary[10,1]*x), 
+      add=TRUE, col = "blue", lwd = 3)
+
+# time on detection
+# just effect
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,16]
+}
+
+plot(NA, xlim=c(0,4), ylim=c(0,1),
+     xlab = "Time interval",
+     ylab = "Pr(Detection)")
+
+for(i in 1:n_lines){
+  curve(ilogit(params[i,1]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(fit_summary$summary[16,1]*x), 
+      add=TRUE, col = "blue", lwd = 2)
+
+# pop density on detection
+# just effect
+n_lines <- 1000
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,17]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Population density (scaled)",
+     ylab = "Pr(Detection)")
+
+for(i in 1:n_lines){
+  curve(ilogit(params[i,1]*x), 
+        add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(fit_summary$summary[17,1]*x), 
+      add=TRUE, col = "blue", lwd = 2)

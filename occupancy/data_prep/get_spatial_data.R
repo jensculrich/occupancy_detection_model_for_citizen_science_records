@@ -371,6 +371,18 @@ get_spatial_data <- function(
     ## --------------------------------------------------
     # Prep the data
     
+    # if not doing urban sites, we want to filter the occurrence data so that 
+    # we still only fit a model for the species that we see in the urban sites
+    # there are more species that occur anywhere than in urban sites alone
+    if(urban_sites == FALSE){
+      species_names <- readRDS(paste0("./figures/species_names/", 
+                                      taxon,
+                                      "_names_15km_urban.RDS"))
+    }
+    
+    df <- df %>% 
+      filter(species %in% species_names)
+    
     # make the df into a spatial file
     df$decimalLongitude <- na_if(df$decimalLongitude, '')
     df$decimalLatitude <- na_if(df$decimalLatitude, '')

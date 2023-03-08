@@ -235,13 +235,13 @@ model {
   
   // level-2 spatial grouping
   psi_site ~ normal(0,2);
-  sigma_psi_site ~ normal(0,1);
+  sigma_psi_site ~ normal(0,0.5);
   //level-3 spatial grouping
   psi_ecoregion_three  ~ normal(0,2);
-  sigma_psi_ecoregion_three ~ normal(0,1);
+  sigma_psi_ecoregion_three ~ normal(0,0.5);
   //level-4 spatial grouping
   psi_ecoregion_one  ~ normal(0,1);
-  sigma_psi_ecoregion_one ~ normal(0,1);
+  sigma_psi_ecoregion_one ~ normal(0,0.5);
   
   psi_species ~ normal(0, sigma_psi_species); 
   // occupancy intercept for each species drawn from the community

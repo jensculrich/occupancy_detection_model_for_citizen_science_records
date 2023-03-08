@@ -690,8 +690,8 @@ print(stan_out, digits = 3, pars=
 # traceplot
 traceplot(stan_out, pars = c(
   "mu_psi_0",
-  "mu_psi_herb_shrub_forest",
-  "mu_psi_income",
+  #"mu_psi_herb_shrub_forest",
+  #"mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -706,8 +706,8 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_income",
-  "sigma_psi_herb_shrub_forest",
+  #"sigma_psi_income",
+  #"sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
   "sigma_p_citsci_ecoregion_one",
