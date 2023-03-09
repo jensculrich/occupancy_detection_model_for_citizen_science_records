@@ -23,8 +23,10 @@ simulate_data <- function(n_species,
                           sigma_psi_site,
                           sigma_psi_ecoregion_three,
                           sigma_psi_ecoregion_one,
-                          mu_psi_open_developed,
-                          sigma_psi_open_developed,
+                          mu_psi_income,
+                          sigma_psi_income,
+                          sigma_psi_income_ecoregion_three,
+                          sigma_psi_income_ecoregion_one,
                           mu_psi_herb_shrub_forest,
                           sigma_psi_herb_shrub_forest,
                           psi_site_area,
@@ -92,7 +94,7 @@ simulate_data <- function(n_species,
   correlated_data <- MASS::mvrnorm(n = n_sites, mu = mu, Sigma = covMat, empirical = FALSE)
   
   pop_density <- correlated_data[,1]
-  open_developed <- correlated_data[,2]
+  income <- correlated_data[,2]
   herb_shrub_forest <- correlated_data[,3]
   developed_med_high <- correlated_data[,4]
   
@@ -171,10 +173,39 @@ simulate_data <- function(n_species,
   # species specific variation defined by sigma_psi_interval
   
   ## effect of pop density on occupancy (species-specific random slopes)
-  psi_open_developed <- rnorm(n=n_species, mean=mu_psi_open_developed, sd=sigma_psi_open_developed)
+  # psi_income <- rnorm(n=n_species, mean=mu_psi_income, sd=sigma_psi_income)
   # change in each species occupancy across time is drawn from a distribution defined
   # by a community mean (mu_psi_interval) with 
   # species specific variation defined by sigma_psi_interval
+  
+  ## ecoregion1-specific random slopes
+  
+  # site baseline success is drawn from a normal distribution with mean 0 and 
+  # site specific variation defined by sigma_alpha_site
+  ecoregion_one_income <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_psi_income_ecoregion_one),
+                                  each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
+  
+  ## ecoregion3-specific random slopes
+  
+  # site baseline success is drawn from a normal distribution with mean 0 and 
+  # site specific variation defined by sigma_alpha_site
+  ecoregion_three_income <- rep(rnorm(n=n_ecoregion_three, mean=0, sd=sigma_psi_income_ecoregion_three),
+                                    each=n_sites_per_ecoregion_three)
+  
+  ## site-specific random slopes
+  
+  # site baseline success is drawn from a normal distribution with mean 0 and 
+  # site specific variation defined by sigma_alpha_site
+  site_income <- rep(rnorm(n=n_sites, mean=0, sd=sigma_psi_income))
+  
+  psi_income_nested <- vector(length=n_sites)
+  
+  for(i in 1:n_sites){
+    
+    psi_income_nested[i] <- mu_psi_income + ecoregion_one_income[i] + 
+      ecoregion_three_income[i] + site_income[i]
+    
+  }
   
   ## --------------------------------------------------
   ### specify species-specific detection probabilities
@@ -243,7 +274,7 @@ simulate_data <- function(n_species,
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
-            psi_open_developed[species]*open_developed[site] + # a species specific effect
+            psi_income_nested[site]*income[site] + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -564,7 +595,7 @@ simulate_data <- function(n_species,
     n_intervals = n_intervals, # number of surveys 
     n_visits = n_visits, # number of visits
     pop_density = pop_density, # vector of pop densities
-    open_developed = open_developed, # vector of impervious surface covers
+    income = income, # vector of impervious surface covers
     herb_shrub_forest = herb_shrub_forest, # vector of perennial plant covers
     site_area = site_area, # vector of site areas
     total_records_museum = total_records_museum # museum records per interval
@@ -576,11 +607,11 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 40 ## number of species
+n_species = 25 ## number of species
 n_ecoregion_one = 7
 n_ecoregion_three_per_one = 4 # ecoregion3 per ecoregion1
 n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
-n_sites_per_ecoregion_three = 4
+n_sites_per_ecoregion_three = 3
 n_sites = n_sites_per_ecoregion_three*n_ecoregion_three ## number of sites
 n_intervals = 3 ## number of occupancy intervals
 n_visits = 3 ## number of samples per year
@@ -591,8 +622,10 @@ sigma_psi_species = 0.5
 sigma_psi_site = 0.5 # variation across level2
 sigma_psi_ecoregion_three = 0.5 # variation across level3
 sigma_psi_ecoregion_one = 0.25 # variation across level4
-mu_psi_open_developed = -0.25
-sigma_psi_open_developed = 0.5
+mu_psi_income = 0.5
+sigma_psi_income = 0.1
+sigma_psi_income_ecoregion_three = 0.25
+sigma_psi_income_ecoregion_one = 0.3
 mu_psi_herb_shrub_forest = 0.5 
 sigma_psi_herb_shrub_forest = 0.5
 psi_site_area = 0.75 # fixed effect of site area on occupancy
@@ -643,8 +676,10 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_psi_site,
                                    sigma_psi_ecoregion_three,
                                    sigma_psi_ecoregion_one,
-                                   mu_psi_open_developed,
-                                   sigma_psi_open_developed,
+                                   mu_psi_income,
+                                   sigma_psi_income,
+                                   sigma_psi_income_ecoregion_three,
+                                   sigma_psi_income_ecoregion_one,
                                    mu_psi_herb_shrub_forest,
                                    sigma_psi_herb_shrub_forest,
                                    psi_site_area,
@@ -709,7 +744,7 @@ species <- seq(1, n_species, by=1)
 
 pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
-open_developed <- my_simulated_data$open_developed
+avg_income <- my_simulated_data$income
 herb_shrub_forest <- my_simulated_data$herb_shrub_forest
 museum_total_records <- my_simulated_data$total_records_museum
 
@@ -720,7 +755,7 @@ stan_data <- c("V_citsci", "V_museum",
                "n_ecoregion_three", "n_ecoregion_one",
                "ecoregion_three", "ecoregion_one",
                "ecoregion_three_lookup", "ecoregion_one_lookup",
-               "pop_densities", "site_areas", "open_developed", 
+               "pop_densities", "site_areas", "avg_income", 
                "herb_shrub_forest", "museum_total_records") 
 
 # Parameters monitored
@@ -729,8 +764,10 @@ params <- c("mu_psi_0",
             "sigma_psi_site",
             "sigma_psi_ecoregion_three",
             "sigma_psi_ecoregion_one",
-            "mu_psi_open_developed",
-            "sigma_psi_open_developed",
+            "mu_psi_income",
+            "sigma_psi_income",
+            "sigma_psi_income_ecoregion_three",
+            "sigma_psi_income_ecoregion_one",
             "mu_psi_herb_shrub_forest",
             "sigma_psi_herb_shrub_forest",
             "psi_site_area",
@@ -762,8 +799,10 @@ parameter_value <- c(mu_psi_0,
                      sigma_psi_site,
                      sigma_psi_ecoregion_three,
                      sigma_psi_ecoregion_one,
-                     mu_psi_open_developed,
-                     sigma_psi_open_developed,
+                     mu_psi_income,
+                     sigma_psi_income,
+                     sigma_psi_income_ecoregion_three,
+                     sigma_psi_income_ecoregion_one,
                      mu_psi_herb_shrub_forest,
                      sigma_psi_herb_shrub_forest,
                      psi_site_area,
@@ -790,9 +829,9 @@ parameter_value <- c(mu_psi_0,
 )
 
 # MCMC settings
-n_iterations <- 800
+n_iterations <- 600
 n_thin <- 2
-n_burnin <- 400
+n_burnin <- 300
 n_chains <- 3
 n_cores <- parallel::detectCores()
 delta = 0.9
@@ -808,8 +847,10 @@ inits <- lapply(1:n_chains, function(i)
        sigma_psi_site = runif(1, 0, 1),
        sigma_psi_ecoregion_three = runif(1, 0, 1),
        sigma_psi_ecoregion_one = runif(1, 0, 1),
-       mu_psi_open_developed = runif(1, -1, 1),
-       sigma_psi_open_developed = runif(1, 0, 1),
+       mu_psi_income = runif(1, -1, 1),
+       sigma_psi_income = runif(1, 0, 1),
+       sigma_psi_income_ecoregion_three = runif(1, 0, 1),
+       sigma_psi_income_ecoregion_one = runif(1, 0, 1),
        mu_psi_herb_shrub_forest = runif(1, -1, 1),
        sigma_psi_herb_shrub_forest = runif(1, 0, 1),
        psi_site_area = runif(1, -1, 1),
@@ -861,7 +902,7 @@ stan_out_sim <- readRDS("./occupancy/simulation/stan_out_sim_ignore0.rds")
 traceplot(stan_out_sim, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  "mu_psi_open_developed",
+  "mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -875,7 +916,7 @@ traceplot(stan_out_sim, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_open_developed",
+  "sigma_psi_income",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
@@ -891,7 +932,7 @@ pairs(stan_out_sim, pars = c(
   "mu_p_citsci_0",
   "mu_p_museum_0",
   
-  "sigma_psi_open_developed",
+  "sigma_psi_income",
   "sigma_psi_herb_shrub_forest"
 ))
 
