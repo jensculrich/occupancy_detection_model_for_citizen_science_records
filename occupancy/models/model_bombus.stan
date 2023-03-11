@@ -74,22 +74,10 @@ parameters {
   real mu_psi_herb_shrub_forest; // community mean of species specific slopes
   real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
   
-  // random slope for site specific income effects on occupancy
+  // random slope for species specific open low development effects on occupancy
+  vector[n_species] psi_income; // vector of species specific slope estimates
   real mu_psi_income; // community mean of species specific slopes
-  
-  vector[n_sites] psi_income; // vector of species specific slope estimates
   real<lower=0> sigma_psi_income; // variance in species slopes
-  // Level-3 spatial random effect
-  // site specific intercept allows some sites to have lower success than others, 
-  // but with overall estimates for success partially informed by the data pooled across all sites.
-  vector[n_ecoregion_three] psi_income_ecoregion_three; // site specific intercept for PL outcome
-  real<lower=0> sigma_psi_income_ecoregion_three; // variance in site intercepts
-  // Level-4 spatial random effect
-  // site specific intercept allows some sites to have lower success than others, 
-  // but with overall estimates for success partially informed by the data pooled across all sites.
-  vector[n_ecoregion_one] psi_income_ecoregion_one; // site specific intercept for PL outcome
-  real<lower=0> sigma_psi_income_ecoregion_one; // variance in site intercepts
-  
   
   // fixed effect of site area on occupancy
   real psi_site_area;
@@ -161,11 +149,6 @@ transformed parameters {
   vector[n_ecoregion_three] p0_museum_ecoregion_three;
   vector[n_ecoregion_one] p0_museum_ecoregion_one;
   
-  // spatially nested slope
-  vector[n_sites] psi0_income;
-  vector[n_ecoregion_three] psi0_income_ecoregion_three;
-  vector[n_ecoregion_one] psi0_income_ecoregion_one;
-  
   //
   // Nested spatial intercept for occurrence (including global intercept mu)
   // compute the varying occurrence intercept at the ecoregion1 level
@@ -215,23 +198,6 @@ transformed parameters {
   // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3) vectorized
   p0_museum_site = p0_museum_ecoregion_three[ecoregion_three_lookup] + 
     p_museum_site * sigma_p_museum_site;
-    
-  //
-  // Nested spatial intercept for occurrence (including global intercept mu)
-  // compute the varying occurrence intercept at the ecoregion1 level
-  // Level-4 (n_ecoregion_one level-4 random intercepts) vectorized
-  psi0_income_ecoregion_one = mu_psi_income + 
-    psi_income_ecoregion_one * sigma_psi_income_ecoregion_one;
-  
-  // compute the varying occurrence intercept at the ecoregion3 level
-  // Level-3 (n_ecoregion_three level-3 random intercepts) vectorized
-  psi0_income_ecoregion_three = psi0_income_ecoregion_one[ecoregion_one_lookup] + 
-    psi_income_ecoregion_three * sigma_psi_income_ecoregion_three;
-  
-  // compute varying occurrence intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3) vectorized
-  psi0_income = psi0_income_ecoregion_three[ecoregion_three_lookup] + 
-    psi_income * sigma_psi_income;
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -241,7 +207,7 @@ transformed parameters {
             psi_species[species[i]] + // a species specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
-            psi0_income[sites[j]]*avg_income[j] + // an effect
+            psi_income[species[i]]*avg_income[j] + // an effect
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -304,16 +270,13 @@ model {
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
   sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
   
+  psi_income ~ normal(mu_psi_income, sigma_psi_income);
+  // occupancy slope (population density effect on occupancy) for each species drawn from the 
+  // community distribution (variance defined by sigma), centered at mu_psi_interval. 
+  // centering on mu (rather than 0) allows us to estimate the average effect of
+  // the management on abundance across all species.
   mu_psi_income ~ normal(0, 2); // community mean
-  // level-2 spatial grouping
-  psi_income ~ normal(0,1);
-  sigma_psi_income ~ normal(0,0.5);
-  //level-3 spatial grouping
-  psi_income_ecoregion_three  ~ normal(0,1);
-  sigma_psi_income_ecoregion_three ~ normal(0,0.5);
-  //level-4 spatial grouping
-  psi_income_ecoregion_one  ~ normal(0,1);
-  sigma_psi_income_ecoregion_one ~ normal(0,0.5);
+  sigma_psi_income ~ normal(0, 1); // community variance
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   

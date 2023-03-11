@@ -59,7 +59,8 @@ species_estimates <- data.frame()
 for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
-  species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
+  species_estimates[1,i] <- NA # psi species
+  #species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[2,i] <- NA # site area
   species_estimates[3,i] <- fit_summary$summary[89+i,1] # herb shrub forest
   species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
@@ -403,7 +404,7 @@ curve(ilogit(fit_summary$summary[1,1] + fit_summary$summary[8,1]*x),
       add=TRUE, col = "blue", lwd = 3)
 
 # effect and all others held at mean
-n_lines <- 1000
+n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
@@ -435,7 +436,7 @@ curve(ilogit(
       add=TRUE, col = "blue", lwd = 3)
 
 # just effect
-n_lines <- 1000
+n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
@@ -458,7 +459,7 @@ curve(ilogit(fit_summary$summary[8,1]*x),
 
 # income
 # just effect
-n_lines <- 1000
+n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
@@ -467,7 +468,7 @@ for(i in 1:n_lines){
 }
 
 plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Household income (scaled)",
+     xlab = "Median household income (relative to state avg.; scaled)",
      ylab = "Pr(Occupancy)")
 
 for(i in 1:n_lines){
@@ -481,7 +482,7 @@ curve(ilogit(fit_summary$summary[6,1]*x),
 
 # site area
 # just effect
-n_lines <- 1000
+n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
@@ -547,3 +548,4 @@ for(i in 1:n_lines){
 
 curve(ilogit(fit_summary$summary[17,1]*x), 
       add=TRUE, col = "blue", lwd = 2)
+

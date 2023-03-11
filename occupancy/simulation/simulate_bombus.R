@@ -36,6 +36,7 @@ simulate_data <- function(n_species,
                           sigma_p_citsci_species,
                           sigma_p_citsci_site,
                           sigma_p_citsci_ecoregion_three,
+                          sigma_p_citsci_ecoregion_one,
                           p_citsci_interval,
                           p_citsci_pop_density, 
                           
@@ -44,6 +45,7 @@ simulate_data <- function(n_species,
                           sigma_p_museum_species,
                           sigma_p_museum_site,
                           sigma_p_museum_ecoregion_three,
+                          sigma_p_museum_ecoregion_one,
                           p_museum_total_records,
                           
                           # introduce NAs (missed visits)?
@@ -216,6 +218,10 @@ simulate_data <- function(n_species,
   # species specific variation defined by sigma_p_species
   
   ## effect of site and interval on detection (site,interval-specific random slopes)
+  ecoregion_one_intercepts_p_citsci <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_citsci_ecoregion_one),
+                                           each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
+  
+  ## effect of site and interval on detection (site,interval-specific random slopes)
   ecoregion_three_intercepts_p_citsci <- rep(rnorm(n=n_ecoregion_three, mean=0, sd=sigma_p_citsci_ecoregion_three),
                                              each=n_sites_per_ecoregion_three)
   
@@ -225,7 +231,10 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_citsci_site_nested[i] <- mu_p_citsci_0 + ecoregion_three_intercepts_p_citsci[i] + site_intercepts_p_citsci[i]
+    p_citsci_site_nested[i] <- mu_p_citsci_0 + 
+      ecoregion_one_intercepts_p_citsci[i] +
+      ecoregion_three_intercepts_p_citsci[i] + 
+      site_intercepts_p_citsci[i]
     
   }
   
@@ -233,6 +242,11 @@ simulate_data <- function(n_species,
   p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
   # species baseline detection probability is drawn from a normal distribution with mean 0 and 
   # species specific variation defined by sigma_p_species
+  
+  ## effect of site and interval on detection (site,interval-specific random slopes)
+  ## effect of site and interval on detection (site,interval-specific random slopes)
+  ecoregion_one_intercepts_p_museum <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_museum_ecoregion_one),
+                                           each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
   
   ## effect of site and interval on detection (site,interval-specific random slopes)
   ## effect of site and interval on detection (site,interval-specific random slopes)
@@ -245,7 +259,10 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_museum_site_nested[i] <- mu_p_museum_0 + ecoregion_three_intercepts_p_museum[i] + site_intercepts_p_museum[i]
+    p_museum_site_nested[i] <- mu_p_museum_0 +
+      ecoregion_one_intercepts_p_museum[i] +
+      ecoregion_three_intercepts_p_museum[i] + 
+      site_intercepts_p_museum[i]
     
   }
   
@@ -274,7 +291,7 @@ simulate_data <- function(n_species,
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
-            psi_income_nested[site]*income[site] + # a species specific effect
+            psi_income[species]*income[site] + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
         for(visit in 1:n_visits) { # for each visit
@@ -689,6 +706,7 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_p_citsci_species,
                                    sigma_p_citsci_site,
                                    sigma_p_citsci_ecoregion_three,
+                                   sigma_p_citsci_ecoregion_one,
                                    p_citsci_interval,
                                    p_citsci_pop_density, 
                                    
@@ -697,6 +715,7 @@ my_simulated_data <- simulate_data(n_species,
                                    sigma_p_museum_species,
                                    sigma_p_museum_site,
                                    sigma_p_museum_ecoregion_three,
+                                   sigma_p_museum_ecoregion_one,
                                    p_museum_total_records,
                                    
                                    # introduce NAs (missed visits)?
@@ -783,7 +802,11 @@ params <- c("mu_psi_0",
             "sigma_p_museum_species",
             "sigma_p_museum_site",
             "sigma_p_museum_ecoregion_three",
-            "p_museum_total_records"#,
+            "p_museum_total_records",
+            
+            "psi_species",
+            "psi_income",
+            "psi_herb_shrub_forest"
             
             #"T_rep_citsci",
             #"T_obs_citsci",
@@ -811,6 +834,7 @@ parameter_value <- c(mu_psi_0,
                      sigma_p_citsci_species,
                      sigma_p_citsci_site,
                      sigma_p_citsci_ecoregion_three,
+                     sigma_p_citsci_ecoregion_one,
                      p_citsci_interval,
                      p_citsci_pop_density,
                      
@@ -818,7 +842,12 @@ parameter_value <- c(mu_psi_0,
                      sigma_p_museum_species,
                      sigma_p_museum_site,
                      sigma_p_museum_ecoregion_three,
-                     p_museum_total_records#,
+                     sigma_p_museum_ecoregion_one,
+                     p_museum_total_records,
+                     
+                     NA,
+                     NA,
+                     NA
                      
                      #NA,
                      #NA,

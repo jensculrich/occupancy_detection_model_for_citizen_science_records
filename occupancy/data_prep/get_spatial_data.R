@@ -177,8 +177,16 @@ get_spatial_data <- function(
     income=st_read("./data/spatial_data/socioeconomic_data/US_blck_grp_2020.shp")
     gc()
     income_data <- read.csv("./data/spatial_data/socioeconomic_data/nhgis0001_ds249_20205_blck_grp.csv")
+    
+    # calculate median household income RELATIVE to 
+    # median household income for the state, 
+    # i.e., $80,000 might be really high for WV but relatively low for CA.
     income_data <- income_data %>%
-      dplyr::select(GISJOIN, AMR8E001)
+      group_by(STATE) %>%
+      mutate(mean_state_AMR8E001 = mean(AMR8E001, na.rm=TRUE)) %>%
+      ungroup() %>%
+      mutate(relative_AMR8E001 = AMR8E001 / mean_state_AMR8E001) %>%
+      dplyr::select(GISJOIN, relative_AMR8E001)
     
     income <- left_join(income, income_data, by="GISJOIN")
     rm(income_data)
@@ -190,7 +198,7 @@ get_spatial_data <- function(
     grid_pop_dens <- st_join(grid_pop_dens, income_trans)
     grid_pop_dens <- grid_pop_dens %>%
       group_by(grid_id) %>%
-      mutate(avg_income = mean(AMR8E001, na.rm = TRUE)) %>%
+      mutate(avg_income = mean(relative_AMR8E001, na.rm = TRUE)) %>%
       slice(1) %>%
       ungroup() %>%
       dplyr::select(grid_id, pop_density_per_km2, avg_income) %>%
@@ -378,10 +386,11 @@ get_spatial_data <- function(
       species_names <- readRDS(paste0("./figures/species_names/", 
                                       taxon,
                                       "_names_15km_urban.RDS"))
+      
+      # then filter out species that never occur at our urban sites
+      df <- df %>% 
+        filter(species %in% species_names)
     }
-    
-    df <- df %>% 
-      filter(species %in% species_names)
     
     # make the df into a spatial file
     df$decimalLongitude <- na_if(df$decimalLongitude, '')

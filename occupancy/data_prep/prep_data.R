@@ -218,10 +218,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     species_names <- readRDS(paste0("./figures/species_names/", 
                                     taxon,
                                     "_names_15km_urban.RDS"))
+    
+    df_full <- df_full %>% 
+      filter(species %in% species_names)
+    
   }
   
-  df_full <- df_full %>% 
-    filter(species %in% species_names)
+  
   
   df_full <- df_full %>%
     filter(species != "") %>% 

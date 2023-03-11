@@ -217,8 +217,8 @@ if(taxon == "bombus"){
                 "sigma_psi_ecoregion_one",
                 "mu_psi_income",
                 "sigma_psi_income",
-                "sigma_psi_income_ecoregion_three",
-                "sigma_psi_income_ecoregion_one",
+                #"sigma_psi_income_ecoregion_three",
+                #"sigma_psi_income_ecoregion_one",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
                 "psi_site_area",
@@ -253,11 +253,12 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 800
+    n_iterations <- 1000
     n_thin <- 1
-    n_burnin <- 400
+    n_burnin <- 500
     n_chains <- 4
     n_cores <- parallel::detectCores()
+    #n_cores <- 4
     delta = 0.9
     
     ## Initial values
@@ -272,8 +273,8 @@ if(taxon == "bombus"){
            sigma_psi_ecoregion_one = runif(1, 0, 0.5),
            mu_psi_income = runif(1, -1, 1),
            sigma_psi_income = runif(1, 0, 1),
-           sigma_psi_income_ecoregion_three = runif(1, 0, 1),
-           sigma_psi_income_ecoregion_one = runif(1, 0, 1),
+           #sigma_psi_income_ecoregion_three = runif(1, 0, 1),
+           #sigma_psi_income_ecoregion_one = runif(1, 0, 1),
            mu_psi_herb_shrub_forest = runif(1, -1, 1),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
@@ -343,7 +344,7 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1600
+    n_iterations <- 1200
     n_thin <- 1
     n_burnin <- 600
     n_chains <- 4
@@ -390,6 +391,7 @@ if(taxon == "bombus"){
                    "ranges", "V_museum_NA",
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
+                   "n_genera", "genus_lookup",
                    "n_ecoregion_three", "n_ecoregion_one",
                    "ecoregion_three", "ecoregion_one",
                    "ecoregion_three_lookup", "ecoregion_one_lookup",
@@ -597,8 +599,7 @@ saveRDS(stan_out, paste0(
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
   #"nonurban.RDS"  # use if saving a non-urban model run
-  "siteXincome.RDS"
-  #".RDS"
+  ".RDS"
 )
 )
 
@@ -623,7 +624,7 @@ print(stan_out, digits = 3, pars=
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
           "mu_psi_income",
-          #"sigma_psi_income",
+          "sigma_psi_income",
           "psi_site_area"))
 
 
@@ -695,8 +696,8 @@ print(stan_out, digits = 3, pars=
 # traceplot
 traceplot(stan_out, pars = c(
   "mu_psi_0",
-  #"mu_psi_herb_shrub_forest",
-  #"mu_psi_income",
+  "mu_psi_herb_shrub_forest",
+  "mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -711,7 +712,7 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  #"sigma_psi_income",
+  "sigma_psi_income",
   #"sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",

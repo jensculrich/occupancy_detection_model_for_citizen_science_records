@@ -57,11 +57,11 @@ crs <- 5070
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
-min_population_size <- 1200 
+min_population_size <- 1000 
 
 # minimum site area 
 # if sites are super tiny, the observation process could likely be very unstable
-min_site_area = 0.10
+min_site_area = 0.25
 
 #taxon = "syrphidae"
 taxon = "bombus"
@@ -208,8 +208,16 @@ grid_pop_dens <- grid_pop_dens %>%
 income=st_read("./data/spatial_data/socioeconomic_data/US_blck_grp_2020.shp")
 gc()
 income_data <- read.csv("./data/spatial_data/socioeconomic_data/nhgis0001_ds249_20205_blck_grp.csv")
+
+# calculate median household income RELATIVE to 
+# median household income for the state, 
+# i.e., $80,000 might be really high for WV but relatively low for CA.
 income_data <- income_data %>%
-  dplyr::select(GISJOIN, AMR8E001)
+  group_by(STATE) %>%
+  mutate(mean_state_AMR8E001 = mean(AMR8E001, na.rm=TRUE)) %>%
+  ungroup() %>%
+  mutate(relative_AMR8E001 = AMR8E001 / mean_state_AMR8E001) %>%
+  dplyr::select(GISJOIN, relative_AMR8E001)
 
 income <- left_join(income, income_data, by="GISJOIN")
 rm(income_data)
@@ -219,9 +227,10 @@ gc()
 income_trans <- st_transform(income, crs) # albers equal area
 
 grid_pop_dens <- st_join(grid_pop_dens, income_trans)
+
 grid_pop_dens <- grid_pop_dens %>%
   group_by(grid_id) %>%
-  mutate(avg_income = mean(AMR8E001, na.rm = TRUE)) %>%
+  mutate(avg_income = mean(relative_AMR8E001, na.rm = TRUE)) %>%
   slice(1) %>%
   ungroup() %>%
   dplyr::select(grid_id, pop_density_per_km2, avg_income) %>%
@@ -437,7 +446,7 @@ ggplot() +
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_income), lwd = 0.3) +
-  scale_fill_gradient2(name = "Scaled median household income") +
+  scale_fill_gradient2(name = "Scaled (relative) household income") +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
   ggtitle("Avg. household income in urban areas") +
