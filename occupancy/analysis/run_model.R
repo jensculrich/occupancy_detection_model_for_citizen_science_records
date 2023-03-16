@@ -272,9 +272,7 @@ if(taxon == "bombus"){
            sigma_psi_ecoregion_three = runif(1, 0, 0.5),
            sigma_psi_ecoregion_one = runif(1, 0, 0.5),
            mu_psi_income = runif(1, -1, 1),
-           sigma_psi_income = runif(1, 0, 1),
-           #sigma_psi_income_ecoregion_three = runif(1, 0, 1),
-           #sigma_psi_income_ecoregion_one = runif(1, 0, 1),
+           sigma_psi_income = runif(1, 0, 0.5),
            mu_psi_herb_shrub_forest = runif(1, -1, 1),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
@@ -599,7 +597,7 @@ saveRDS(stan_out, paste0(
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
   #"nonurban.RDS"  # use if saving a non-urban model run
-  ".RDS"
+  "2.RDS"
 )
 )
 
@@ -708,7 +706,7 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  "sigma_psi_genus",
+  #"sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",

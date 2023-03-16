@@ -272,13 +272,13 @@ model {
   
   // level-2 spatial grouping
   psi_site  ~ normal(0, sigma_psi_site);
-  sigma_psi_site ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   psi_ecoregion_three ~ normal(0, sigma_psi_ecoregion_three);
-  sigma_psi_ecoregion_three ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_ecoregion_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   psi_ecoregion_one ~ normal(0, sigma_psi_ecoregion_one);
-  sigma_psi_ecoregion_one ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
   psi_species ~ normal(0, sigma_psi_species); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
@@ -301,16 +301,16 @@ model {
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, sigma_p_citsci_site);
-  sigma_p_citsci_site ~ normal(0, 1); // weakly-informative prior
+  sigma_p_citsci_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_citsci_ecoregion_three ~ normal(0, sigma_p_citsci_ecoregion_three);
-  sigma_p_citsci_ecoregion_three ~ normal(0, 1); // weakly-informative prior
+  sigma_p_citsci_ecoregion_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   p_citsci_ecoregion_one ~ normal(0, sigma_p_citsci_ecoregion_one);
-  sigma_p_citsci_ecoregion_one ~ normal(0, 1); // weakly-informative prior
+  sigma_p_citsci_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
-  sigma_p_citsci_species ~ normal(0,1);
+  sigma_p_citsci_species ~ normal(0, 1);
   
   // a temporal effect on detection probability
   p_citsci_interval ~ normal(0, 2); 
@@ -324,13 +324,13 @@ model {
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, sigma_p_museum_site);
-  sigma_p_museum_site ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_museum_site ~ normal(0, 0.1); // weakly-informative prior
   // level-3 spatial grouping
   p_museum_ecoregion_three ~ normal(0, sigma_p_museum_ecoregion_three);
-  sigma_p_museum_ecoregion_three ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_museum_ecoregion_three ~ normal(0, 0.1); // weakly-informative prior
   // level-4 spatial grouping
   p_museum_ecoregion_one ~ normal(0, sigma_p_museum_ecoregion_one);
-  sigma_p_museum_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_museum_ecoregion_one ~ normal(0, 0.1); // weakly-informative prior
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
