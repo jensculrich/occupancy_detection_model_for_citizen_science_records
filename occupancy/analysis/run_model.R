@@ -296,8 +296,8 @@ if(taxon == "bombus"){
            
       )
     )
-     
-  } else {
+      
+  } else { # bombus non-urban
     
     stan_data <- c("V_citsci", "V_museum", 
                    "ranges", "V_museum_NA",
@@ -383,7 +383,7 @@ if(taxon == "bombus"){
     
   }
   
-} else { # taxon == syrphidae
+} else { # taxon == syrphidae, urban
   
   if(urban_sites == TRUE){
     
@@ -441,7 +441,7 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1600
+    n_iterations <- 1200
     n_thin <- 1
     n_burnin <- 600
     n_chains <- 4
@@ -708,12 +708,12 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  #"sigma_psi_genus",
+  "sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
   "sigma_psi_income",
-  #"sigma_psi_herb_shrub_forest",
+  "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
   "sigma_p_citsci_ecoregion_one",
@@ -742,11 +742,9 @@ pairs(stan_out, pars = c(
   "p_citsci_interval",
   #"p_citsci_pop_density", 
   
-  "mu_p_museum_0",
+  "mu_p_museum_0"
   #"sigma_p_museum_species",
   #"sigma_p_museum_site",
-  "p_museum_interval"
-  # "p_museum_pop_density"
 ))
 
 x=seq(0,3,1)

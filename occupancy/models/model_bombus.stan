@@ -4,6 +4,12 @@
 // citizen science data and gbif data may have their own observation processes
 // and also allows for missing (NA) data
 
+// for discussion of paramterizing nested random effects see:
+// https://discourse.mc-stan.org/t/trying-to-make-a-three-level-nested-linear-model-run-faster/3405
+// and
+// http://rstudio-pubs-static.s3.amazonaws.com/64315_bc3a395edd104095a8384db8d9952f43.html
+// I had difficulty recovering simulation scale parameters from non-centered, vectorized paramaterization
+
 
 data {
   
@@ -137,67 +143,84 @@ transformed parameters {
   real logit_p_museum[n_species, n_sites, n_intervals]; // odds of detection by museum
   
   // spatially nested intercepts
-  vector[n_sites] psi0_site;
-  vector[n_ecoregion_three] psi0_ecoregion_three;
-  vector[n_ecoregion_one] psi0_ecoregion_one;
+  real psi0_site[n_sites];
+  real psi0_ecoregion_three[n_ecoregion_three];
+  real psi0_ecorgion_one[n_ecoregion_one];
   
-  vector[n_sites] p0_citsci_site;
-  vector[n_ecoregion_three] p0_citsci_ecoregion_three;
-  vector[n_ecoregion_one] p0_citsci_ecoregion_one;
+  real p0_citsci_site[n_sites];
+  real p0_citsci_ecoregion_three[n_ecoregion_three];
+  real p0_citsci_ecoregion_one[n_ecoregion_one];
   
-  vector[n_sites] p0_museum_site;
-  vector[n_ecoregion_three] p0_museum_ecoregion_three;
-  vector[n_ecoregion_one] p0_museum_ecoregion_one;
+  real p0_museum_site[n_sites];
+  real p0_museum_ecoregion_three[n_ecoregion_three];
+  real p0_museum_ecoregion_one[n_ecoregion_one];
   
-  //
-  // Nested spatial intercept for occurrence (including global intercept mu)
-  // compute the varying occurrence intercept at the ecoregion1 level
-  // Level-4 (n_ecoregion_one level-4 random intercepts) vectorized
-  psi0_ecoregion_one = mu_psi_0 + psi_ecoregion_one * sigma_psi_ecoregion_one;
-  
-  // compute the varying occurrence intercept at the ecoregion3 level
-  // Level-3 (n_ecoregion_three level-3 random intercepts) vectorized
-  psi0_ecoregion_three = psi0_ecoregion_one[ecoregion_one_lookup] + 
-    psi_ecoregion_three * sigma_psi_ecoregion_three;
-  
-  // compute varying occurrence intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3) vectorized
-  psi0_site = psi0_ecoregion_three[ecoregion_three_lookup] + 
-    psi_site * sigma_psi_site;
-  
-  //
-  // Nested spatial intercept for occurrence (including global intercept mu)
-  // compute the varying occurrence intercept at the ecoregion1 level
-  // Level-4 (n_ecoregion_one level-4 random intercepts) vectorized
-  p0_citsci_ecoregion_one = mu_p_citsci_0 + p_citsci_ecoregion_one * sigma_p_citsci_ecoregion_one;
-  
-  // Nested spatial intercept for citsci detection (including global intercept mu) 
-  // compute the varying citsci detection intercept at the ecoregion3 level
-  // Level-3 (n_ecoregion_three level-3 random intercepts) vectorized
-  p0_citsci_ecoregion_three = p0_citsci_ecoregion_one[ecoregion_one_lookup] + 
-    p_citsci_ecoregion_three * sigma_p_citsci_ecoregion_three;
+  // compute the varying intercept at the ecoregion1 level
+  // Level-4 (n_ecoregion_one level-4 random intercepts)
+  for(i in 1:n_ecoregion_one){
+    psi0_ecorgion_one[i] =  mu_psi_0 + psi_ecoregion_one[i];
+  }
+
+  // compute the varying intercept at the ecoregion3 level
+  // Level-3 (n_ecoregion_three level-3 random intercepts, nested in ecoregion1)
+  for(i in 1:n_ecoregion_three){
+    psi0_ecoregion_three[i] = 
+      psi0_ecorgion_one[ecoregion_one_lookup[i]] + psi_ecoregion_three[i];
+  }
 
   // compute varying intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3) vectorized
-  p0_citsci_site = p0_citsci_ecoregion_three[ecoregion_three_lookup] + 
-    p_citsci_site * sigma_p_citsci_site;
+  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3, nested in ecoregion1)
+  for(i in 1:n_sites){
+     psi0_site[i] = 
+      psi0_ecoregion_three[ecoregion_three_lookup[i]] + 
+      psi_site[i];
+  }
   
   //
   // Nested spatial intercept for occurrence (including global intercept mu)
   // compute the varying occurrence intercept at the ecoregion1 level
   // Level-4 (n_ecoregion_one level-4 random intercepts) vectorized
-  p0_museum_ecoregion_one = mu_p_museum_0 + p_museum_ecoregion_one * sigma_p_museum_ecoregion_one;
+  for(i in 1:n_ecoregion_one){
+    p0_citsci_ecoregion_one[i] = mu_p_citsci_0 + p_citsci_ecoregion_one[i];
+  }
   
-  // Nested spatial intercept for citsci detection (including global intercept mu) 
   // compute the varying citsci detection intercept at the ecoregion3 level
-  // Level-3 (n_ecoregion_three level-3 random intercepts) vectorized
-  p0_museum_ecoregion_three = p0_museum_ecoregion_one[ecoregion_one_lookup] + 
-    p_museum_ecoregion_three * sigma_p_museum_ecoregion_three;
-    
+  // Level-3 (n_ecoregion_three level-3 random intercepts)
+  for(i in 1:n_ecoregion_three){
+    p0_citsci_ecoregion_three[i] = p0_citsci_ecoregion_one[ecoregion_one_lookup[i]] +
+      p_citsci_ecoregion_three[i];
+  }
+
   // compute varying intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3) vectorized
-  p0_museum_site = p0_museum_ecoregion_three[ecoregion_three_lookup] + 
-    p_museum_site * sigma_p_museum_site;
+  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
+  for(i in 1:n_sites){
+     p0_citsci_site[i] = 
+      p0_citsci_ecoregion_three[ecoregion_three_lookup[i]] + 
+      p_citsci_site[i];
+  }
+  
+  //
+  // Nested spatial intercept for occurrence (including global intercept mu)
+  // compute the varying occurrence intercept at the ecoregion1 level
+  // Level-4 (n_ecoregion_one level-4 random intercepts) vectorized
+  for(i in 1:n_ecoregion_one){
+    p0_museum_ecoregion_one[i] = mu_p_museum_0 + p_museum_ecoregion_one[i];
+  }
+  
+  // compute the varying citsci detection intercept at the ecoregion3 level
+  // Level-3 (n_ecoregion_three level-3 random intercepts)
+  for(i in 1:n_ecoregion_three){
+    p0_museum_ecoregion_three[i] = p0_museum_ecoregion_one[ecoregion_one_lookup[i]] +
+      p_museum_ecoregion_three[i];
+  }
+
+  // compute varying intercept at the site level
+  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
+  for(i in 1:n_sites){
+     p0_museum_site[i] = 
+      p0_museum_ecoregion_three[ecoregion_three_lookup[i]] + 
+      p_museum_site[i];
+  }
   
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
@@ -221,14 +244,14 @@ transformed parameters {
         
           logit_p_citsci[i,j,k] = // the inverse of the log odds of detection is equal to..
             p_citsci_species[species[i]] + // a species specific intercept
-            p0_citsci_site[sites[j]] + // a spatially specific intercept
+            p0_citsci_site[sites[j]] + // a spatially specific intercept // includes global intercept
             p_citsci_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_citsci_pop_density*pop_densities[j] // an overall effect of pop density on detection
            ; // end p_citsci[i,j,k]
            
           logit_p_museum[i,j,k] = // the inverse of the log odds of detection is equal to..
             p_museum_species[species[i]] + // a species specific intercept
-            p0_museum_site[sites[j]] + // a spatially specific intercept
+            p0_museum_site[sites[j]] + // a spatially specific intercept // includes global intercept
             p_museum_total_records*museum_total_records[j,k] //records at site in interval
            ; // end p_museum[i,j,k]
            
@@ -248,33 +271,23 @@ model {
   mu_psi_0 ~ normal(0, 2); // global intercept for occupancy rate
   
   // level-2 spatial grouping
-  psi_site ~ normal(0,2);
-  sigma_psi_site ~ normal(0,1);
-  //level-3 spatial grouping
-  psi_ecoregion_three  ~ normal(0,2);
-  sigma_psi_ecoregion_three ~ normal(0,1);
-  //level-4 spatial grouping
-  psi_ecoregion_one  ~ normal(0,1);
-  sigma_psi_ecoregion_one ~ normal(0,1);
+  psi_site  ~ normal(0, sigma_psi_site);
+  sigma_psi_site ~ normal(0, 1); // weakly-informative prior
+  // level-3 spatial grouping
+  psi_ecoregion_three ~ normal(0, sigma_psi_ecoregion_three);
+  sigma_psi_ecoregion_three ~ normal(0, 1); // weakly-informative prior
+  // level-4 spatial grouping
+  psi_ecoregion_one ~ normal(0, sigma_psi_ecoregion_one);
+  sigma_psi_ecoregion_one ~ normal(0, 1); // weakly-informative prior
   
   psi_species ~ normal(0, sigma_psi_species); 
-  // occupancy intercept for each species drawn from the community
-  // distribution (variance defined by sigma), centered at 0. 
-  sigma_psi_species ~ normal(0,1); //informative prior
+  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
-  // occupancy slope (population density effect on occupancy) for each species drawn from the 
-  // community distribution (variance defined by sigma), centered at mu_psi_interval. 
-  // centering on mu (rather than 0) allows us to estimate the average effect of
-  // the management on abundance across all species.
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
   sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
   
   psi_income ~ normal(mu_psi_income, sigma_psi_income);
-  // occupancy slope (population density effect on occupancy) for each species drawn from the 
-  // community distribution (variance defined by sigma), centered at mu_psi_interval. 
-  // centering on mu (rather than 0) allows us to estimate the average effect of
-  // the management on abundance across all species.
   mu_psi_income ~ normal(0, 2); // community mean
   sigma_psi_income ~ normal(0, 1); // community variance
   
@@ -285,46 +298,44 @@ model {
   // citizen science records
   
   mu_p_citsci_0 ~ normal(0, 2); // global intercept for detection
-
+  
   // level-2 spatial grouping
-  p_citsci_site ~ normal(0, 2);
-  sigma_p_citsci_site ~ normal(0,1);
-  //level-3 spatial grouping
-  p_citsci_ecoregion_three ~ normal(0,2);
-  sigma_p_citsci_ecoregion_three ~ normal(0,1);
-  //level-4 spatial grouping
-  p_citsci_ecoregion_one ~ normal(0,1);
-  sigma_p_citsci_ecoregion_one ~ normal(0,0.5);
+  p_citsci_site  ~ normal(0, sigma_p_citsci_site);
+  sigma_p_citsci_site ~ normal(0, 1); // weakly-informative prior
+  // level-3 spatial grouping
+  p_citsci_ecoregion_three ~ normal(0, sigma_p_citsci_ecoregion_three);
+  sigma_p_citsci_ecoregion_three ~ normal(0, 1); // weakly-informative prior
+  // level-4 spatial grouping
+  p_citsci_ecoregion_one ~ normal(0, sigma_p_citsci_ecoregion_one);
+  sigma_p_citsci_ecoregion_one ~ normal(0, 1); // weakly-informative prior
   
   p_citsci_species ~ normal(0, sigma_p_citsci_species); 
-  // detection intercept for each species drawn from the community
-  // distribution (variance defined by sigma), centered at 0. 
   sigma_p_citsci_species ~ normal(0,1);
   
   // a temporal effect on detection probability
-  p_citsci_interval ~ normal(0,2); 
+  p_citsci_interval ~ normal(0, 2); 
   
   // a population effect on detection probability
-  p_citsci_pop_density ~ normal(0,2);
+  p_citsci_pop_density ~ normal(0, 2);
   
   // museum records
   
   mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
-  p_museum_site ~ normal(0, 0.5);
-  sigma_p_museum_site ~ normal(0,0.25);
-  //level-3 spatial grouping
-  p_museum_ecoregion_three  ~ normal(0, 0.5);
-  sigma_p_museum_ecoregion_three ~ normal(0,0.25);
-  //level-4 spatial grouping
-  p_museum_ecoregion_one  ~ normal(0, 0.5);
-  sigma_p_museum_ecoregion_one ~ normal(0,0.25);
+  p_museum_site  ~ normal(0, sigma_p_museum_site);
+  sigma_p_museum_site ~ normal(0, 0.25); // weakly-informative prior
+  // level-3 spatial grouping
+  p_museum_ecoregion_three ~ normal(0, sigma_p_museum_ecoregion_three);
+  sigma_p_museum_ecoregion_three ~ normal(0, 0.25); // weakly-informative prior
+  // level-4 spatial grouping
+  p_museum_ecoregion_one ~ normal(0, sigma_p_museum_ecoregion_one);
+  sigma_p_museum_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
   
   p_museum_species ~ normal(0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
-  sigma_p_museum_species ~ normal(0, 0.1);
+  sigma_p_museum_species ~ normal(0, 0.5);
   
   // an effect of total records at the site during the interval
   p_museum_total_records ~ normal(0, 0.5);
