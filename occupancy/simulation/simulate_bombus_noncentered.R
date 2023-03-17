@@ -130,7 +130,7 @@ simulate_data <- function(n_species,
   ecoregion_three_lookup <- rep(1:n_ecoregion_three, each=n_sites_per_ecoregion_three)
   
   ## ecoregion1-specific random intercepts
-  ecoregion_one_intercepts <- rep(rnorm(n=n_ecoregion_one, mean=mu_psi_0, sd=sigma_psi_ecoregion_one),
+  ecoregion_one_intercepts <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_psi_ecoregion_one),
                          each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
   
   ## ecoregion3-specific random intercepts
@@ -145,7 +145,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    psi_site_nested[i] <- 
+    psi_site_nested[i] <- mu_psi_0 +
       ecoregion_one_intercepts[i] + 
       ecoregion_three_intercepts[i] + 
       site_intercepts[i]
@@ -176,7 +176,7 @@ simulate_data <- function(n_species,
   ### specify spatially-specific, spatially-nested occupancy probabilities
   
   ## effect of site on detection 
-  ecoregion_one_intercepts_p_citsci <- rep(rnorm(n=n_ecoregion_one, mean=mu_p_citsci_0, sd=sigma_p_citsci_ecoregion_one),
+  ecoregion_one_intercepts_p_citsci <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_citsci_ecoregion_one),
                                            each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
   
   ## effect of site on detection 
@@ -189,7 +189,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_citsci_site_nested[i] <- 
+    p_citsci_site_nested[i] <- mu_p_citsci_0 +
       ecoregion_one_intercepts_p_citsci[i] +
       ecoregion_three_intercepts_p_citsci[i] + 
       site_intercepts_p_citsci[i]
@@ -203,7 +203,7 @@ simulate_data <- function(n_species,
   p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
   
   ## effect of site on detection 
-  ecoregion_one_intercepts_p_museum <- rep(rnorm(n=n_ecoregion_one, mean=mu_p_museum_0, sd=sigma_p_museum_ecoregion_one),
+  ecoregion_one_intercepts_p_museum <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_museum_ecoregion_one),
                                            each=n_ecoregion_three_per_one*n_sites_per_ecoregion_three)
   
   ## effect of site on detection 
@@ -216,7 +216,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_museum_site_nested[i] <-
+    p_museum_site_nested[i] <- mu_p_museum_0 +
       ecoregion_one_intercepts_p_museum[i] +
       ecoregion_three_intercepts_p_museum[i] + 
       site_intercepts_p_museum[i]
@@ -540,11 +540,11 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 20 ## number of species
+n_species = 30 ## number of species
 n_ecoregion_one = 7
-n_ecoregion_three_per_one = 5 # ecoregion3 per ecoregion1
+n_ecoregion_three_per_one = 7 # ecoregion3 per ecoregion1
 n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
-n_sites_per_ecoregion_three = 4
+n_sites_per_ecoregion_three = 5
 n_sites = n_sites_per_ecoregion_three*n_ecoregion_three ## number of sites
 n_intervals = 4 ## number of occupancy intervals # if not three will have to change columns in cormatrix2
 n_visits = 3 ## number of samples per year
@@ -777,7 +777,7 @@ n_thin <- 1
 n_burnin <- 400
 n_chains <- 4
 n_cores <- parallel::detectCores()
-delta = 0.85
+delta = 0.9
 
 ## Initial values
 # given the number of parameters, the chains need some decent initial values
@@ -820,7 +820,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./occupancy/models/model_bombus.stan"
+stan_model <- "./occupancy/models/model_bombus_noncentered.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
