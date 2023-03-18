@@ -204,7 +204,6 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals  
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
-            mu_psi_0 + 
             psi_species[species[i]] + // a species specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
@@ -221,7 +220,6 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals
         
           logit_p_citsci[i,j,k] = // the inverse of the log odds of detection is equal to..
-            mu_p_citsci_0 + 
             p_citsci_species[species[i]] + // a species specific intercept
             p0_citsci_site[sites[j]] + // a spatially specific intercept // includes global intercept
             p_citsci_interval*(intervals[k]^2) + // an overall effect of time on detection
@@ -229,7 +227,6 @@ transformed parameters {
            ; // end p_citsci[i,j,k]
            
           logit_p_museum[i,j,k] = // the inverse of the log odds of detection is equal to..
-            mu_p_museum_0 + 
             p_museum_species[species[i]] + // a species specific intercept
             p0_museum_site[sites[j]] + // a spatially specific intercept // includes global intercept
             p_museum_total_records*museum_total_records[j,k] //records at site in interval
@@ -261,7 +258,7 @@ model {
   psi_ecoregion_one ~ normal(mu_psi_0, 1);
   sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
-  psi_species ~ normal(0, sigma_psi_species); 
+  psi_species ~ normal(mu_psi_0, sigma_psi_species); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
@@ -290,7 +287,7 @@ model {
   p_citsci_ecoregion_one ~ normal(0, 1);
   sigma_p_citsci_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
-  p_citsci_species ~ normal(0, sigma_p_citsci_species); 
+  p_citsci_species ~ normal(mu_p_citsci_0, sigma_p_citsci_species); 
   sigma_p_citsci_species ~ normal(0, 1);
   
   // a temporal effect on detection probability
@@ -313,7 +310,7 @@ model {
   p_museum_ecoregion_one ~ normal(0, 0.25);
   sigma_p_museum_ecoregion_one ~ normal(0, 0.1); // weakly-informative prior
   
-  p_museum_species ~ normal(0, sigma_p_museum_species); 
+  p_museum_species ~ normal(mu_p_museum_0, sigma_p_museum_species); 
   // detection intercept for each species drawn from the community
   // distribution (variance defined by sigma), centered at 0. 
   sigma_p_museum_species ~ normal(0, 0.5);

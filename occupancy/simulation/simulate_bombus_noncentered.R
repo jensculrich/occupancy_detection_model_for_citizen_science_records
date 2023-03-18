@@ -117,7 +117,7 @@ simulate_data <- function(n_species,
   ### specify species-specific occupancy probabilities
   
   ## species-specific random intercepts
-  psi_species <- rnorm(n=n_species, mean=0, sd=sigma_psi_species)
+  psi_species <- rnorm(n=n_species, mean=mu_psi_0, sd=sigma_psi_species)
   
   ## --------------------------------------------------
   ### specify spatially-specific, spatially-nested occupancy probabilities
@@ -170,10 +170,10 @@ simulate_data <- function(n_species,
   ### specify species-specific detection probabilities
   
   ## species-specific random intercepts
-  p_citsci_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_citsci_species)
+  p_citsci_species  <- rnorm(n=n_species, mean = mu_p_citsci_0, sd=sigma_p_citsci_species)
 
   ## --------------------------------------------------
-  ### specify spatially-specific, spatially-nested occupancy probabilities
+  ### specify spatially-specific, spatially-nested detection probabilities
   
   ## effect of site on detection 
   ecoregion_one_intercepts_p_citsci <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_citsci_ecoregion_one),
@@ -200,7 +200,10 @@ simulate_data <- function(n_species,
   ## Museum
   
   ## species-specific random intercepts
-  p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
+  p_museum_species  <- rnorm(n=n_species, mean = mu_p_museum_0, sd=sigma_p_museum_species)
+  
+  ## --------------------------------------------------
+  ### specify spatially-specific, spatially-nested detection probabilities
   
   ## effect of site on detection 
   ecoregion_one_intercepts_p_museum <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_museum_ecoregion_one),
@@ -244,7 +247,7 @@ simulate_data <- function(n_species,
       for(interval in 1:n_intervals) { # for each species
         
         logit_psi_matrix[species, site, interval] <- # occupancy is equal to
-          mu_psi_0 + # a baseline intercept
+          #mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
@@ -254,14 +257,14 @@ simulate_data <- function(n_species,
         for(visit in 1:n_visits) { # for each visit (but sim constant rates across visits)
           
           logit_p_matrix_citsci[species, site, interval, visit] <- # detection is equal to 
-            mu_p_citsci_0 +
+            #mu_p_citsci_0 +
               p_citsci_species[species] + # a species specific intercept
               p_citsci_site_nested[site] + # a spatiotemporally specific intercept # includes global intercept
               p_citsci_interval*(intervals[interval]^2) + # an overall effect of time on detection
               p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           logit_p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
-            mu_p_museum_0 +
+            #mu_p_museum_0 +
               p_museum_species[species] + # a species specific intercept
               p_museum_site_nested[site] + # a spatiotemporally specific intercept # includes global intercept
               p_museum_total_records*total_records_museum[site,interval]
