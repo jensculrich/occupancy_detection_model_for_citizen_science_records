@@ -259,7 +259,7 @@ if(taxon == "bombus"){
     n_chains <- 4
     n_cores <- parallel::detectCores()
     #n_cores <- 4
-    delta = 0.925
+    delta = 0.9
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -579,6 +579,8 @@ if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
 
+# stan_model <- paste0("./occupancy/models/model_", taxon, "_noncentered2.stan")
+
 ## Call Stan from R
 stan_out <- stan(stan_model,
                  data = stan_data, 
@@ -597,7 +599,7 @@ saveRDS(stan_out, paste0(
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
   #"nonurban.RDS"  # use if saving a non-urban model run
-  "2.RDS"
+  ".RDS"
 )
 )
 
@@ -616,6 +618,7 @@ stan_out <- readRDS(paste0(
 # print main effects
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
+          "sigma_psi_species",
           "sigma_psi_site",
           "sigma_psi_ecoregion_three",
           "sigma_psi_ecoregion_one",

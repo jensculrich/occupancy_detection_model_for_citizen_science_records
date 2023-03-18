@@ -777,9 +777,9 @@ parameter_value <- c(mu_psi_0,
 )
 
 # MCMC settings
-n_iterations <- 800
+n_iterations <- 1200
 n_thin <- 1
-n_burnin <- 400
+n_burnin <- 600
 n_chains <- 4
 n_cores <- parallel::detectCores()
 delta = 0.9
