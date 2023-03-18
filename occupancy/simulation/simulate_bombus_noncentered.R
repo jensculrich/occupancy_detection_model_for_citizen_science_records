@@ -145,7 +145,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    psi_site_nested[i] <- mu_psi_0 +
+    psi_site_nested[i] <-
       ecoregion_one_intercepts[i] + 
       ecoregion_three_intercepts[i] + 
       site_intercepts[i]
@@ -189,7 +189,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_citsci_site_nested[i] <- mu_p_citsci_0 +
+    p_citsci_site_nested[i] <- 
       ecoregion_one_intercepts_p_citsci[i] +
       ecoregion_three_intercepts_p_citsci[i] + 
       site_intercepts_p_citsci[i]
@@ -216,7 +216,7 @@ simulate_data <- function(n_species,
   
   for(i in 1:n_sites){
     
-    p_museum_site_nested[i] <- mu_p_museum_0 +
+    p_museum_site_nested[i] <- 
       ecoregion_one_intercepts_p_museum[i] +
       ecoregion_three_intercepts_p_museum[i] + 
       site_intercepts_p_museum[i]
@@ -244,7 +244,7 @@ simulate_data <- function(n_species,
       for(interval in 1:n_intervals) { # for each species
         
         logit_psi_matrix[species, site, interval] <- # occupancy is equal to
-          #mu_psi_0 + # a baseline intercept
+          mu_psi_0 + # a baseline intercept
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_herb_shrub_forest[species]*herb_shrub_forest[site] + # a species specific effect
@@ -254,12 +254,14 @@ simulate_data <- function(n_species,
         for(visit in 1:n_visits) { # for each visit (but sim constant rates across visits)
           
           logit_p_matrix_citsci[species, site, interval, visit] <- # detection is equal to 
+            mu_p_citsci_0 +
               p_citsci_species[species] + # a species specific intercept
               p_citsci_site_nested[site] + # a spatiotemporally specific intercept # includes global intercept
               p_citsci_interval*(intervals[interval]^2) + # an overall effect of time on detection
               p_citsci_pop_density*pop_density[site] # an effect of population density on detection ability
           
           logit_p_matrix_museum[species, site, interval, visit] <- # detection is equal to 
+            mu_p_museum_0 +
               p_museum_species[species] + # a species specific intercept
               p_museum_site_nested[site] + # a spatiotemporally specific intercept # includes global intercept
               p_museum_total_records*total_records_museum[site,interval]
@@ -540,26 +542,26 @@ simulate_data <- function(n_species,
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_species = 30 ## number of species
+n_species = 25 ## number of species
 n_ecoregion_one = 7
 n_ecoregion_three_per_one = 7 # ecoregion3 per ecoregion1
 n_ecoregion_three = n_ecoregion_one*n_ecoregion_three_per_one
-n_sites_per_ecoregion_three = 5
+n_sites_per_ecoregion_three = 7
 n_sites = n_sites_per_ecoregion_three*n_ecoregion_three ## number of sites
 n_intervals = 4 ## number of occupancy intervals # if not three will have to change columns in cormatrix2
 n_visits = 3 ## number of samples per year
 
 ## occupancy
-mu_psi_0 = 0.5
+mu_psi_0 = 0
 sigma_psi_species = 1
 sigma_psi_site = 0.75 # variation across level2
 sigma_psi_ecoregion_three = 0.5 # variation across level3
 sigma_psi_ecoregion_one = 0.25 # variation across level4
 mu_psi_income = 0
-sigma_psi_income = 0.5
-mu_psi_herb_shrub_forest = 0.5 
-sigma_psi_herb_shrub_forest = 0.5
-psi_site_area = 0.75 # fixed effect of site area on occupancy
+sigma_psi_income = 0.25
+mu_psi_herb_shrub_forest = 0.75 
+sigma_psi_herb_shrub_forest = 1
+psi_site_area = 0.5 # fixed effect of site area on occupancy
 
 ## detection
 # citizen science observation process
@@ -593,7 +595,7 @@ sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(9)
+set.seed(19)
 my_simulated_data <- simulate_data(n_species,
                                    n_ecoregion_one,
                                    n_ecoregion_three_per_one,
@@ -820,7 +822,7 @@ targets <- as.data.frame(cbind(params, parameter_value))
 ## --------------------------------------------------
 ### Run model
 library(rstan)
-stan_model <- "./occupancy/models/model_bombus_noncentered.stan"
+stan_model <- "./occupancy/models/model_bombus_noncentered2.stan"
 
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
@@ -860,14 +862,14 @@ traceplot(stan_out_sim, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  #"sigma_psi_income",
-  #"sigma_psi_herb_shrub_forest",
+  "sigma_psi_income",
+  "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
   "sigma_p_museum_site",
-  "sigma_p_museum_ecoregion_three"
-  #"sigma_p_citsci_species",
-  #"sigma_p_museum_species"
+  "sigma_p_museum_ecoregion_three",
+  "sigma_p_citsci_species",
+  "sigma_p_museum_species"
 ))
 
 # pairs plot
