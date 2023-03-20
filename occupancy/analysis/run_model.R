@@ -47,8 +47,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 20000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 800 # min pop density in the grid cell (per km^2)
+grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 600 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -253,9 +253,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1600
+    n_iterations <- 600
     n_thin <- 1
-    n_burnin <- 600
+    n_burnin <- 300
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -579,7 +579,7 @@ if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
 
-# for bombus 20km which required narrower priors for identifiability
+# for bombus 20km and 25km which required narrower priors for identifiability
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
 
 ## Call Stan from R
@@ -595,7 +595,9 @@ stan_out <- stan(stan_model,
                  cores = n_cores)
 
 saveRDS(stan_out, paste0(
-  "./occupancy/model_outputs/", taxon, "_", grid_size / 1000,
+  "./occupancy/model_outputs/", taxon, "/", 
+  taxon, "_",
+  grid_size / 1000,
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
@@ -609,6 +611,7 @@ stan_out <- readRDS(paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_", 
+  #"nonurban.RDS"  # use if reading a non-urban model run
   ".RDS"
 )
 )
