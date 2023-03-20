@@ -579,6 +579,9 @@ if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
 
+# for bombus 20km which required narrower priors for identifiability
+# stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
+
 ## Call Stan from R
 stan_out <- stan(stan_model,
                  data = stan_data, 
