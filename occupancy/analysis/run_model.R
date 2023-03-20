@@ -253,12 +253,12 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 800
+    n_iterations <- 1600
     n_thin <- 1
-    n_burnin <- 400
+    n_burnin <- 600
     n_chains <- 4
-    n_cores <- parallel::detectCores()
-    #n_cores <- 4
+    #n_cores <- parallel::detectCores()
+    n_cores <- 4
     delta = 0.9
     
     ## Initial values
@@ -603,9 +603,10 @@ saveRDS(stan_out, paste0(
 
 stan_out <- readRDS(paste0(
   "./occupancy/model_outputs/", taxon, "_", grid_size / 1000, 
-  "km_", min_population_size, "minpop", 
-  min_records_per_species, "minpersp",
-  n_intervals, "_", n_visits, ".RDS"
+  "km_", min_population_size, "minpop_", 
+  min_records_per_species, "minpersp_",
+  n_intervals, "ints_", n_visits, "visits_", 
+  ".RDS"
 )
 )
 
