@@ -47,8 +47,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 20000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 800 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -439,9 +439,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1200
+    n_iterations <- 800
     n_thin <- 1
-    n_burnin <- 600
+    n_burnin <- 400
     n_chains <- 4
     n_cores <- parallel::detectCores()
     delta = 0.9
@@ -579,8 +579,6 @@ if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
 
-# stan_model <- paste0("./occupancy/models/model_", taxon, "_noncentered2.stan")
-
 ## Call Stan from R
 stan_out <- stan(stan_model,
                  data = stan_data, 
@@ -664,31 +662,6 @@ print(stan_out, digits = 3, pars=
 
 print(stan_out, digits = 3, pars=
         c("P_species_museum"))
-
-print(stan_out, digits = 3, pars=
-        c("psi_species[8]",
-          "psi_species[36]",
-          "psi_species[41]",
-          "psi_species[12]",
-          "psi_species[23]",
-          
-          "psi_pop_density[8]",
-          "psi_pop_density[36]",
-          "psi_pop_density[41]",
-          "psi_pop_density[12]",
-          "psi_pop_density[23]",
-          
-          "p_citsci_species[8]",
-          "p_citsci_species[36]",
-          "p_citsci_species[41]",
-          "p_citsci_species[12]",
-          "p_citsci_species[23]",
-          
-          "p_museum_species[8]",
-          "p_museum_species[36]",
-          "p_museum_species[41]",
-          "p_museum_species[12]",
-          "p_museum_species[23]"))
 
 
 ## --------------------------------------------------
