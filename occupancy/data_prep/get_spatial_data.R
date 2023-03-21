@@ -437,6 +437,23 @@ get_spatial_data <- function(
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
       filter(coordinateUncertaintyInMeters < 10000)
     
+    # When we include random sites (lots of remote locations)
+    # we end up with many sites with no or only one or two detections ever.
+    # We will remove sites with 1 or fewer total records
+    # remove sites with no records
+    if(urban_sites == FALSE){
+      
+      df_id_dens <- df_id_dens %>%
+        # group by site
+        group_by(grid_id) %>%
+        # calculate total records (rows) per site
+        add_tally(name="total_records_per_site") %>%
+        # filter out rows where total records = 0
+        ungroup() %>%
+        filter(total_records_per_site > 1)
+      
+    }
+    
     # manually crop bombus occurrences from outside of core range
     # later, share references for "core range" and show plots for excluded and included record points
     if(taxon == "bombus"){
