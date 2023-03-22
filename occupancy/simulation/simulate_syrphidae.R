@@ -123,7 +123,7 @@
     ## ecoregion3-specific random intercepts
     ## site-specific random intercepts
     genus = rep(1:n_genera, each = n_species_per_genera)
-    genera_intercepts <- rep(rnorm(n=n_genera, mean=0, sd=sigma_psi_genus),
+    genera_intercepts <- rep(rnorm(n=n_genera, mean=mu_psi_0, sd=sigma_psi_genus),
                              each=n_species_per_genera)
     
     ## species-specific random intercepts
@@ -168,7 +168,7 @@
     
     for(i in 1:n_sites){
       
-      psi_site_nested[i] <- mu_psi_0 +
+      psi_site_nested[i] <- 
         ecoregion_one_intercepts[i] + 
         ecoregion_three_intercepts[i] + 
         site_intercepts[i]
@@ -193,7 +193,7 @@
     ### specify species-specific detection probabilities
     
     ## species-specific random intercepts
-    p_citsci_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_citsci_species)
+    p_citsci_species  <- rnorm(n=n_species, mean = mu_p_citsci_0, sd=sigma_p_citsci_species)
     
     ## --------------------------------------------------
     ### specify spatially-specific, spatially-nested occupancy probabilities
@@ -212,7 +212,7 @@
     
     for(i in 1:n_sites){
       
-      p_citsci_site_nested[i] <- mu_p_citsci_0 +
+      p_citsci_site_nested[i] <-
         ecoregion_one_intercepts_p_citsci[i] +
         ecoregion_three_intercepts_p_citsci[i] + 
         site_intercepts_p_citsci[i]
@@ -223,7 +223,7 @@
     ## Museum
     
     ## species-specific random intercepts
-    p_museum_species  <- rnorm(n=n_species, mean = 0, sd=sigma_p_museum_species)
+    p_museum_species  <- rnorm(n=n_species, mean = mu_p_museum_0, sd=sigma_p_museum_species)
     
     ## effect of site on detection 
     ecoregion_one_intercepts_p_museum <- rep(rnorm(n=n_ecoregion_one, mean=0, sd=sigma_p_museum_ecoregion_one),
@@ -239,7 +239,7 @@
     
     for(i in 1:n_sites){
       
-      p_museum_site_nested[i] <- mu_p_museum_0 +
+      p_museum_site_nested[i] <-
         ecoregion_one_intercepts_p_museum[i] +
         ecoregion_three_intercepts_p_museum[i] + 
         site_intercepts_p_museum[i]
@@ -533,6 +533,7 @@
       V_museum_NA <- V_museum_NA_new
     }
     
+    
     ## --------------------------------------------------
     # Return stuff
     return(list(
@@ -559,14 +560,14 @@
       total_records_museum = total_records_museum # museum records per interval
     ))
     
-  } # end simulate_data function
+} # end simulate_data function
 
 
 ## --------------------------------------------------
 ### Variable values for data simulation
 ## study dimensions
-n_genera = 12
-n_species_per_genera = 7 ## number of species
+n_genera = 9
+n_species_per_genera = 6 ## number of species
 n_species = n_genera*n_species_per_genera
 n_ecoregion_one = 10
 n_ecoregion_three_per_one = 6 # ecoregion3 per ecoregion1
@@ -809,11 +810,11 @@ parameter_value <- c(
 )
 
 # MCMC settings
-n_iterations <- 1000
+n_iterations <- 800
 n_thin <- 1
-n_burnin <- 500
+n_burnin <- 400
 n_chains <- 4
-n_cores <- parallel::detectCores()
+n_cores <- 4
 delta = 0.9
 
 ## Initial values
@@ -912,8 +913,6 @@ pairs(stan_out_sim, pars = c(
   "mu_psi_0",
   "mu_p_citsci_0",
   "mu_p_museum_0",
-  
-  "sigma_psi_open_developed",
   "sigma_psi_herb_shrub_forest"
 ))
 

@@ -263,14 +263,14 @@ model {
   psi_ecoregion_three ~ normal(0, 1);
   sigma_psi_ecoregion_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
-  psi_ecoregion_one ~ normal(mu_psi_0, 1);
+  psi_ecoregion_one ~ normal(0, 1);
   sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
-  psi_species ~ normal(mu_psi_0, sigma_psi_species); 
+  psi_species ~ normal(0, sigma_psi_species); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   // level-3 phylogenetic grouping
-  psi_genus ~ normal(0,sigma_psi_genus); 
+  psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
   sigma_psi_genus ~ normal(0, 0.5); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
