@@ -439,11 +439,12 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 800
+    n_iterations <- 600
     n_thin <- 1
-    n_burnin <- 400
+    n_burnin <- 300
     n_chains <- 4
-    n_cores <- parallel::detectCores()
+    n_cores <- 4
+    #n_cores <- parallel::detectCores()
     delta = 0.9
     
     ## Initial values
