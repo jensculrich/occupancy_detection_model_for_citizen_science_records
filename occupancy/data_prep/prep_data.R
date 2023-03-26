@@ -20,6 +20,7 @@ library(tidyverse)
 
 prep_data <- function(era_start, era_end, n_intervals, n_visits, 
                       min_records_per_species,
+                      min_unique_detections,
                       grid_size, min_population_size, 
                       min_records_for_community_sampling_event,
                       min_year_for_species_ranges,
@@ -52,7 +53,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size, taxon, min_site_area,
-    urban_sites, non_urban_subsample_n, min_records_per_species)
+    urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start)
   
   # save the data in case you want to make tweaks to the prep data
   # without redoing the raster extractions

@@ -279,7 +279,7 @@ model {
   
   psi_income ~ normal(mu_psi_income, sigma_psi_income);
   mu_psi_income ~ normal(0, 2); // community mean
-  sigma_psi_income ~ normal(0, 1); // community variance
+  sigma_psi_income ~ normal(0, 0.1); // community variance
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
@@ -294,10 +294,10 @@ model {
   sigma_p_citsci_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_citsci_ecoregion_three ~ normal(0, 1);
-  sigma_p_citsci_ecoregion_three ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_citsci_ecoregion_three ~ normal(0, 0.25); // weakly-informative prior
   // level-4 spatial grouping
   p_citsci_ecoregion_one ~ normal(0, 1);
-  sigma_p_citsci_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_citsci_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
   
   p_citsci_species ~ normal(mu_p_citsci_0, sigma_p_citsci_species); 
   sigma_p_citsci_species ~ normal(0,1);

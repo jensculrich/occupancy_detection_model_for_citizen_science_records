@@ -40,7 +40,9 @@ get_spatial_data <- function(
   min_site_area, # min land area (in the state admin areas) of a site to be included
   urban_sites,
   non_urban_subsample_n,
-  min_records_per_species
+  min_records_per_species,
+  min_unique_detections,
+  era_start
 ){
   
   ## --------------------------------------------------
@@ -435,7 +437,24 @@ get_spatial_data <- function(
       # assuming na uncertainty (large portion of records) is under threshold
       # here we assume records with no listed uncertainty are precise or at least precise enough to fall within our big sites
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
-      filter(coordinateUncertaintyInMeters < 10000)
+      filter(coordinateUncertaintyInMeters < 10000) 
+    
+    species_with_enough_detections <- df_id_dens %>%
+      filter(year >= era_start) %>%
+      group_by(species, grid_id, year) %>%
+      slice(1) %>%
+      ungroup() %>%
+      group_by(species) %>%
+      count(name="total_detections") %>%
+      filter(total_detections > min_unique_detections) %>%
+      filter(species != "") %>%
+      pull(species)
+    
+    # now filter out species that were detected at sites fewer than a minimum number of times
+    if(urban_sites == TRUE){
+      df_id_dens <- df_id_dens %>% 
+        filter(species %in% species_with_enough_detections)
+    }
     
     # When we include random sites (lots of remote locations)
     # we end up with many sites with no or only one or two detections ever.

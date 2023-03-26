@@ -12,6 +12,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
+min_unique_detections = 5
 # within the time span defined above
 grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1000 # min pop density in the grid cell (per km^2)
@@ -46,6 +47,7 @@ n_visits = 2 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
+min_unique_detections = 1
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
 grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1000 # min pop density in the grid cell (per km^2)
@@ -79,6 +81,7 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      n_intervals = n_intervals, # must define number of intervals to break up the era into
                      n_visits = n_visits, # must define the number of repeat obs years within each interval
                      min_records_per_species = min_records_per_species,
+                     min_unique_detections = min_unique_detections,
                      grid_size = grid_size, # 25km x 25 km 
                      min_population_size = min_population_size, # min pop density in the grid cell (per km^2)
                      min_records_for_community_sampling_event = min_records_for_community_sampling_event,
@@ -136,6 +139,7 @@ site_names <- my_data$sites
 species_names <- my_data$species
 
 #saveRDS(species_names, "./figures/species_names/bombus_names_30km_nonurban.RDS")
+#saveRDS(species_names, "./figures/species_names/syrphidae_names_15km_urban_min5detections.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
 pop_densities <- my_data$pop_densities
@@ -342,9 +346,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 600
+    n_iterations <- 1200
     n_thin <- 1
-    n_burnin <- 300
+    n_burnin <- 600
     n_chains <- 4
     n_cores <- parallel::detectCores()
     delta = 0.9
@@ -393,7 +397,8 @@ if(taxon == "bombus"){
                    "n_ecoregion_three", "n_ecoregion_one",
                    "ecoregion_three", "ecoregion_one",
                    "ecoregion_three_lookup", "ecoregion_one_lookup",
-                   "pop_densities", "site_areas", "avg_income", 
+                   "pop_densities", "site_areas", 
+                   #"avg_income", 
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
@@ -403,8 +408,8 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
-                "mu_psi_income",
-                "sigma_psi_income",
+                #"mu_psi_income",
+                #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
                 "psi_site_area",
@@ -425,7 +430,7 @@ if(taxon == "bombus"){
                 "p_museum_total_records",
                 
                 "psi_species",
-                "psi_income",
+                #"psi_income",
                 "psi_herb_shrub_forest",
                 
                 #"T_rep_citsci",
@@ -444,7 +449,7 @@ if(taxon == "bombus"){
     n_burnin <- 300
     n_chains <- 4
     n_cores <- 4
-    #n_cores <- parallel::detectCores()
+    n_cores <- parallel::detectCores()
     delta = 0.9
     
     ## Initial values
@@ -452,14 +457,14 @@ if(taxon == "bombus"){
     # otherwise sometimes they have a hard time starting to sample
     inits <- lapply(1:n_chains, function(i)
       
-      list(mu_psi_0 = runif(1, -1, 1),
+      list(mu_psi_0 = runif(1, 1, 3),
            sigma_psi_species = runif(1, 0, 0.5),
            sigma_psi_genus = runif(1, 0, 0.5),
            sigma_psi_site = runif(1, 0, 0.5),
            sigma_psi_ecoregion_three = runif(1, 0, 0.5),
            sigma_psi_ecoregion_one = runif(1, 0, 0.5),
-           mu_psi_income = runif(1, -1, 1),
-           sigma_psi_income = runif(1, 0, 0.5),
+           #mu_psi_income = runif(1, -1, 1),
+           #sigma_psi_income = runif(1, 0, 0.5),
            mu_psi_herb_shrub_forest = runif(1, -1, 1),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
@@ -575,7 +580,8 @@ if(taxon == "bombus"){
 ### Run model
 
 if(urban_sites == TRUE){
-  stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  #stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, "_no_income.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -630,8 +636,8 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          "mu_psi_income",
-          "sigma_psi_income",
+          #"mu_psi_income",
+          #"sigma_psi_income",
           "psi_site_area"))
 
 
@@ -679,7 +685,7 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  "mu_psi_income",
+  #"mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -690,11 +696,11 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  #"sigma_psi_genus",
+  "sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_income",
+  #"sigma_psi_income",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
