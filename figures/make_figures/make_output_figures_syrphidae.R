@@ -6,9 +6,8 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae_25km_750minpop15minpersp4_3_sq.RDS")
-species_names <- readRDS("./figures/syrphidae_names_15min.RDS")
-
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_15km_1000minpop_5minpersp_4ints_3visits_.RDS")
+species_names <- readRDS("./figures/species_names/syrphidae_names_15km_urban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
 
@@ -24,32 +23,50 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 
 n_species <- length(species_names)
 
+
 ## --------------------------------------------------
 ## Plot ecological paramter means and variation
 
 # parameter means
-X_eco <- c(1, 2, 3) # 4 ecological params of interest
+X_eco <- c(1, 2, 3) # 3 ecological params of interest
 # mean of eco params
-Y_eco <- c(
+Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
            fit_summary$summary[7,1], # mu psi herb shrub forest
            fit_summary$summary[9,1], # psi site area
            fit_summary$summary[1,1] # mu psi 0
 )
 
 # confidence intervals
-lower_95_eco <- c(
+lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
                   fit_summary$summary[7,4], # mu psi herb shrub forest
                   fit_summary$summary[9,4],
                   fit_summary$summary[1,4] # mu psi 0
 )
 
-upper_95_eco <- c(
+upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
                   fit_summary$summary[7,8], # mu psi herb shrub forest
                   fit_summary$summary[9,8],
                   fit_summary$summary[1,8] # mu psi 0
 )
 
-df_estimates_eco <- as.data.frame(cbind(X_eco, Y_eco, lower_95_eco, upper_95_eco))
+# confidence intervals
+lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
+                  fit_summary$summary[7,5], # mu psi herb shrub forest
+                  fit_summary$summary[9,5],
+                  fit_summary$summary[1,5] # mu psi 0
+)
+
+upper_50_eco <- c(#fit_summary$summary[6,7], # mu psi income
+                  fit_summary$summary[7,7], # mu psi herb shrub forest
+                  fit_summary$summary[9,7],
+                  fit_summary$summary[1,7] # mu psi 0
+)
+
+
+df_estimates_eco <- as.data.frame(cbind(X_eco, Y_eco, 
+                                        lower_95_eco, upper_95_eco,
+                                        lower_50_eco, upper_50_eco))
+
 df_estimates_eco$X_eco <- as.factor(df_estimates_eco$X_eco)
 
 ## --------------------------------------------------
@@ -60,9 +77,11 @@ species_estimates <- data.frame()
 for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
-  species_estimates[1,i] <- fit_summary$summary[20+i,1] # psi species
+  #species_estimates[1,i] <- NA # psi species
+  species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[2,i] <- NA # site area
-  species_estimates[3,i] <- fit_summary$summary[202+i,1] # herb shrub forest
+  species_estimates[3,i] <- fit_summary$summary[89+i,1] # herb shrub forest
+  species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
   
 }
 
@@ -71,16 +90,18 @@ for(i in 1:n_species){
 
 (s <- ggplot(df_estimates_eco) +
    geom_errorbar(aes(x=X_eco, ymin=lower_95_eco, ymax=upper_95_eco),
-                 color="black",width=0.1,linewidth=1,alpha=0.5) +
+                 color="black",width=0.1,size=1,alpha=0.5) +
+   geom_errorbar(aes(x=X_eco, ymin=lower_50_eco, ymax=upper_50_eco),
+                 color="black",width=0,size=3,alpha=0.8) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
    scale_x_discrete(name="", breaks = c(1, 2, 3),
-                    labels=c(
+                    labels=c(#bquote(psi[income]),
                              bquote(psi[natural.habitat]),
                              bquote(psi[site.area]), 
                              bquote(psi[0]))) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-3, 3)) +
+                      limits = c(-0.5, 5)) +
    guides(color = guide_legend(title = "")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
@@ -98,6 +119,9 @@ df_estimates_eco_species <- cbind(df_estimates_eco, species_estimates)
 for(i in 1:n_species){
   
   test <- as.data.frame(cbind(X_eco, rev(df_estimates_eco_species[,4+i])))
+  #test[1,2] <- NA
+  #test[2,2] <- NA
+  #test[4,2] <- NA
   colnames(test) <- c("X_eco", "Y_eco")
   
   s <- s + geom_point(data = test, aes(x=X_eco, y=Y_eco), 
@@ -109,8 +133,8 @@ s <- s +
   geom_point(aes(x=X_eco, y=Y_eco),
              size = 5, alpha = 0.8) 
 
-
 s
+
 
 ## --------------------------------------------------
 ## Plot detection paramter means and variation (citizen science)

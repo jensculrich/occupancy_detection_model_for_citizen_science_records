@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop_10minpersp_4ints_3visits.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_15km_1000minpop_10minpersp_4ints_3visits_.RDS")
 species_names <- readRDS("./figures/species_names/bombus_names_15km_urban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
@@ -36,19 +36,36 @@ Y_eco <- c(fit_summary$summary[6,1], # mu psi income
           )
 
 # confidence intervals
-lower_95_eco <- c(fit_summary$summary[6,4], # mu psi open developed
+lower_95_eco <- c(fit_summary$summary[6,4], # mu psi income
                   fit_summary$summary[8,4], # mu psi herb shrub forest
                   fit_summary$summary[10,4],
                   fit_summary$summary[1,4] # mu psi 0
 )
 
-upper_95_eco <- c(fit_summary$summary[6,8], # mu psi open developed
+upper_95_eco <- c(fit_summary$summary[6,8], # mu psi income
                   fit_summary$summary[8,8], # mu psi herb shrub forest
                   fit_summary$summary[10,8],
                   fit_summary$summary[1,8] # mu psi 0
 )
 
-df_estimates_eco <- as.data.frame(cbind(X_eco, Y_eco, lower_95_eco, upper_95_eco))
+# confidence intervals
+lower_50_eco <- c(fit_summary$summary[6,5], # mu psi income
+                  fit_summary$summary[8,5], # mu psi herb shrub forest
+                  fit_summary$summary[10,5],
+                  fit_summary$summary[1,5] # mu psi 0
+)
+
+upper_50_eco <- c(fit_summary$summary[6,7], # mu psi income
+                  fit_summary$summary[8,7], # mu psi herb shrub forest
+                  fit_summary$summary[10,7],
+                  fit_summary$summary[1,7] # mu psi 0
+)
+
+
+df_estimates_eco <- as.data.frame(cbind(X_eco, Y_eco, 
+                                        lower_95_eco, upper_95_eco,
+                                        lower_50_eco, upper_50_eco))
+
 df_estimates_eco$X_eco <- as.factor(df_estimates_eco$X_eco)
 
 ## --------------------------------------------------
@@ -59,8 +76,8 @@ species_estimates <- data.frame()
 for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
-  species_estimates[1,i] <- NA # psi species
-  #species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
+  #species_estimates[1,i] <- NA # psi species
+  species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[2,i] <- NA # site area
   species_estimates[3,i] <- fit_summary$summary[89+i,1] # herb shrub forest
   species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
@@ -73,6 +90,8 @@ for(i in 1:n_species){
 (s <- ggplot(df_estimates_eco) +
     geom_errorbar(aes(x=X_eco, ymin=lower_95_eco, ymax=upper_95_eco),
                   color="black",width=0.1,size=1,alpha=0.5) +
+   geom_errorbar(aes(x=X_eco, ymin=lower_50_eco, ymax=upper_50_eco),
+                 color="black",width=0,size=3,alpha=0.8) +
     theme_bw() +
     # scale_color_viridis(discrete=TRUE) +
     scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
@@ -81,7 +100,7 @@ for(i in 1:n_species){
                                 bquote(psi[site.area]), 
                                 bquote(psi[0]))) +
     scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                       limits = c(-3, 3)) +
+                       limits = c(-1.5, 1)) +
     guides(color = guide_legend(title = "")) +
     geom_hline(yintercept = 0, lty = "dashed") +
     theme(legend.text=element_text(size=10),
@@ -122,10 +141,10 @@ s
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 # parameter means
-X_citsci <- c(1, 2, 3, 4, 5) # 6 detection params of interest
+X_detection <- c(1, 2, 3, 4, 5) # 6 detection params of interest
 
 # mean of cit sci params and museum params
-Y_citsci <- c(
+Y_detection <- c(
            # museum 
           fit_summary$summary[23,1], # p total records
           fit_summary$summary[18,1], # mu p 0
@@ -135,7 +154,7 @@ Y_citsci <- c(
            fit_summary$summary[11,1]) # mu p 0
 
 # confidence intervals
-lower_95_citsci <- c(
+lower_95_detection <- c(
   # museum 
   fit_summary$summary[23,4], # p total records
   fit_summary$summary[18,4], # mu p 0
@@ -144,7 +163,7 @@ lower_95_citsci <- c(
   fit_summary$summary[16,4], # p interval
   fit_summary$summary[11,4]) # mu p 0
 
-upper_95_citsci <- c(
+upper_95_detection <- c(
   # museum 
   fit_summary$summary[23,8], # p total records
   fit_summary$summary[18,8], # mu p 0
@@ -153,9 +172,31 @@ upper_95_citsci <- c(
   fit_summary$summary[16,8], # p interval
   fit_summary$summary[11,8]) # mu p 0
 
-df_estimates_citsci <- as.data.frame(cbind(X_citsci, Y_citsci, 
-                                           lower_95_citsci, upper_95_citsci))
-df_estimates_citsci$X_citsci <- as.factor(df_estimates_citsci$X_citsci)
+# confidence intervals
+lower_50_detection <- c(
+  # museum 
+  fit_summary$summary[23,5], # p total records
+  fit_summary$summary[18,5], # mu p 0
+  # cit sci
+  fit_summary$summary[17,5], # p pop dens
+  fit_summary$summary[16,5], # p interval
+  fit_summary$summary[11,5]) # mu p 0
+
+upper_50_detection <- c(
+  # museum 
+  fit_summary$summary[23,7], # p total records
+  fit_summary$summary[18,7], # mu p 0
+  # cit sci
+  fit_summary$summary[17,7], # p pop dens
+  fit_summary$summary[16,7], # p interval
+  fit_summary$summary[11,7]) # mu p 0
+
+df_estimates_detection <- as.data.frame(cbind(X_detection, Y_detection, 
+                                           lower_95_detection, upper_95_detection,
+                                           lower_50_detection, upper_50_detection))
+
+df_estimates_detection$X_detection <- as.factor(
+  df_estimates_detection$X_detection)
 
 ## --------------------------------------------------
 ## Get species specific estimates
@@ -177,9 +218,11 @@ for(i in 1:n_species){
 ## --------------------------------------------------
 ## Draw parameter plot
 
-(q <- ggplot(df_estimates_citsci) +
-   geom_errorbar(aes(x=X_citsci, ymin=lower_95_citsci, ymax=upper_95_citsci),
+(q <- ggplot(df_estimates_detection) +
+   geom_errorbar(aes(x=X_detection, ymin=lower_95_detection, ymax=upper_95_detection),
                  color="black",width=0.1,size=1,alpha=0.5) +
+   geom_errorbar(aes(x=X_detection, ymin=lower_50_detection, ymax=upper_50_detection),
+                 color="black",width=0,size=3,alpha=0.8) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
    scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5),
@@ -190,7 +233,7 @@ for(i in 1:n_species){
                       bquote(p.citsci[time.interval^2]), 
                       bquote(p.citsci[0]))) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-5, 2)) +
+                      limits = c(-5, 1.5)) +
    guides(color = guide_legend(title = "")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
@@ -220,7 +263,7 @@ for(i in 1:n_species){
 }
 
 (q <- q +
-    geom_point(aes(x=X_citsci, y=Y_citsci),
+    geom_point(aes(x=X_detection, y=Y_detection),
                size = 3, alpha = 0.7) 
 )
 
@@ -381,7 +424,7 @@ curve(ilogit(fit_summary$summary[8,4]*x), add=TRUE)
 curve(ilogit(fit_summary$summary[8,8]*x), add=TRUE)
 
 # intercept and effect
-n_lines <- 1000
+n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 2)
 
 for(i in 1:n_lines){
@@ -458,6 +501,38 @@ curve(ilogit(fit_summary$summary[8,1]*x),
       add=TRUE, col = "blue", lwd = 3)
 
 # income
+# effect and all others held at mean
+n_lines <- 100
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,6]
+}
+
+plot(NA, xlim=c(-3,3), ylim=c(0,1),
+     xlab = "Average Income (scaled)",
+     ylab = "Pr(Occupancy)")
+
+for(i in 1:n_lines){
+  curve(ilogit(
+    fit_summary$summary[1,1] + # intercept
+      # should add non-centered random effects
+      fit_summary$summary[8,1] + # natural habitat  
+      fit_summary$summary[10,1] + # site area 
+      params[i,1]*x), 
+    add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(
+  fit_summary$summary[1,1] + # intercept
+    # should add non-centered random effects
+    fit_summary$summary[8,1] + # income  
+    fit_summary$summary[10,1] + # site area 
+    fit_summary$summary[6,1]*x), 
+  add=TRUE, col = "blue", lwd = 3)
+
 # just effect
 n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)

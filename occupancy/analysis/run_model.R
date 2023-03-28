@@ -49,8 +49,8 @@ n_visits = 2 # must define the number of repeat obs years within each interval
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 2000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -138,7 +138,7 @@ interval_names <- as.vector(as.numeric(my_data$intervals))
 site_names <- my_data$sites
 species_names <- my_data$species
 
-#saveRDS(species_names, "./figures/species_names/bombus_names_30km_nonurban.RDS")
+#saveRDS(species_names, "./figures/species_names/syrphidae_names_50km_nonurban.RDS")
 #saveRDS(species_names, "./figures/species_names/syrphidae_names_15km_urban_min5detections.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
