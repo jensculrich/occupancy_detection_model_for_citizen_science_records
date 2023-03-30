@@ -14,8 +14,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 5
 # within the time span defined above
-grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 2000 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -32,7 +32,7 @@ remove_unidentified_species = TRUE # default to TRUE
 consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
-urban_sites = FALSE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
 non_urban_subsample_n = 500 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
@@ -42,15 +42,15 @@ generate_temporal_plots = FALSE # default to FALSE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
 era_start = 2011 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 6 # must define number of intervals to break up the era into
-n_visits = 2 # must define the number of repeat obs years within each interval
+n_intervals = 4 # must define number of intervals to break up the era into
+n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
-min_unique_detections = 1
+min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 50000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 2000 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -115,7 +115,7 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
                           min_records_per_species, "minpersp", "_",
                           n_intervals, "ints_",
                           n_visits, "visits",
-                          "_nonurban",
+                          #"_nonurban",
                           ".rds"))
 
 # best to restart R or offload all of the spatial data packages before running the model
@@ -139,7 +139,7 @@ site_names <- my_data$sites
 species_names <- my_data$species
 
 #saveRDS(species_names, "./figures/species_names/syrphidae_names_50km_nonurban.RDS")
-#saveRDS(species_names, "./figures/species_names/syrphidae_names_15km_urban_min5detections.RDS")
+#saveRDS(species_names, "./figures/species_names/bombus_names_10km_urban.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
 pop_densities <- my_data$pop_densities
@@ -458,27 +458,27 @@ if(taxon == "bombus"){
     inits <- lapply(1:n_chains, function(i)
       
       list(mu_psi_0 = runif(1, 1, 3),
-           sigma_psi_species = runif(1, 0, 0.5),
+           sigma_psi_species = runif(1, 1.5, 2.5),
            sigma_psi_genus = runif(1, 0, 0.5),
-           sigma_psi_site = runif(1, 0, 0.5),
-           sigma_psi_ecoregion_three = runif(1, 0, 0.5),
-           sigma_psi_ecoregion_one = runif(1, 0, 0.5),
+           sigma_psi_site = runif(1, 0.5, 1),
+           sigma_psi_ecoregion_three = runif(1, 0.5, 1),
+           sigma_psi_ecoregion_one = runif(1, 0.5, 1),
            #mu_psi_income = runif(1, -1, 1),
            #sigma_psi_income = runif(1, 0, 0.5),
-           mu_psi_herb_shrub_forest = runif(1, -1, 1),
+           mu_psi_herb_shrub_forest = runif(1, -0.5, 0.5),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
            
-           mu_p_citsci_0 = runif(1, -1, 0),
-           sigma_p_citsci_species = runif(1, 0, 0.5),
+           mu_p_citsci_0 = runif(1, -5, -2),
+           sigma_p_citsci_species = runif(1, 0.5, 1.5),
            sigma_p_citsci_site = runif(1, 0, 0.5),
            sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
            sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
            p_citsci_interval = runif(1, -1, 1),
            p_citsci_pop_density = runif(1, -1, 1),
            
-           mu_p_museum_0 = runif(1, -0.5, 0.5),
-           sigma_p_museum_species = runif(1, 0, 0.1),
+           mu_p_museum_0 = runif(1, -2.5, -1),
+           sigma_p_museum_species = runif(1, 0.5, 1),
            sigma_p_museum_site = runif(1, 0, 0.1),
            sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
            sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
@@ -614,7 +614,7 @@ saveRDS(stan_out, paste0(
 )
 
 stan_out <- readRDS(paste0(
-  "./occupancy/model_outputs/", taxon, "_", grid_size / 1000, 
+  "./occupancy/model_outputs/", taxon, "/", taxon, "_", grid_size / 1000, 
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_", 
@@ -636,8 +636,8 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          #"mu_psi_income",
-          #"sigma_psi_income",
+          "mu_psi_income",
+          "sigma_psi_income",
           "psi_site_area"))
 
 
@@ -684,7 +684,7 @@ print(stan_out, digits = 3, pars=
 # traceplot
 traceplot(stan_out, pars = c(
   "mu_psi_0",
-  #"mu_psi_herb_shrub_forest",
+  "mu_psi_herb_shrub_forest",
   #"mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",

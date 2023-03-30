@@ -157,7 +157,8 @@ ggplot() +
   coord_sf(datum = NA)  +
   labs(x = "") +
   labs(y = "") +
-  theme(legend.position="none")
+  theme(legend.position="none") + 
+  ggtitle("15km x 15km grid cells")
 
 
 ## --------------------------------------------------
@@ -225,6 +226,39 @@ gc()
 
 # transform state shapefile to crs
 income_trans <- st_transform(income, crs) # albers equal area
+
+# Sacramento county, california
+filtered <- income_trans %>%
+  filter(STATEFP == "06" & COUNTYFP == "067")
+
+# Plot income by census block
+ggplot() + geom_sf(data = filtered, aes(fill = relative_AMR8E001)) +
+  scale_fill_gradient2(high = ("goldenrod"), 
+                       name="Relative median income",
+                       limits=c(0,3)) +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") +
+  ggtitle("Median household income in Sacramento County, California,\nrelative to median household income in California \n(by census block group) ")
+
+# Cook county, Illinois
+filtered2 <- income_trans %>%
+  filter(STATEFP == "17" & COUNTYFP == "031")
+
+# Plot income by census block
+ggplot() + geom_sf(data = filtered2, aes(fill = relative_AMR8E001)) +
+  scale_fill_gradient2(high = ("goldenrod"), 
+                       name="Relative median income",
+                       limits=c(0,3.5)) +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") +
+  ggtitle("Median household income in Cook County, Illinois,\nrelative to median household income in Illinois \n(by census block group) ")
+
+
+# NA's: "It's common for data to be suppressed when there isn't a sufficient sample size. 
+# The suppression takes place to protect information about the respondents in those areas
+# and to limit unreliable statistics." Looking at those NA areas, they are mostly areas of
+# natural habitat, farmland, unused open land, and airports
+
 
 grid_pop_dens <- st_join(grid_pop_dens, income_trans)
 
@@ -396,11 +430,35 @@ gc()
 ## --------------------------------------------------
 # Visualize the data
 
+# crop
+crop_states <- states_trans %>%
+  st_transform(., crs = 4326) %>% 
+  st_crop(., xmin = -120, xmax = -110, 
+             ymin = 38, ymax = 30) %>%
+  st_transform(., crs = crs) 
+
+crop_grid <- grid_pop_dens %>%
+  st_transform(., crs = 4326) %>% 
+  st_crop(., xmin = -120, xmax = -110, 
+          ymin = 38, ymax = 30) %>%
+  st_transform(., crs = crs) 
+
 # view extent only with population density
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  #geom_sf(data = grid_pop_dens, aes(fill = pop_density_per_km2), lwd = 0.3) +
-  #scale_fill_gradient2(name = expression("Population/km"^2)) +
+  geom_sf(data = grid_pop_dens, aes(fill = pop_density_per_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("Population/km"^2)) +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Population density in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# Cropped population density
+ggplot() +
+  geom_sf(data = crop_states, fill = 'white', lwd = 0.05) +
+  geom_sf(data = crop_grid, aes(fill = pop_density_per_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("Population/km"^2)) +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
   #ggtitle("Population density in urban areas") +
@@ -426,7 +484,18 @@ ggplot() +
   scale_fill_gradient2(name = expression("Scaled population/km"^2)) +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Population density in urban areas") +
+  #ggtitle("Population density in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# Cropped view sites only with scaled population density
+ggplot() +
+  geom_sf(data = crop_states, fill = 'white', lwd = 0.05) +
+  geom_sf(data = crop_grid, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("Scaled population/km"^2)) +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Population density in urban areas") +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
@@ -437,7 +506,19 @@ ggplot() +
   scale_fill_gradient2(name = "Scaled site area") +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Within-extent land area of urban sites") +
+  #ggtitle("Within-extent land area of urban sites") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+# coord_sf(datum = NA)
+
+# Cropped site area data
+ggplot() +
+  geom_sf(data = crop_states, fill = 'white', lwd = 0.05) +
+  geom_sf(data = crop_grid, aes(fill = scaled_site_area), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled site area") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Within-extent land area of urban sites") +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 # coord_sf(datum = NA)
@@ -446,21 +527,54 @@ ggplot() +
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_income), lwd = 0.3) +
-  scale_fill_gradient2(name = "Scaled (relative) household income") +
+  scale_fill_gradient2(name = "Scaled (relative) \nmedian household income") +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Avg. household income in urban areas") +
+  #ggtitle("Avg. household income in urban areas") +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
-# scaled shrub and herb cover
+# Cropped view sites only with scaled income
+ggplot() +
+  geom_sf(data = crop_states, fill = 'white', lwd = 0.05) +
+  geom_sf(data = crop_grid, aes(fill = scaled_avg_income), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled (relative) \nmedian household income") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Avg. household income in urban areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# sclaed herb shrub forest cover
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_forest), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled natural habitat area") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Undeveloped natural habitat in Urban Areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") 
+
+# Cropped sclaed herb shrub forest cover
+ggplot() +
+  geom_sf(data = crop_states, fill = 'white', lwd = 0.05) +
+  geom_sf(data = crop_grid, aes(fill = scaled_herb_shrub_forest), lwd = 0.3) +
+  scale_fill_gradient2(name = "Scaled natural habitat area") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Undeveloped natural habitat in Urban Areas") +
+  labs(x = "Longitude") +
+  labs(y = "Latitude")
+
+# scaled herb/shrub
 ggplot() +
   geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
   geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_cover), lwd = 0.3) +
   scale_fill_gradient2(name = "Scaled herb/shrub cover") +
   #geom_text(data = urban_grid_lab, 
   #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Undeveloped Herb and Shrub Cover in Urban Areas") +
+  #ggtitle("Undeveloped Herb and Shrub Cover in Urban Areas") +
   labs(x = "Longitude") +
   labs(y = "Latitude") 
 
@@ -498,16 +612,7 @@ ggplot() +
   labs(y = "Latitude") 
 
 
-# sclaed herb shrub forest cover
-ggplot() +
-  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_forest), lwd = 0.3) +
-  scale_fill_gradient2(name = "Scaled cover") +
-  #geom_text(data = urban_grid_lab, 
-  #          aes(x = X, y = Y, label = grid_id), size = 2) +
-  ggtitle("Undeveloped natural habitat in Urban Areas") +
-  labs(x = "Longitude") +
-  labs(y = "Latitude") 
+
 
 ## --------------------------------------------------
 # Construct a correlation matrix for variables
