@@ -398,7 +398,7 @@ if(taxon == "bombus"){
                    "ecoregion_three", "ecoregion_one",
                    "ecoregion_three_lookup", "ecoregion_one_lookup",
                    "pop_densities", "site_areas", 
-                   #"avg_income", 
+                   "avg_income", 
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
@@ -408,6 +408,7 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
+                "psi_income",
                 #"mu_psi_income",
                 #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
@@ -463,8 +464,9 @@ if(taxon == "bombus"){
            sigma_psi_site = runif(1, 0.5, 1),
            sigma_psi_ecoregion_three = runif(1, 0.5, 1),
            sigma_psi_ecoregion_one = runif(1, 0.5, 1),
-           #mu_psi_income = runif(1, -1, 1),
-           #sigma_psi_income = runif(1, 0, 0.5),
+           psi_income = runif(1, -0.1, 0.1),
+           mu_psi_income = runif(1, -1, 1),
+           sigma_psi_income = runif(1, 0, 0.5),
            mu_psi_herb_shrub_forest = runif(1, -0.5, 0.5),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
@@ -581,7 +583,7 @@ if(taxon == "bombus"){
 
 if(urban_sites == TRUE){
   #stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
-  stan_model <- paste0("./occupancy/models/model_", taxon, "_no_income.stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, "_income_fixed.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -608,7 +610,8 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  #"nonurban.RDS"  # use if saving a non-urban model run
+  "income_fixed", 
+  #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
 )
@@ -623,6 +626,7 @@ stan_out <- readRDS(paste0(
 )
 )
 
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_15km_1000minpop_5minpersp_4ints_3visits_nonconverging_income.RDS")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3wide_priors.RDS")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3_bbna.RDS")
 
@@ -636,8 +640,9 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          "mu_psi_income",
-          "sigma_psi_income",
+          "psi_income",
+          #"mu_psi_income",
+          #"sigma_psi_income",
           "psi_site_area"))
 
 
@@ -685,7 +690,7 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  #"mu_psi_income",
+  "psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -700,8 +705,8 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  #"sigma_psi_income",
-  #"sigma_psi_herb_shrub_forest",
+  "sigma_psi_income",
+  "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
   "sigma_p_citsci_ecoregion_one",
