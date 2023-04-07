@@ -12,10 +12,10 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
-min_unique_detections = 5
+min_unique_detections = 3
 # within the time span defined above
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -49,8 +49,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -583,7 +583,6 @@ if(taxon == "bombus"){
 
 if(urban_sites == TRUE){
   #stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
-  stan_model <- paste0("./occupancy/models/model_", taxon, "_income_fixed.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -610,7 +609,6 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "income_fixed", 
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )

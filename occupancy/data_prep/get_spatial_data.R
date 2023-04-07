@@ -308,7 +308,19 @@ get_spatial_data <- function(
              scaled_developed_med_high = center_scale(developed_med_high),
              scaled_forest = center_scale(forest),
              scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
-      )
+            ) %>%
+      # remove extreme population outliers (more than 5 sd from the mean)
+      filter(scaled_pop_den_km2 < 5) %>%
+      filter(scaled_pop_den_km2 > -5) %>%
+      # rescale the variables (in case any sites removed)
+      mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
+             scaled_site_area = center_scale(site_area),
+             scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+             scaled_developed_open = center_scale(developed_open),
+             scaled_developed_med_high = center_scale(developed_med_high),
+             scaled_forest = center_scale(forest),
+             scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
+          )
     
     rm(crs_raster, grid, land, prj1, 
        r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
@@ -489,35 +501,19 @@ get_spatial_data <- function(
     
     
     ## --------------------------------------------------
-    # Calculate correlations between variables
+    # Generate a matrix that will later be used to 
+    # calculate correlations between predictor variables
     
-    correlation_matrix <- cor(as.data.frame(cbind(grid_pop_dens$scaled_pop_den_km2,
+    correlation_matrix <- as.matrix(as.data.frame(cbind(grid_pop_dens$scaled_pop_den_km2,
                                                   grid_pop_dens$scaled_site_area,
                                                   grid_pop_dens$scaled_developed_open,
                                                   grid_pop_dens$scaled_developed_med_high,
+                                                  grid_pop_dens$scaled_avg_income,
                                                   grid_pop_dens$scaled_herb_shrub_cover,
                                                   grid_pop_dens$scaled_forest,
-                                                  grid_pop_dens$scaled_herb_shrub_forest,
-                                                  grid_pop_dens$scaled_avg_income)))
+                                                  grid_pop_dens$scaled_herb_shrub_forest)))
     
-    colnames(correlation_matrix) <- c("scaled_pop_den_km2", 
-                                      "scaled_site_area", 
-                                      "scaled_developed_open",
-                                      "scaled_developed_med_high",
-                                      "scaled_herb_shrub_cover",
-                                      "scaled_forest",
-                                      "scaled_herb_shrub_forest",
-                                      "scaled_avg_income")
-    
-    rownames(correlation_matrix) <- c("scaled_pop_den_km2", 
-                                      "scaled_site_area", 
-                                      "scaled_developed_open",
-                                      "scaled_developed_med_high",
-                                      "scaled_herb_shrub_cover",
-                                      "scaled_forest",
-                                      "scaled_herb_shrub_forest",
-                                      "scaled_avg_income")
-    
+
   #} # end else
   
   
