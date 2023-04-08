@@ -275,7 +275,7 @@ model {
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(0, 1); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 2); // global intercept for detection
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, 1);
