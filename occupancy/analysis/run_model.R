@@ -14,8 +14,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 3
 # within the time span defined above
-grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -49,8 +49,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -443,9 +443,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 600
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 300
+    n_burnin <- 500
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
