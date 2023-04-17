@@ -51,53 +51,6 @@ get_spatial_data <- function(
   center_scale <- function(x) {
     (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
   }
-  
-  ## To save time and computing power, if study dimensions match preprocessing reqts.
-  ## then use the preprocessed data to save time, 
-  #if(grid_size == 30000 && min_population_size == 300 && min_site_area == 0.10){
-    
-    # read the occurrence data for the given taxon
-    #df_id_dens <- readRDS(paste0(
-      #"./preprocessed_data/",
-      #taxon,
-      #"_occurrence_records_30km_300minpop_.RDS"))
-    
-    #grid_pop_dens <- readRDS("./preprocessed_data/site_data_30km_300minpop_.RDS")
-    
-    ## --------------------------------------------------
-    # Extract variables
-    
-    #scaled_pop_density <- grid_pop_dens %>% 
-      #pull(scaled_pop_den_km2)
-    
-    #scaled_site_area <- grid_pop_dens %>% 
-      #pull(scaled_site_area)
-    
-    #scaled_developed_open <- grid_pop_dens %>% 
-      #pull(scaled_developed_open)
-    
-    #scaled_herb_shrub_cover <- grid_pop_dens %>% 
-      #pull(scaled_herb_shrub_cover)
-    
-    #scaled_forest <- grid_pop_dens %>% 
-      #pull(scaled_forest)
-    
-    #scaled_developed_med_high <- grid_pop_dens %>% 
-      #pull(scaled_developed_med_high)
-    
-    ## --------------------------------------------------
-    # Calculate correlations between variables 
-    
-    #my_variables <- as.data.frame(cbind(scaled_pop_density, 
-                                        #scaled_site_area, 
-                                        #scaled_developed_open,
-                                        #scaled_developed_med_high,
-                                        #scaled_herb_shrub_cover, 
-                                        #scaled_forest))
-    
-    #correlation_matrix <- cor(my_variables)
-    
-  #} else{
     
     ## --------------------------------------------------
     # Envrionmental raster data

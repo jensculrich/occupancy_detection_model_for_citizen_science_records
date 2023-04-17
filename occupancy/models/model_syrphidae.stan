@@ -254,7 +254,7 @@ model {
   // PRIORS
   
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 0.75); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 0.5); // global intercept for occupancy rate
   
   // https://betanalpha.github.io/assets/case_studies/divergences_and_bias.html#3_a_non-centered_eight_schools_implementation
   // level-2 spatial grouping
@@ -269,10 +269,10 @@ model {
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 0.25); // weakly-informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
-  sigma_psi_genus ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_genus ~ normal(0, 0.1); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
@@ -289,7 +289,7 @@ model {
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(0, 0.75); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, 1);
@@ -302,7 +302,7 @@ model {
   sigma_p_citsci_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
   
   p_citsci_species ~ normal(mu_p_citsci_0, sigma_p_citsci_species); 
-  sigma_p_citsci_species ~ normal(0,1);
+  sigma_p_citsci_species ~ normal(0, 0.5);
   
   // a temporal effect on detection probability
   p_citsci_interval ~ normal(0, 2); 
@@ -312,7 +312,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.25);

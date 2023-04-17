@@ -12,7 +12,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
-min_unique_detections = 3
+min_unique_detections = 5
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1200 # min pop density in the grid cell (per km^2)
@@ -49,8 +49,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -443,9 +443,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 500
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 250
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -636,9 +636,9 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          #"psi_income",
-          "mu_psi_income",
-          "sigma_psi_income",
+          "psi_income",
+          #"mu_psi_income",
+          #"sigma_psi_income",
           "psi_site_area"))
 
 
@@ -686,7 +686,8 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  "mu_psi_income",
+  "psi_income",
+  #"mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -697,11 +698,11 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  #"sigma_psi_genus",
+  "sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_income",
+  #"sigma_psi_income",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
@@ -739,3 +740,12 @@ pairs(stan_out, pars = c(
 x=seq(0,3,1)
 y=-4.5+0.4*x^2
 plot(x,y, col='violet',type='o',lwd=2,lty=1)
+
+
+# plot species detections from species counts
+# draw plot
+ggplot(data = species_counts, aes(x = reorder(species, total_count), y = total_count)) + 
+  geom_bar(stat = "identity", show.legend = FALSE) + 
+  labs(x = "", 
+       y = "Number of detections in urban landscapes (2011-2022)") +
+  coord_flip()

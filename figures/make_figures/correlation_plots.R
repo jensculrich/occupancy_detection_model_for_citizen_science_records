@@ -26,39 +26,39 @@ correlation_matrix <- rcorr(correlation_matrix)
 
 colnames(correlation_matrix$r) <- c("population density", 
                                       "site area", 
-                                      "developed greenspace",
+                                      "developed open space",
                                       "med/high development",
-                                      "avg relative income",
+                                      "income",
                                       "herb, shrub cover",
                                       "forest cover",
-                                      "herb, shrub, forest cover")
+                                      "natural habitat area")
 
 rownames(correlation_matrix$r) <- c("population density", 
-                                      "site area", 
-                                      "developed greenspace",
-                                      "med/high development",
-                                      "avg relative income",
-                                      "herb, shrub cover",
-                                      "forest cover",
-                                      "herb, shrub, forest cover")
+                                    "site area", 
+                                    "developed open space",
+                                    "med/high development",
+                                    "income",
+                                    "herb, shrub cover",
+                                    "forest cover",
+                                    "natural habitat area")
 
 colnames(correlation_matrix$P) <- c("population density", 
-                                      "site area", 
-                                      "developed greenspace",
-                                      "med/high development",
-                                      "avg relative income",
-                                      "herb, shrub cover",
-                                      "forest cover",
-                                      "herb, shrub, forest cover")
+                                    "site area", 
+                                    "developed open space",
+                                    "med/high development",
+                                    "income",
+                                    "herb, shrub cover",
+                                    "forest cover",
+                                    "natural habitat area")
 
 rownames(correlation_matrix$P) <- c("population density", 
-                                      "site area", 
-                                      "developed greenspace",
-                                      "med/high development",
-                                      "avg relative income",
-                                      "herb, shrub cover",
-                                      "forest cover",
-                                      "herb, shrub, forest cover")
+                                    "site area", 
+                                    "developed open space",
+                                    "med/high development",
+                                    "income",
+                                    "herb, shrub cover",
+                                    "forest cover",
+                                    "natural habitat area")
 
 # ++++++++++++++++++++++++++++
 # flattenCorrMatrix
@@ -83,7 +83,9 @@ corrplot(correlation_matrix$r, type = "upper", order = "hclust",
 
 # Insignificant correlations are leaved blank
 corrplot(correlation_matrix$r, type="upper", 
-         order="hclust", 
-         #diag = FALSE, 
+         order="original", 
+         diag = FALSE, 
+         tl.col="black",
+         tl.srt=45,
          p.mat = correlation_matrix$P, sig.level = 0.05, insig = "blank")
 
