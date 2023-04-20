@@ -36,7 +36,7 @@ data {
   
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
-  vector[n_sites] avg_income; // (scaled) developed open surface cover of each site
+  //vector[n_sites] avg_income; // (scaled) developed open surface cover of each site
   vector[n_sites] herb_shrub_forest; // (scaled) undeveloped open surface cover of each site
   real museum_total_records[n_sites, n_intervals]; // (scaled) number of records
   
@@ -78,7 +78,6 @@ parameters {
   real mu_psi_herb_shrub_forest; // community mean of species specific slopes
   real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
   
-  real psi_income; // fixed effect of species specific slope estimates
   // random slope for species specific open low development effects on occupancy
   //vector[n_species] psi_income; // vector of species specific slope estimates
   //real mu_psi_income; // community mean of species specific slopes
@@ -216,7 +215,7 @@ transformed parameters {
             psi0_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
-            psi_income*avg_income[j] + // an effect
+            //psi_income[species[i]]*avg_income[j] + // an effect
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -254,7 +253,7 @@ model {
   // PRIORS
   
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 0.5); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 0.75); // global intercept for occupancy rate
   
   // https://betanalpha.github.io/assets/case_studies/divergences_and_bias.html#3_a_non-centered_eight_schools_implementation
   // level-2 spatial grouping
@@ -269,16 +268,15 @@ model {
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 0.25); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
-  sigma_psi_genus ~ normal(0, 0.1); // weakly-informative prior
+  sigma_psi_genus ~ normal(0, 0.5); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
   sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
   
-  psi_income ~ normal(0, 2);
   //psi_income ~ normal(mu_psi_income, sigma_psi_income);
   //mu_psi_income ~ normal(0, 2); // community mean
   //sigma_psi_income ~ normal(0, 0.1); // community variance
@@ -289,7 +287,7 @@ model {
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(0, 0.25); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 0.75); // global intercept for detection
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, 1);
@@ -302,7 +300,7 @@ model {
   sigma_p_citsci_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
   
   p_citsci_species ~ normal(mu_p_citsci_0, sigma_p_citsci_species); 
-  sigma_p_citsci_species ~ normal(0, 0.5);
+  sigma_p_citsci_species ~ normal(0,1);
   
   // a temporal effect on detection probability
   p_citsci_interval ~ normal(0, 2); 
@@ -312,7 +310,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 0.25); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.25);

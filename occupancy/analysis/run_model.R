@@ -214,8 +214,12 @@ if(taxon == "bombus"){
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
-    params <- c("mu_psi_0",
-                "sigma_psi_species",
+    params <- c("sigma_species",
+                "species_intercepts",
+                "rho1", "rho2", "rho3",
+                
+                "mu_psi_0",
+                #"sigma_psi_species",
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
@@ -226,7 +230,7 @@ if(taxon == "bombus"){
                 "psi_site_area",
                 
                 "mu_p_citsci_0",
-                "sigma_p_citsci_species",
+                #"sigma_p_citsci_species",
                 "sigma_p_citsci_site",
                 "sigma_p_citsci_ecoregion_three",
                 "sigma_p_citsci_ecoregion_one",
@@ -234,13 +238,13 @@ if(taxon == "bombus"){
                 "p_citsci_pop_density", 
                 
                 "mu_p_museum_0",
-                "sigma_p_museum_species",
+                #"sigma_p_museum_species",
                 "sigma_p_museum_site",
                 "sigma_p_museum_ecoregion_three",
                 "sigma_p_museum_ecoregion_one",
                 "p_museum_total_records",
                 
-                "psi_species",
+                #"psi_species",
                 "psi_income",
                 "psi_herb_shrub_forest",
                 
@@ -255,9 +259,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 500
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 250
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -268,32 +272,37 @@ if(taxon == "bombus"){
     # otherwise sometimes they have a hard time starting to sample
     inits <- lapply(1:n_chains, function(i)
       
-      list(mu_psi_0 = runif(1, -1, 1),
-           sigma_psi_species = runif(1, 0, 0.5),
-           sigma_psi_site = runif(1, 0, 0.5),
-           sigma_psi_ecoregion_three = runif(1, 0, 0.5),
-           sigma_psi_ecoregion_one = runif(1, 0, 0.5),
-           mu_psi_income = runif(1, -1, 1),
-           sigma_psi_income = runif(1, 0, 0.5),
-           mu_psi_herb_shrub_forest = runif(1, -1, 1),
-           sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
-           psi_site_area = runif(1, -1, 1),
-           
-           mu_p_citsci_0 = runif(1, -1, 0),
-           sigma_p_citsci_species = runif(1, 0, 0.5),
-           sigma_p_citsci_site = runif(1, 0, 0.5),
-           sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
-           sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
-           p_citsci_interval = runif(1, -1, 1),
-           p_citsci_pop_density = runif(1, -1, 1),
-           
-           mu_p_museum_0 = runif(1, -0.5, 0.5),
-           sigma_p_museum_species = runif(1, 0, 0.1),
-           sigma_p_museum_site = runif(1, 0, 0.1),
-           sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
-           sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
-           p_museum_total_records = runif(1,  -0.5, 0.5)
-           
+      list(
+        rho1 = runif(1, 0, 1),
+        rho2 = runif(1, 0, 1),
+        rho3 = runif(1, 0, 1),
+        
+        mu_psi_0 = runif(1, -1, 1),
+        #sigma_psi_species = runif(1, 0, 1),
+        sigma_psi_site = runif(1, 0, 1),
+        sigma_psi_ecoregion_three = runif(1, 0, 1),
+        sigma_psi_ecoregion_one = runif(1, 0, 1),
+        mu_psi_income = runif(1, -1, 1),
+        sigma_psi_income = runif(1, 0, 1),
+        mu_psi_herb_shrub_forest = runif(1, -1, 1),
+        sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+        psi_site_area = runif(1, -1, 1),
+        
+        mu_p_citsci_0 = runif(1, -1, 0),
+        #sigma_p_citsci_species = runif(1, 0, 1),
+        sigma_p_citsci_site = runif(1, 0, 0.5),
+        sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
+        sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
+        p_citsci_interval = runif(1, 0, 1),
+        p_citsci_pop_density = runif(1, -1, 1),
+        
+        # start musuem values close to zero
+        mu_p_museum_0 = runif(1, -0.5, 0.5),
+        #sigma_p_museum_species = runif(1, 0, 0.25),
+        sigma_p_museum_site = runif(1, 0, 0.25),
+        sigma_p_museum_ecoregion_three = runif(1, 0, 0.25),
+        sigma_p_museum_ecoregion_one = runif(1, 0, 0.25),
+        p_museum_total_records = runif(1, -0.5, 0.5)    
       )
     )
       
@@ -406,7 +415,7 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
-                "psi_income",
+                #"psi_income",
                 #"mu_psi_income",
                 #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
@@ -462,9 +471,9 @@ if(taxon == "bombus"){
            sigma_psi_site = runif(1, 0.5, 1),
            sigma_psi_ecoregion_three = runif(1, 0.5, 1),
            sigma_psi_ecoregion_one = runif(1, 0.5, 1),
-           psi_income = runif(1, -0.1, 0.1),
-           mu_psi_income = runif(1, -1, 1),
-           sigma_psi_income = runif(1, 0, 0.5),
+           #psi_income = runif(1, -0.1, 0.1),
+           #mu_psi_income = runif(1, -1, 1),
+           #sigma_psi_income = runif(1, 0, 0.5),
            mu_psi_herb_shrub_forest = runif(1, -0.5, 0.5),
            sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
            psi_site_area = runif(1, -1, 1),
@@ -580,7 +589,7 @@ if(taxon == "bombus"){
 ### Run model
 
 if(urban_sites == TRUE){
-  stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -607,6 +616,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
+  "cov",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
@@ -630,15 +640,15 @@ stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_15km_1000minp
 # print main effects
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
-          "sigma_psi_species",
+          #"sigma_psi_species",
           "sigma_psi_site",
           "sigma_psi_ecoregion_three",
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
-          "psi_income",
-          #"mu_psi_income",
-          #"sigma_psi_income",
+          #"psi_income",
+          "mu_psi_income",
+          "sigma_psi_income",
           "psi_site_area"))
 
 
@@ -686,8 +696,8 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
-  "psi_income",
-  #"mu_psi_income",
+  #"psi_income",
+  "mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -695,10 +705,16 @@ traceplot(stan_out, pars = c(
   "p_museum_total_records"
 ))
 
+traceplot(stan_out, pars = c(
+  "rho1",
+  "rho2",
+  "rho3"
+))
+
 # traceplot
 traceplot(stan_out, pars = c(
-  "sigma_psi_species",
-  "sigma_psi_genus",
+  #"sigma_psi_species",
+  #"sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
@@ -709,9 +725,9 @@ traceplot(stan_out, pars = c(
   "sigma_p_citsci_ecoregion_one",
   "sigma_p_museum_site",
   "sigma_p_museum_ecoregion_three",
-  "sigma_p_museum_ecoregion_one",
-  "sigma_p_citsci_species",
-  "sigma_p_museum_species"
+  "sigma_p_museum_ecoregion_one"#,
+  #"sigma_p_citsci_species",
+  #"sigma_p_museum_species"
 ))
 
 traceplot(stan_out, pars=
@@ -723,7 +739,7 @@ pairs(stan_out, pars = c(
   "sigma_psi_species",
   #"mu_psi_interval",
   #"sigma_psi_interval",
-  #"mu_psi_pop_density",
+  #"mu_psi_herb_shrub_forest",
   "psi_site_area",
   
   "mu_p_citsci_0",
@@ -732,9 +748,9 @@ pairs(stan_out, pars = c(
   "p_citsci_interval",
   #"p_citsci_pop_density", 
   
-  "mu_p_museum_0"
+  "mu_p_museum_0",
   #"sigma_p_museum_species",
-  #"sigma_p_museum_site",
+  "sigma_p_museum_site"
 ))
 
 x=seq(0,3,1)
