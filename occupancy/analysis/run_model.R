@@ -5,14 +5,14 @@
 ## --------------------------------------------------
 # input data preparation choices - SYRPHIDAE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
-era_start = 2011 # must define start date of the GBIF dataset
+era_start = 2014 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 4 # must define number of intervals to break up the era into
+n_intervals = 3 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
-min_unique_detections = 5
+min_unique_detections = 3
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1200 # min pop density in the grid cell (per km^2)
@@ -400,7 +400,7 @@ if(taxon == "bombus"){
                    "ranges", "V_museum_NA",
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
-                   "n_genera", "genus_lookup",
+                   #"n_genera", "genus_lookup",
                    "n_ecoregion_three", "n_ecoregion_one",
                    "ecoregion_three", "ecoregion_one",
                    "ecoregion_three_lookup", "ecoregion_one_lookup",
@@ -409,21 +409,23 @@ if(taxon == "bombus"){
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
-    params <- c("mu_psi_0",
-                "sigma_psi_species",
-                "sigma_psi_genus",
+    params <- c("sigma_species",
+                "species_intercepts",
+                "rho1", "rho2", "rho3",
+                
+                "mu_psi_0",
+                #"sigma_psi_species",
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
-                #"psi_income",
-                #"mu_psi_income",
-                #"sigma_psi_income",
+                "mu_psi_income",
+                "sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
                 "psi_site_area",
                 
                 "mu_p_citsci_0",
-                "sigma_p_citsci_species",
+                #"sigma_p_citsci_species",
                 "sigma_p_citsci_site",
                 "sigma_p_citsci_ecoregion_three",
                 "sigma_p_citsci_ecoregion_one",
@@ -431,13 +433,13 @@ if(taxon == "bombus"){
                 "p_citsci_pop_density", 
                 
                 "mu_p_museum_0",
-                "sigma_p_museum_species",
+                #"sigma_p_museum_species",
                 "sigma_p_museum_site",
                 "sigma_p_museum_ecoregion_three",
                 "sigma_p_museum_ecoregion_one",
                 "p_museum_total_records",
                 
-                "psi_species",
+                #"psi_species",
                 #"psi_income",
                 "psi_herb_shrub_forest",
                 
@@ -458,40 +460,44 @@ if(taxon == "bombus"){
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.9
+    delta = 0.95
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
     # otherwise sometimes they have a hard time starting to sample
+    set.seed(2)
     inits <- lapply(1:n_chains, function(i)
       
-      list(mu_psi_0 = runif(1, 1, 3),
-           sigma_psi_species = runif(1, 1.5, 2.5),
-           sigma_psi_genus = runif(1, 0, 0.5),
-           sigma_psi_site = runif(1, 0.5, 1),
-           sigma_psi_ecoregion_three = runif(1, 0.5, 1),
-           sigma_psi_ecoregion_one = runif(1, 0.5, 1),
-           #psi_income = runif(1, -0.1, 0.1),
-           #mu_psi_income = runif(1, -1, 1),
-           #sigma_psi_income = runif(1, 0, 0.5),
-           mu_psi_herb_shrub_forest = runif(1, -0.5, 0.5),
-           sigma_psi_herb_shrub_forest = runif(1, 0, 0.5),
-           psi_site_area = runif(1, -1, 1),
-           
-           mu_p_citsci_0 = runif(1, -5, -2),
-           sigma_p_citsci_species = runif(1, 0.5, 1.5),
-           sigma_p_citsci_site = runif(1, 0, 0.5),
-           sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
-           sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
-           p_citsci_interval = runif(1, -1, 1),
-           p_citsci_pop_density = runif(1, -1, 1),
-           
-           mu_p_museum_0 = runif(1, -2.5, -1),
-           sigma_p_museum_species = runif(1, 0.5, 1),
-           sigma_p_museum_site = runif(1, 0, 0.1),
-           sigma_p_museum_ecoregion_three = runif(1, 0, 0.1),
-           sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
-           p_museum_total_records = runif(1,  -0.5, 0.5)
+      list( rho1 = runif(1, 0, 1),
+            rho2 = runif(1, 0, 1),
+            rho3 = runif(1, 0, 1),
+            
+            mu_psi_0 = runif(1, 0, 1),
+            #sigma_psi_species = runif(1, 0, 1),
+            sigma_psi_site = runif(1, 0, 1),
+            sigma_psi_ecoregion_three = runif(1, 0, 1),
+            sigma_psi_ecoregion_one = runif(1, 0, 1),
+            mu_psi_income = runif(1, -1, 1),
+            sigma_psi_income = runif(1, 0, 0.1),
+            mu_psi_herb_shrub_forest = runif(1, -1, 1),
+            sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+            psi_site_area = runif(1, -1, 1),
+            
+            mu_p_citsci_0 = runif(1, -1, 0),
+            #sigma_p_citsci_species = runif(1, 0, 1),
+            sigma_p_citsci_site = runif(1, 0, 0.5),
+            sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
+            sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
+            p_citsci_interval = runif(1, 0, 1),
+            p_citsci_pop_density = runif(1, -1, 1),
+            
+            # start musuem values close to zero
+            mu_p_museum_0 = runif(1, -0.5, 0),
+            #sigma_p_museum_species = runif(1, 0, 0.25),
+            sigma_p_museum_site = runif(1, 0, 0.25),
+            sigma_p_museum_ecoregion_three = runif(1, 0, 0.25),
+            sigma_p_museum_ecoregion_one = runif(1, 0, 0.25),
+            p_museum_total_records = runif(1, -0.5, 0.5)
            
       )
     )
@@ -598,6 +604,7 @@ if(urban_sites == TRUE){
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
 
 ## Call Stan from R
+set.seed(1)
 stan_out <- stan(stan_model,
                  data = stan_data, 
                  init = inits, 
@@ -616,7 +623,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "cov",
+  "cov2",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
@@ -632,7 +639,7 @@ stan_out <- readRDS(paste0(
 )
 )
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_15km_1000minpop_5minpersp_4ints_3visits_nonconverging_income.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_cov.RDS")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3wide_priors.RDS")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3_bbna.RDS")
 
@@ -655,7 +662,7 @@ print(stan_out, digits = 3, pars=
 print(stan_out, digits = 3, pars=
         c(
           "mu_p_citsci_0",
-          "sigma_p_citsci_species",
+          #"sigma_p_citsci_species",
           "sigma_p_citsci_site",
           "sigma_p_citsci_ecoregion_three",
           "sigma_p_citsci_ecoregion_one",
@@ -663,17 +670,23 @@ print(stan_out, digits = 3, pars=
           "p_citsci_pop_density", 
 
           "mu_p_museum_0",
-          "sigma_p_museum_species",
+          #"sigma_p_museum_species",
           "sigma_p_museum_site",
           "sigma_p_museum_ecoregion_three",
           "sigma_p_museum_ecoregion_one",
           "p_museum_total_records"))
 
+print(stan_out, digits = 3, pars=
+        c("rho1",
+          "rho2",
+          "rho3",
+          "sigma_species"))
+
 View(as.data.frame(species_names))
 
 # print sampled random effects
 print(stan_out, digits = 3, pars=
-        c("psi_species"))
+        c("species_intercepts[1,1]"))
 
 print(stan_out, digits = 3, pars=
         c("psi_income"))
@@ -708,7 +721,8 @@ traceplot(stan_out, pars = c(
 traceplot(stan_out, pars = c(
   "rho1",
   "rho2",
-  "rho3"
+  "rho3",
+  "sigma_species"
 ))
 
 # traceplot
@@ -718,7 +732,7 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  #"sigma_psi_income",
+  "sigma_psi_income",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",

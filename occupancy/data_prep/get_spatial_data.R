@@ -254,17 +254,17 @@ get_spatial_data <- function(
       # remove sites below filter for minimum site area
       filter(site_area > min_site_area) %>%
       # center-scale the variables
-      mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
-             scaled_site_area = center_scale(site_area),
-             scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
-             scaled_developed_open = center_scale(developed_open),
-             scaled_developed_med_high = center_scale(developed_med_high),
-             scaled_forest = center_scale(forest),
-             scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
-            ) %>%
+      #mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
+      #       scaled_site_area = center_scale(site_area),
+      #       scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+      #       scaled_developed_open = center_scale(developed_open),
+      #       scaled_developed_med_high = center_scale(developed_med_high),
+      #       scaled_forest = center_scale(forest),
+      #       scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
+      #      ) %>%
       # remove extreme population outliers (more than 5 sd from the mean)
-      filter(scaled_pop_den_km2 < 5) %>%
-      filter(scaled_pop_den_km2 > -5) %>%
+      #filter(scaled_pop_den_km2 < 5) %>%
+      #filter(scaled_pop_den_km2 > -5) %>%
       # rescale the variables (in case any sites removed)
       mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
              scaled_site_area = center_scale(site_area),
