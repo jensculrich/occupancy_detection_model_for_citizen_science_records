@@ -57,7 +57,7 @@ data {
   
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
-  //vector[n_sites] avg_income; // (scaled) developed open surface cover of each site
+  vector[n_sites] avg_income; // (scaled) developed open surface cover of each site
   vector[n_sites] herb_shrub_forest; // (scaled) undeveloped open surface cover of each site
   real museum_total_records[n_sites, n_intervals]; // (scaled) number of records
   
@@ -108,7 +108,7 @@ parameters {
   
   // random slope for species specific open low development effects on occupancy
   //vector[n_species] psi_income; // vector of species specific slope estimates
-  //real mu_psi_income; // community mean of species specific slopes
+  real mu_psi_income; // community mean of species specific slopes
   //real<lower=0> sigma_psi_income; // variance in species slopes
   
   // fixed effect of site area on occupancy
@@ -233,6 +233,7 @@ transformed parameters {
             species_intercepts[species[i],1] + // a species specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
+            mu_psi_income*avg_income[j] +
             //psi_income[species[i]]*avg_income[j] + // an effect
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
@@ -307,7 +308,7 @@ model {
   sigma_psi_herb_shrub_forest ~ normal(0.5, 0.25); // community variance
   
   //psi_income ~ normal(mu_psi_income, sigma_psi_income);
-  //mu_psi_income ~ normal(0, 2); // community mean
+  mu_psi_income ~ normal(0, 2); // community mean
   //plotsigma_psi_income ~ normal(0, 0.1); // community variance
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy

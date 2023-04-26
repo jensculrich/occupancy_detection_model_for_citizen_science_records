@@ -418,7 +418,7 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
-                #"mu_psi_income",
+                "mu_psi_income",
                 #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
@@ -468,31 +468,31 @@ if(taxon == "bombus"){
     set.seed(2)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho1 = runif(1, 0, 0.25),
-            rho2 = runif(1, 0, 0.25),
+      list( rho1 = runif(1, 0, 0.1),
+            rho2 = runif(1, 0, 0.1),
             rho3 = runif(1, 0.25, 0.5),
             
-            mu_psi_0 = runif(1, 0, 1),
+            mu_psi_0 = runif(1, 0, 0.5),
             #sigma_psi_species = runif(1, 0, 1),
             sigma_psi_site = runif(1, 0, 1),
             sigma_psi_ecoregion_three = runif(1, 0, 1),
             sigma_psi_ecoregion_one = runif(1, 0, 1),
-            #mu_psi_income = runif(1, -1, 1),
+            mu_psi_income = runif(1, -1, 1),
             #sigma_psi_income = runif(1, 0, 0.1),
-            mu_psi_herb_shrub_forest = runif(1, -1, 1),
+            mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
             sigma_psi_herb_shrub_forest = runif(1, 0.5, 0.6),
             psi_site_area = runif(1, -1, 1),
             
-            mu_p_citsci_0 = runif(1, -1, 0),
+            mu_p_citsci_0 = runif(1, -5, -4),
             #sigma_p_citsci_species = runif(1, 0, 1),
             sigma_p_citsci_site = runif(1, 0, 0.5),
             sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
             sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
-            p_citsci_interval = runif(1, 0.25, 0.75),
-            p_citsci_pop_density = runif(1, -1, 1),
+            p_citsci_interval = runif(1, 0.5, 0.6),
+            p_citsci_pop_density = runif(1, 0.4, 0.6),
             
             # start musuem values close to zero
-            mu_p_museum_0 = runif(1, -0.5, 0),
+            mu_p_museum_0 = runif(1, -2, -1),
             #sigma_p_museum_species = runif(1, 0, 0.25),
             sigma_p_museum_site = runif(1, 0, 0.25),
             sigma_p_museum_ecoregion_three = runif(1, 0, 0.25),
@@ -623,7 +623,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "cov2",
+  "cov",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
