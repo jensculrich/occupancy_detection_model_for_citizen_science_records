@@ -418,8 +418,8 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
-                "mu_psi_income",
-                "sigma_psi_income",
+                #"mu_psi_income",
+                #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
                 "psi_site_area",
@@ -468,19 +468,19 @@ if(taxon == "bombus"){
     set.seed(2)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho1 = runif(1, 0, 1),
-            rho2 = runif(1, 0, 1),
-            rho3 = runif(1, 0, 1),
+      list( rho1 = runif(1, 0, 0.25),
+            rho2 = runif(1, 0, 0.25),
+            rho3 = runif(1, 0.25, 0.5),
             
             mu_psi_0 = runif(1, 0, 1),
             #sigma_psi_species = runif(1, 0, 1),
             sigma_psi_site = runif(1, 0, 1),
             sigma_psi_ecoregion_three = runif(1, 0, 1),
             sigma_psi_ecoregion_one = runif(1, 0, 1),
-            mu_psi_income = runif(1, -1, 1),
-            sigma_psi_income = runif(1, 0, 0.1),
+            #mu_psi_income = runif(1, -1, 1),
+            #sigma_psi_income = runif(1, 0, 0.1),
             mu_psi_herb_shrub_forest = runif(1, -1, 1),
-            sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+            sigma_psi_herb_shrub_forest = runif(1, 0.5, 0.6),
             psi_site_area = runif(1, -1, 1),
             
             mu_p_citsci_0 = runif(1, -1, 0),
@@ -488,7 +488,7 @@ if(taxon == "bombus"){
             sigma_p_citsci_site = runif(1, 0, 0.5),
             sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
             sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
-            p_citsci_interval = runif(1, 0, 1),
+            p_citsci_interval = runif(1, 0.25, 0.75),
             p_citsci_pop_density = runif(1, -1, 1),
             
             # start musuem values close to zero
@@ -604,7 +604,7 @@ if(urban_sites == TRUE){
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
 
 ## Call Stan from R
-set.seed(1)
+set.seed(2)
 stan_out <- stan(stan_model,
                  data = stan_data, 
                  init = inits, 
@@ -634,6 +634,7 @@ stan_out <- readRDS(paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_", 
+  "cov2",
   #"nonurban.RDS"  # use if reading a non-urban model run
   ".RDS"
 )
@@ -654,8 +655,8 @@ print(stan_out, digits = 3, pars=
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
           #"psi_income",
-          "mu_psi_income",
-          "sigma_psi_income",
+          #mu_psi_income",
+          #"sigma_psi_income",
           "psi_site_area"))
 
 
@@ -710,7 +711,7 @@ traceplot(stan_out, pars = c(
   "mu_psi_0",
   "mu_psi_herb_shrub_forest",
   #"psi_income",
-  "mu_psi_income",
+  #"mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density",
@@ -732,7 +733,7 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_income",
+  #"sigma_psi_income",
   "sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_ecoregion_three",
