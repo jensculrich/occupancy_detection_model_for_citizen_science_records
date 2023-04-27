@@ -418,7 +418,7 @@ if(taxon == "bombus"){
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
-                "mu_psi_income",
+                #"mu_psi_income",
                 #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "sigma_psi_herb_shrub_forest",
@@ -454,11 +454,11 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 500
+    n_iterations <- 400
     n_thin <- 1
-    n_burnin <- 250
-    n_chains <- 4
-    n_cores <- 4
+    n_burnin <- 200
+    n_chains <- 5
+    n_cores <- 5
     #n_cores <- parallel::detectCores()
     delta = 0.95
     
@@ -477,7 +477,7 @@ if(taxon == "bombus"){
             sigma_psi_site = runif(1, 0, 1),
             sigma_psi_ecoregion_three = runif(1, 0, 1),
             sigma_psi_ecoregion_one = runif(1, 0, 1),
-            mu_psi_income = runif(1, -1, 1),
+            #mu_psi_income = runif(1, -1, 1),
             #sigma_psi_income = runif(1, 0, 0.1),
             mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
             sigma_psi_herb_shrub_forest = runif(1, 0.5, 0.6),
@@ -623,7 +623,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "cov",
+  "cov3",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
@@ -640,7 +640,7 @@ stan_out <- readRDS(paste0(
 )
 )
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_cov.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3wide_priors.RDS")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus_15km_1000minpop10minpersp4_3_bbna.RDS")
 
