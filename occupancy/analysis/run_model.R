@@ -460,7 +460,7 @@ if(taxon == "bombus"){
     n_chains <- 5
     n_cores <- 5
     #n_cores <- parallel::detectCores()
-    delta = 0.95
+    delta = 0.97
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -468,8 +468,8 @@ if(taxon == "bombus"){
     set.seed(2)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho1 = runif(1, 0, 0.1),
-            rho2 = runif(1, 0, 0.1),
+      list( rho1 = runif(1, 0, 0.05),
+            rho2 = runif(1, 0, 0.05),
             rho3 = runif(1, 0.25, 0.5),
             
             mu_psi_0 = runif(1, 0, 0.5),
