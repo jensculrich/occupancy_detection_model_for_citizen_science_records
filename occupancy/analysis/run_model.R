@@ -400,7 +400,7 @@ if(taxon == "bombus"){
                    "ranges", "V_museum_NA",
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
-                   #"n_genera", "genus_lookup",
+                   "n_genera", "genus_lookup",
                    "n_ecoregion_three", "n_ecoregion_one",
                    "ecoregion_three", "ecoregion_one",
                    "ecoregion_three_lookup", "ecoregion_one_lookup",
@@ -409,12 +409,13 @@ if(taxon == "bombus"){
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
-    params <- c("sigma_species",
-                "species_intercepts",
-                "rho1", "rho2", "rho3",
+    params <- c("sigma_species_detection",
+                "species_intercepts_detection",
+                "rho",
                 
                 "mu_psi_0",
-                #"sigma_psi_species",
+                "sigma_psi_species",
+                "sigma_psi_genus",
                 "sigma_psi_site",
                 "sigma_psi_ecoregion_three",
                 "sigma_psi_ecoregion_one",
@@ -439,7 +440,7 @@ if(taxon == "bombus"){
                 "sigma_p_museum_ecoregion_one",
                 "p_museum_total_records",
                 
-                #"psi_species",
+                "psi_species",
                 #"psi_income",
                 "psi_herb_shrub_forest",
                 
@@ -460,7 +461,7 @@ if(taxon == "bombus"){
     n_chains <- 5
     n_cores <- 5
     #n_cores <- parallel::detectCores()
-    delta = 0.97
+    delta = 0.9
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -468,12 +469,11 @@ if(taxon == "bombus"){
     set.seed(2)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho1 = runif(1, 0, 0.05),
-            rho2 = runif(1, 0, 0.05),
-            rho3 = runif(1, 0.25, 0.5),
+      list( rho = runif(1, 0, 0.5),
             
             mu_psi_0 = runif(1, 0, 0.5),
-            #sigma_psi_species = runif(1, 0, 1),
+            sigma_psi_species = runif(1, 0, 1),
+            sigma_psi_genus = runif(1, 0, 0.5),
             sigma_psi_site = runif(1, 0, 1),
             sigma_psi_ecoregion_three = runif(1, 0, 1),
             sigma_psi_ecoregion_one = runif(1, 0, 1),
@@ -595,7 +595,7 @@ if(taxon == "bombus"){
 ### Run model
 
 if(urban_sites == TRUE){
-  stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance.stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance2.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -648,7 +648,7 @@ stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_1
 # print main effects
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
-          #"sigma_psi_species",
+          "sigma_psi_species",
           "sigma_psi_site",
           "sigma_psi_ecoregion_three",
           "sigma_psi_ecoregion_one",
