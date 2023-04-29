@@ -289,24 +289,24 @@ model {
   // https://betanalpha.github.io/assets/case_studies/divergences_and_bias.html#3_a_non-centered_eight_schools_implementation
   // level-2 spatial grouping
   psi_site  ~ normal(0, 0.25);
-  sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_site ~ normal(0, 1); // weakly-informative prior
   // level-3 spatial grouping
   psi_ecoregion_three ~ normal(0, 0.25);
-  sigma_psi_ecoregion_three ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_ecoregion_three ~ normal(0, 1); // weakly-informative prior
   // level-4 spatial grouping
   psi_ecoregion_one ~ normal(0, 0.25);
   sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 0.5); // weakly-informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
   sigma_psi_genus ~ normal(0, 0.5); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
-  sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
+  sigma_psi_herb_shrub_forest ~ normal(0.5, 25); // community variance
   
   //psi_income ~ normal(mu_psi_income, sigma_psi_income);
   //mu_psi_income ~ normal(0, 2); // community mean

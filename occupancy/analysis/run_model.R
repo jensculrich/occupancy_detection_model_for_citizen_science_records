@@ -469,25 +469,25 @@ if(taxon == "bombus"){
     set.seed(2)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho = runif(1, 0, 0.5),
+      list( rho = runif(1, 0.25, 0.5),
             
             mu_psi_0 = runif(1, 0, 0.5),
-            sigma_psi_species = runif(1, 0, 1),
-            sigma_psi_genus = runif(1, 0, 0.5),
-            sigma_psi_site = runif(1, 0, 1),
-            sigma_psi_ecoregion_three = runif(1, 0, 1),
-            sigma_psi_ecoregion_one = runif(1, 0, 1),
+            sigma_psi_species = runif(1, 1.5, 2),
+            sigma_psi_genus = runif(1, 1, 2),
+            sigma_psi_site = runif(1, 3, 4),
+            sigma_psi_ecoregion_three = runif(1, 2, 3),
+            sigma_psi_ecoregion_one = runif(1, 2, 3),
             #mu_psi_income = runif(1, -1, 1),
             #sigma_psi_income = runif(1, 0, 0.1),
             mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
             sigma_psi_herb_shrub_forest = runif(1, 0.5, 0.6),
-            psi_site_area = runif(1, -1, 1),
+            psi_site_area = runif(1, -0.5, 0.5),
             
             mu_p_citsci_0 = runif(1, -5, -4),
             #sigma_p_citsci_species = runif(1, 0, 1),
-            sigma_p_citsci_site = runif(1, 0, 0.5),
-            sigma_p_citsci_ecoregion_three = runif(1, 0, 0.5),
-            sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
+            sigma_p_citsci_site = runif(1, 3, 3.5),
+            sigma_p_citsci_ecoregion_three = runif(1, 1, 2),
+            sigma_p_citsci_ecoregion_one = runif(1, 0.5, 1),
             p_citsci_interval = runif(1, 0.5, 0.6),
             p_citsci_pop_density = runif(1, 0.4, 0.6),
             
