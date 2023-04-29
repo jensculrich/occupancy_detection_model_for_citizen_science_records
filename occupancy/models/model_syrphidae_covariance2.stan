@@ -276,26 +276,26 @@ model {
   // PRIORS
   
   // correlated species effects
-  sigma_species_detection[1] ~ normal(0, 0.5);
-  sigma_species_detection[2] ~ normal(0, 0.5);
+  sigma_species_detection[1] ~ normal(0, 1);
+  sigma_species_detection[2] ~ normal(0, 1);
   (rho + 1) / 2 ~ beta(2, 2);
   
   species_intercepts_detection ~ multi_normal(mu(mu_p_citsci_0, mu_p_museum_0), 
     custom_cov_matrix(sigma_species_detection, rho));
     
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 0.5); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 0.25); // global intercept for occupancy rate
   
   // https://betanalpha.github.io/assets/case_studies/divergences_and_bias.html#3_a_non-centered_eight_schools_implementation
   // level-2 spatial grouping
-  psi_site  ~ normal(0, 0.5);
-  sigma_psi_site ~ normal(0, 0.25); // weakly-informative prior
+  psi_site  ~ normal(0, 0.25);
+  sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
-  psi_ecoregion_three ~ normal(0, 0.5);
-  sigma_psi_ecoregion_three ~ normal(0, 0.25); // weakly-informative prior
+  psi_ecoregion_three ~ normal(0, 0.25);
+  sigma_psi_ecoregion_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
-  psi_ecoregion_one ~ normal(0, 0.5);
-  sigma_psi_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
+  psi_ecoregion_one ~ normal(0, 0.25);
+  sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, sigma_psi_species); 
@@ -321,14 +321,14 @@ model {
   mu_p_citsci_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
-  p_citsci_site  ~ normal(0, 0.5);
+  p_citsci_site  ~ normal(0, 0.25);
   sigma_p_citsci_site ~ normal(0, 0.25); // weakly-informative prior
   // level-3 spatial grouping
   p_citsci_ecoregion_three ~ normal(0, 0.25);
-  sigma_p_citsci_ecoregion_three ~ normal(0, 0.1); // weakly-informative prior
+  sigma_p_citsci_ecoregion_three ~ normal(0, 0.25); // weakly-informative prior
   // level-4 spatial grouping
   p_citsci_ecoregion_one ~ normal(0, 0.25);
-  sigma_p_citsci_ecoregion_one ~ normal(0, 0.1); // weakly-informative prior
+  sigma_p_citsci_ecoregion_one ~ normal(0, 0.25); // weakly-informative prior
   
   //p_citsci_species ~ normal(mu_p_citsci_0, sigma_p_citsci_species); 
   //sigma_p_citsci_species ~ normal(0,1);
@@ -341,7 +341,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.1);

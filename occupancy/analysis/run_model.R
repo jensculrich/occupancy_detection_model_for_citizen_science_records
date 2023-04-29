@@ -458,8 +458,8 @@ if(taxon == "bombus"){
     n_iterations <- 400
     n_thin <- 1
     n_burnin <- 200
-    n_chains <- 5
-    n_cores <- 5
+    n_chains <- 4
+    n_cores <- 4
     #n_cores <- parallel::detectCores()
     delta = 0.9
     
@@ -623,7 +623,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "cov3",
+  "cov4",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
@@ -709,6 +709,7 @@ print(stan_out, digits = 3, pars=
 # traceplot
 traceplot(stan_out, pars = c(
   "mu_psi_0",
+  "psi_site_area",
   "mu_psi_herb_shrub_forest",
   #"psi_income",
   #"mu_psi_income",
@@ -720,16 +721,14 @@ traceplot(stan_out, pars = c(
 ))
 
 traceplot(stan_out, pars = c(
-  "rho1",
-  "rho2",
-  "rho3",
-  "sigma_species"
+  "rho",
+  "sigma_species_detection"
 ))
 
 # traceplot
 traceplot(stan_out, pars = c(
-  #"sigma_psi_species",
-  #"sigma_psi_genus",
+  "sigma_psi_species",
+  "sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
