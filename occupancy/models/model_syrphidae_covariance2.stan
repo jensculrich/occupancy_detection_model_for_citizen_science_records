@@ -306,7 +306,7 @@ model {
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
-  sigma_psi_herb_shrub_forest ~ normal(0.5, 25); // community variance
+  sigma_psi_herb_shrub_forest ~ normal(1, 0.5); // community variance
   
   //psi_income ~ normal(mu_psi_income, sigma_psi_income);
   //mu_psi_income ~ normal(0, 2); // community mean
