@@ -466,7 +466,7 @@ if(taxon == "bombus"){
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
     # otherwise sometimes they have a hard time starting to sample
-    set.seed(2)
+    set.seed(1)
     inits <- lapply(1:n_chains, function(i)
       
       list( rho = runif(1, 0.25, 0.5),
@@ -480,7 +480,7 @@ if(taxon == "bombus"){
             #mu_psi_income = runif(1, -1, 1),
             #sigma_psi_income = runif(1, 0, 0.1),
             mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
-            sigma_psi_herb_shrub_forest = runif(1, 0.5, 0.6),
+            sigma_psi_herb_shrub_forest = runif(1, 0.75, 1),
             psi_site_area = runif(1, -0.5, 0.5),
             
             mu_p_citsci_0 = runif(1, -5, -4),
@@ -492,7 +492,7 @@ if(taxon == "bombus"){
             p_citsci_pop_density = runif(1, 0.4, 0.6),
             
             # start musuem values close to zero
-            mu_p_museum_0 = runif(1, -2, -1),
+            mu_p_museum_0 = runif(1, -3, -2.5),
             #sigma_p_museum_species = runif(1, 0, 0.25),
             sigma_p_museum_site = runif(1, 0, 0.25),
             sigma_p_museum_ecoregion_three = runif(1, 0, 0.25),
@@ -678,10 +678,8 @@ print(stan_out, digits = 3, pars=
           "p_museum_total_records"))
 
 print(stan_out, digits = 3, pars=
-        c("rho1",
-          "rho2",
-          "rho3",
-          "sigma_species"))
+        c("rho",
+          "sigma_species_detection"))
 
 View(as.data.frame(species_names))
 
