@@ -623,7 +623,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "cov4",
+  "cov3",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
@@ -634,7 +634,7 @@ stan_out <- readRDS(paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_", 
-  "cov2",
+  "cov3",
   #"nonurban.RDS"  # use if reading a non-urban model run
   ".RDS"
 )
