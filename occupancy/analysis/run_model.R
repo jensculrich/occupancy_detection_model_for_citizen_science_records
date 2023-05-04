@@ -623,7 +623,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_records_per_species, "minpersp_",
   n_intervals, "ints_", n_visits, "visits_",
-  "cov3",
+  "cov4",
   #"nonurban",  # use if saving a non-urban model run
   ".RDS"
 )
