@@ -84,8 +84,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   forest_vector <- urban_grid$scaled_forest
   herb_shrub_forest_vector <- urban_grid$scaled_herb_shrub_forest
   developed_med_high_vector <- urban_grid$scaled_developed_med_high
-  ecoregion_three_vector <- urban_grid$ecoregion_three_vector
+  #ecoregion_three_vector <- urban_grid$ecoregion_three_vector
   ecoregion_one_vector <- urban_grid$ecoregion_one_vector
+  CBSA_vector <- urban_grid$CBSA_vector
 
   site_name_vector <- urban_grid$grid_id
   
@@ -94,10 +95,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   my_spatial_data
   
-  ecoregion_three_lookup <- my_spatial_data$ecoregion_three_lookup
+  #ecoregion_three_lookup <- my_spatial_data$ecoregion_three_lookup
   ecoregion_one_lookup <- my_spatial_data$ecoregion_one_lookup
-  n_ecoregion_three <- my_spatial_data$n_ecoregion_three
+  #n_ecoregion_three <- my_spatial_data$n_ecoregion_three
   n_ecoregion_one <- my_spatial_data$n_ecoregion_one
+  CBSA_names <- my_spatial_data$CBSA_names
+  CBSA_lookup <- my_spatial_data$CBSA_lookup
+  n_CBSA <- my_spatial_data$n_CBSA
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
@@ -1130,12 +1134,17 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     developed_med_high = developed_med_high_vector,
     museum_total_records = museum_total_records,
     
-    ecoregion_three_vector = ecoregion_three_vector,
+    #ecoregion_three_vector = ecoregion_three_vector,
     ecoregion_one_vector = ecoregion_one_vector,
-    ecoregion_three_lookup = ecoregion_three_lookup,
+    #ecoregion_three_lookup = ecoregion_three_lookup,
     ecoregion_one_lookup = ecoregion_one_lookup,
-    n_ecoregion_three = n_ecoregion_three,
+    #n_ecoregion_three = n_ecoregion_three,
     n_ecoregion_one = n_ecoregion_one,
+    
+    CBSA_vector = CBSA_vector,
+    CBSA_names = CBSA_names,
+    CBSA_lookup = CBSA_lookup,
+    n_CBSA = n_CBSA,
     
     correlation_matrix = correlation_matrix,
     

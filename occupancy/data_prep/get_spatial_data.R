@@ -285,26 +285,52 @@ get_spatial_data <- function(
     # (will need to move this below site filter)
     
     ## --------------------------------------------------
+    # Join with Metro areas
+    
+    # Metropolitan statistical areas
+    # https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist
+    # updated 2018, based on 2010 census data
+    CBSA <- sf::read_sf("./data/spatial_data/tl_2019_us_cbsa/tl_2019_us_cbsa.shp")
+    
+    ## level 3 cluster (ecoregion3)
+    crs_CBSA <- sf::st_crs(raster::crs(CBSA))
+    prj1 <- st_transform(grid_pop_dens, crs_CBSA)
+    
+    CBSA_names <- st_join(prj1, CBSA) %>%
+      group_by(grid_id) %>%
+      slice(which.max(ALAND)) %>% 
+      pull(NAME) 
+    
+    CBSA_vector <- as.numeric(as.factor(CBSA_names))
+    
+    CBSA_lookup <- as.numeric(as.factor(CBSA_names))
+    
+    grid_pop_dens <- cbind(grid_pop_dens, CBSA_vector)
+    
+    n_CBSA <- unique(CBSA_lookup) %>%
+      length()
+    
+    ## --------------------------------------------------
     # Ecoregion data for site clustering
     
-    ecoregion3 <- sf::read_sf("./data/spatial_data/NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
+    #ecoregion3 <- sf::read_sf("./data/spatial_data/NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
     ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
     
     ## level 3 cluster (ecoregion3)
-    crs_ecoregion3 <- sf::st_crs(raster::crs(ecoregion3))
-    prj1 <- st_transform(grid_pop_dens, crs_ecoregion3)
+    #crs_ecoregion3 <- sf::st_crs(raster::crs(ecoregion3))
+    #prj1 <- st_transform(grid_pop_dens, crs_ecoregion3)
     
-    ecoregion_three_names <- st_join(prj1, ecoregion3) %>%
-      group_by(grid_id) %>%
-      slice(which.max(Shape_Area)) %>% 
-      pull(NA_L3CODE) 
+    #ecoregion_three_names <- st_join(prj1, ecoregion3) %>%
+      #group_by(grid_id) %>%
+      #slice(which.max(Shape_Area)) %>% 
+      #pull(NA_L3CODE) 
     
-    ecoregion_three_vector <- as.numeric(as.factor(ecoregion_three_names))
+    #ecoregion_three_vector <- as.numeric(as.factor(ecoregion_three_names))
     
-    ecoregion_three_lookup <- as.numeric(as.factor(ecoregion_three_names))
+    #ecoregion_three_lookup <- as.numeric(as.factor(ecoregion_three_names))
     
-    n_ecoregion_three <- unique(ecoregion_three_lookup) %>%
-      length()
+    #n_ecoregion_three <- unique(ecoregion_three_vector) %>%
+      #length()
     
     ## level 4 cluster (ecoregion1)
     crs_ecoregion1 <- sf::st_crs(raster::crs(ecoregion1))
@@ -320,18 +346,42 @@ get_spatial_data <- function(
     n_ecoregion_one <- unique(ecoregion_one_vector) %>%
       length()
     
-    grid_pop_dens <- cbind(grid_pop_dens, ecoregion_three_vector, ecoregion_one_vector)
+    grid_pop_dens <- cbind(grid_pop_dens, 
+                           #ecoregion_three_vector, 
+                           ecoregion_one_vector)
     
+    #ecoregion_three_lookup <- grid_pop_dens %>%
+      #group_by(CBSA_vector, ecoregion_three_vector) %>%
+      #slice(1) %>%
+      #ungroup() %>%
+      #group_by(CBSA_vector) %>%
+      #slice(1) %>%
+      #ungroup() %>%
+      #pull(ecoregion_three_vector)
+    
+    #ecoregion_one_lookup <- grid_pop_dens %>%
+      #group_by(ecoregion_three_vector, ecoregion_one_vector) %>%
+      #slice(1) %>%
+      #ungroup() %>%
+      #group_by(ecoregion_three_vector) %>%
+      #slice(1) %>%
+      #ungroup() %>%
+      #pull(ecoregion_one_vector)
+    
+    # just do CBSA clustered directly in eco1
     ecoregion_one_lookup <- grid_pop_dens %>%
-      group_by(ecoregion_three_vector, ecoregion_one_vector) %>%
+      group_by(CBSA_vector, ecoregion_one_vector) %>%
       slice(1) %>%
       ungroup() %>%
-      group_by(ecoregion_three_vector) %>%
+      group_by(CBSA_vector) %>%
       slice(1) %>%
       ungroup() %>%
       pull(ecoregion_one_vector)
     
-    rm(prj1, ecoregion3, ecoregion1)
+    rm(prj1, 
+       #ecoregion3, 
+       ecoregion1)
+    
     
     ## --------------------------------------------------
     # Occurrence data
@@ -476,10 +526,13 @@ get_spatial_data <- function(
     
     df_id_urban_filtered = df_id_dens,
     urban_grid = grid_pop_dens,
-    ecoregion_three_lookup = ecoregion_three_lookup,
+    #ecoregion_three_lookup = ecoregion_three_lookup,
     ecoregion_one_lookup = ecoregion_one_lookup,
-    n_ecoregion_three = n_ecoregion_three,
+    #n_ecoregion_three = n_ecoregion_three,
     n_ecoregion_one = n_ecoregion_one,
+    CBSA_names = CBSA_names,
+    CBSA_lookup = CBSA_lookup,
+    n_CBSA = n_CBSA,
     correlation_matrix = correlation_matrix
     
   ))

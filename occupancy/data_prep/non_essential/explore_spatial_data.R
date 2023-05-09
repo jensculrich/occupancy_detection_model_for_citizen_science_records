@@ -44,7 +44,7 @@ center_scale <- function(x) {
 
 ## global options
 # grid size
-grid_size <- 15000 # e.g., 25000 = 25km x 25 km sites
+grid_size <- 10000 # e.g., 25000 = 25km x 25 km sites
 # CRS for NAD83 / UTM Zone 10N
 # crs <- "+proj=utm +zone=10 +ellps=GRS80 +datum=NAD83"
 # Albers equal area
@@ -57,7 +57,7 @@ crs <- 5070
 # min_population_size of 38 (/km^2) is ~ 100/mile^2 which is a typical threshold for 
 # considering an area to be 'urban'
 # let's up the minimum a bit and go with 100 per sq km, which is about 260/sq mile
-min_population_size <- 1000 
+min_population_size <- 1200 
 
 # minimum site area 
 # if sites are super tiny, the observation process could likely be very unstable
@@ -197,6 +197,30 @@ grid_pop_dens <- cbind(grid, r.vals) %>%
 # and make a scaled response variable
 grid_pop_dens <- grid_pop_dens %>%
   filter(pop_density_per_km2 > min_population_size) 
+
+## --------------------------------------------------
+# Join with Metro areas
+
+# Metropolitan statistical areas
+# https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist
+# updated 2018, based on 2010 census data
+CBSA <- sf::read_sf("./data/spatial_data/tl_2019_us_cbsa/tl_2019_us_cbsa.shp")
+
+## level 3 cluster (ecoregion3)
+crs_CBSA <- sf::st_crs(raster::crs(CBSA))
+prj1 <- st_transform(grid_pop_dens, crs_CBSA)
+
+CBSA_names <- st_join(prj1, CBSA) %>%
+  group_by(grid_id) %>%
+  slice(which.max(ALAND)) %>% 
+  pull(NAME) 
+
+CBSA_vector <- as.numeric(as.factor(CBSA_names))
+
+CBSA_lookup <- as.numeric(as.factor(CBSA_names))
+
+n_CBSA <- unique(CBSA_lookup) %>%
+  length()
 
 ## --------------------------------------------------
 # Try extracting median household income from each block
