@@ -33,7 +33,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       urban_sites,
                       non_urban_subsample_n,
                       infer_detections_at_genus,
-                      generate_temporal_plots
+                      generate_temporal_plots,
+                      by_city
 ) {
   
   if((era_end - era_start + 1) %% n_intervals != 0){
@@ -53,7 +54,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size, taxon, min_site_area,
-    urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start)
+    urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start, by_city)
   
   # save the data in case you want to make tweaks to the prep data
   # without redoing the raster extractions
@@ -84,9 +85,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   forest_vector <- urban_grid$scaled_forest
   herb_shrub_forest_vector <- urban_grid$scaled_herb_shrub_forest
   developed_med_high_vector <- urban_grid$scaled_developed_med_high
-  #ecoregion_three_vector <- urban_grid$ecoregion_three_vector
   ecoregion_one_vector <- urban_grid$ecoregion_one_vector
-  CBSA_vector <- urban_grid$CBSA_vector
+  level_three_vector <- urban_grid$level_three_vector
 
   site_name_vector <- urban_grid$grid_id
   
@@ -95,13 +95,11 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   my_spatial_data
   
-  #ecoregion_three_lookup <- my_spatial_data$ecoregion_three_lookup
   ecoregion_one_lookup <- my_spatial_data$ecoregion_one_lookup
-  #n_ecoregion_three <- my_spatial_data$n_ecoregion_three
   n_ecoregion_one <- my_spatial_data$n_ecoregion_one
-  CBSA_names <- my_spatial_data$CBSA_names
-  CBSA_lookup <- my_spatial_data$CBSA_lookup
-  n_CBSA <- my_spatial_data$n_CBSA
+  level_three_names <- my_spatial_data$level_three_names
+  level_three_lookup <- my_spatial_data$level_three_lookup
+  n_level_three <- my_spatial_data$n_level_three
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
@@ -1134,17 +1132,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     developed_med_high = developed_med_high_vector,
     museum_total_records = museum_total_records,
     
-    #ecoregion_three_vector = ecoregion_three_vector,
     ecoregion_one_vector = ecoregion_one_vector,
-    #ecoregion_three_lookup = ecoregion_three_lookup,
     ecoregion_one_lookup = ecoregion_one_lookup,
-    #n_ecoregion_three = n_ecoregion_three,
     n_ecoregion_one = n_ecoregion_one,
     
-    CBSA_vector = CBSA_vector,
-    CBSA_names = CBSA_names,
-    CBSA_lookup = CBSA_lookup,
-    n_CBSA = n_CBSA,
+    level_three_vector = level_three_vector,
+    level_three_names = level_three_names,
+    level_three_lookup = level_three_lookup,
+    n_level_three = n_level_three,
     
     correlation_matrix = correlation_matrix,
     
