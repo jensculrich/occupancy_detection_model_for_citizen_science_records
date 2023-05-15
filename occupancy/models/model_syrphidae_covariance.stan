@@ -5,9 +5,9 @@ functions {
   // covariance matrix for occupancy and detection rates; and detection rates for different data sources
   matrix custom_cov_matrix(vector sigma, real rho) {
     matrix[2,2] Sigma;
-    Sigma[1,1] = square(sigma[1]); // species variation in occupancy rates
-    Sigma[2,2] = square(sigma[2]); // species variation in cit sci detection rates
-    Sigma[1,2] = sigma[1] * sigma[2] * rho; // correlation between occ and cit sci
+    Sigma[1,1] = square(sigma[1]); // species variation in cs detection rates
+    Sigma[2,2] = square(sigma[2]); // species variation in rc detection rates
+    Sigma[1,2] = sigma[1] * sigma[2] * rho; // correlation detection rates
     Sigma[2,1] = Sigma[1,2];
     return Sigma;
   }
@@ -339,7 +339,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(-3, 1); // global intercept for detection
+  mu_p_museum_0 ~ normal(-3, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.1);
