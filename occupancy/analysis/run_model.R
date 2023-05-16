@@ -76,6 +76,10 @@ non_urban_subsample_n = 600 # if urban_sites is true, then how many sites do you
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
 
+
+## --------------------------------------------------
+# gather data
+
 source("./occupancy/data_prep/prep_data.R")
 
 my_data <- prep_data(era_start = era_start, # must define start date of the GBIF dataset
@@ -101,6 +105,10 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      by_city
                      
 )
+
+
+## --------------------------------------------------
+# save data or load pre-saved data
 
 # choose a directory for saving new data or loading old data
 dir <- ("/")
@@ -134,6 +142,10 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
                           n_intervals, "ints_",
                           n_visits, "visits",
                           ".rds"))
+
+
+## --------------------------------------------------
+# prepare data for STAN
 
 # best to restart R or offload all of the spatial data packages before running the model
 gc()
@@ -475,9 +487,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 400
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 200
+    n_burnin <- 150
     n_chains <- 5
     n_cores <- 5
     #n_cores <- parallel::detectCores()
