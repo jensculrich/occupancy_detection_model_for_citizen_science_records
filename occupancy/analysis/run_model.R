@@ -2,6 +2,9 @@
 ### Run occupancy model (model_"taxon".stan), using real pollinator occurrence data from GBIF
 # jcu; started nov 24, 2022
 
+# Would you like to prepare data or run an analysis?
+# select and enter the data collection choices for either SYRPHIDAE or BOMBUS below
+
 ## --------------------------------------------------
 # input data preparation choices - SYRPHIDAE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
@@ -37,6 +40,8 @@ non_urban_subsample_n = 500 # if urban_sites is true, then how many sites do you
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
 
+# define level 3 spatial clusters by CBSA metro area (by_city == TRUE)
+# or by fine scale ecogeographic region (by_city == FALSE)
 by_city = FALSE
 
 ## --------------------------------------------------
@@ -76,9 +81,14 @@ non_urban_subsample_n = 600 # if urban_sites is true, then how many sites do you
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
 
+# define level 3 spatial clusters by CBSA metro area (by_city == TRUE)
+# or by fine scale ecogeographic region (by_city == FALSE)
+by_city = FALSE
 
 ## --------------------------------------------------
-# gather data
+# Run the prep_data() function to gather new data (this takes about 5 minutes)
+# if you've already gathered and presaved the data, then skip this and
+# go to the next section (saveRDS() or readRDS())
 
 source("./occupancy/data_prep/prep_data.R")
 
@@ -145,7 +155,8 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
 
 
 ## --------------------------------------------------
-# prepare data for STAN
+# Once you have the data you want, you will need to format it
+# appropriately to prepare it for STAN to read.
 
 # best to restart R or offload all of the spatial data packages before running the model
 gc()
@@ -226,6 +237,26 @@ intervals_raw <- as.vector(seq(1, n_intervals, by=1))
 intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
+
+rm(my_data)
+gc()
+
+## --------------------------------------------------
+# Once you have the data formatted for STAN..
+# you will also need to enter HMC options for STAN 
+# (e.g., which params to monitor, initial values specified, 
+# how many chains to run, how many iterations, etc.)
+
+# There are for possible model sets:
+# bombus urban, 
+# bombus non-urban,
+# syrphidae urban,
+# or syrphidae non-urban
+
+# if you've selected the data collection requisites desired above then just 
+# press enter at the if statement and the HMC options will be loaded into the environment
+# you will need to manually edit the options within the if statements if you want 
+# to change things such as the number of chains to run or number of iterations
 
 if(taxon == "bombus"){
   
@@ -490,8 +521,8 @@ if(taxon == "bombus"){
     n_iterations <- 300
     n_thin <- 1
     n_burnin <- 150
-    n_chains <- 5
-    n_cores <- 5
+    n_chains <- 4
+    n_cores <- 4
     #n_cores <- parallel::detectCores()
     delta = 0.9
     
@@ -626,6 +657,7 @@ if(taxon == "bombus"){
 ## --------------------------------------------------
 ### Run model
 
+# load appropriate model file from the directory
 if(urban_sites == TRUE){
   if(by_city == FALSE){
     stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance.stan")
@@ -679,7 +711,7 @@ print(stan_out, digits = 3, pars=
         c("mu_psi_0",
           "sigma_psi_species",
           "sigma_psi_site",
-          "sigma_psi_ecoregion_three",
+          "sigma_psi_level_three",
           "sigma_psi_ecoregion_one",
           "mu_psi_herb_shrub_forest",
           "sigma_psi_herb_shrub_forest",
@@ -761,7 +793,7 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  #"sigma_psi_genus",
+  "sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_level_three",
   #"sigma_psi_ecoregion_three",

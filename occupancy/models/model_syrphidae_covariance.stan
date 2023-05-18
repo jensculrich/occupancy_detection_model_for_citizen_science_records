@@ -300,14 +300,14 @@ model {
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 0.25); // weakly-informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
-  sigma_psi_genus ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_genus ~ normal(0, 0.25); // weakly-informative prior
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
-  sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
+  sigma_psi_herb_shrub_forest ~ uniform(0, 1); // community variance
   
   //psi_income ~ normal(mu_psi_income, sigma_psi_income);
   //mu_psi_income ~ normal(0, 2); // community mean
@@ -339,7 +339,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(-3, 0.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(-3, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.1);
