@@ -672,7 +672,7 @@ if(urban_sites == TRUE){
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
 
 ## Call Stan from R
-set.seed(2)
+set.seed(3)
 stan_out <- stan(stan_model,
                  data = stan_data, 
                  init = inits, 
