@@ -339,7 +339,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(-3.5, 0.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(-3.5, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.1);
