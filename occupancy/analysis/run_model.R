@@ -524,7 +524,7 @@ if(taxon == "bombus"){
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.9
+    delta = 0.8
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -554,7 +554,7 @@ if(taxon == "bombus"){
             p_citsci_pop_density = runif(1, 0.4, 0.6),
             
             # start musuem values close to zero
-            mu_p_museum_0 = runif(1, -3, -2.5),
+            mu_p_museum_0 = runif(1, -4, -3),
             sigma_p_museum_site = runif(1, 0, 0.25),
             sigma_p_museum_level_three = runif(1, 0, 0.25),
             sigma_p_museum_ecoregion_one = runif(1, 0, 0.25),

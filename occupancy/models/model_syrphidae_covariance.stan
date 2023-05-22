@@ -285,7 +285,7 @@ model {
     custom_cov_matrix(sigma_species_detection, rho));
     
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 0.25); // global intercept for occupancy rate
   
   // https://betanalpha.github.io/assets/case_studies/divergences_and_bias.html#3_a_non-centered_eight_schools_implementation
   // level-2 spatial grouping
@@ -307,7 +307,7 @@ model {
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean
-  sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
+  sigma_psi_herb_shrub_forest ~ normal(1, 0.5); // community variance
   
   //psi_income ~ normal(mu_psi_income, sigma_psi_income);
   //mu_psi_income ~ normal(0, 2); // community mean
@@ -319,7 +319,7 @@ model {
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(0, 1); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, 0.25);
@@ -339,7 +339,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(-3.5, 0.25); // global intercept for detection
+  mu_p_museum_0 ~ normal(0, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.1);
