@@ -532,7 +532,7 @@ if(taxon == "bombus"){
     set.seed(1)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho = runif(1, 0.25, 0.5),
+      list( rho = runif(1, 0.5, 0.75),
             
             mu_psi_0 = runif(1, 0, 0.5),
             sigma_psi_species = runif(1, 1.5, 2),
