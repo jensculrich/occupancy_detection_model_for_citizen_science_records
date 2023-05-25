@@ -279,7 +279,7 @@ model {
   // correlated species effects
   sigma_species_detection[1] ~ normal(0, 1.5);
   sigma_species_detection[2] ~ normal(0, 1.5);
-  (rho + 1) / 2 ~ beta(4, 1);
+  (rho + 1) / 2 ~ beta(6, 2);
   
   species_intercepts_detection ~ multi_normal(mu(mu_p_citsci_0, mu_p_museum_0), 
     custom_cov_matrix(sigma_species_detection, rho));
@@ -339,7 +339,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(-3, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, 0.1);
@@ -408,6 +408,23 @@ model {
 
 generated quantities{
   
+  // Track mean spatial adjustments for non-centered random effects
+  // (so that you can easily compute baseline occupancy and detection rates if these shift from zero)
+  real mean_psi_site;
+  //real mean_psi_level_three;
+  //real mean_psi_ecoregion_one;
+  
+  //real mean_p_citsci_site;
+  //real mean_p_citsci_level_three;
+  //real mean_p_citsci_ecoregion_one;
+  
+  //real mean_p_museum_site;
+  //real mean_p_museum_level_three;
+  //real mean_p_museum_ecoregion_one;
+  
+  mean_psi_site = mean(psi_site);
+  
+  // Post pred check
   int Z[n_species, n_sites, n_intervals];
   
   int z_rep[n_species, n_sites, n_intervals];

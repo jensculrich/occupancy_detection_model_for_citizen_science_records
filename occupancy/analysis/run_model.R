@@ -504,8 +504,8 @@ if(taxon == "bombus"){
                 #"psi_income",
                 "psi_herb_shrub_forest",
                 
-                "psi_level_three", # track city effects
-                "psi_ecoregion_one",
+                "psi_level_three", # track city/fine-ecoregion effects
+                "psi_ecoregion_one", # track broad eco effects
                 
                 #"T_rep_citsci",
                 #"T_obs_citsci",
@@ -513,7 +513,9 @@ if(taxon == "bombus"){
                 
                 #"T_rep_museum",
                 #"T_obs_museum",
-                "P_species_museum"
+                "P_species_museum",
+                
+                "mean_psi_site"
     )
     
     
@@ -718,7 +720,8 @@ print(stan_out, digits = 3, pars=
           #"psi_income",
           #mu_psi_income",
           #"sigma_psi_income",
-          "psi_site_area"))
+          "psi_site_area",
+          "mean_psi_site"))
 
 
 print(stan_out, digits = 3, pars=
@@ -809,6 +812,9 @@ traceplot(stan_out, pars = c(
   #"sigma_p_citsci_species",
   #"sigma_p_museum_species"
 ))
+
+traceplot(stan_out, pars=
+            c("mean_psi_site"))
 
 traceplot(stan_out, pars=
         c("psi_herb_shrub_forest[25]"))
