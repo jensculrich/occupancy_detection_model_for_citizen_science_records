@@ -15,7 +15,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
-min_unique_detections = 3
+min_unique_detections = 2
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1200 # min pop density in the grid cell (per km^2)
@@ -53,7 +53,7 @@ n_intervals = 4 # must define number of intervals to break up the era into
 n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
-min_records_per_species = 10 # filters species with less than this many records (total between both datasets)..
+min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
@@ -138,7 +138,7 @@ saveRDS(my_data, paste("./occupancy/analysis/prepped_data/",
                        dir, 
                        grid_size / 1000, 
                        "km_", min_population_size, "minpop_", 
-                       min_records_per_species, "minpersp_",
+                       min_unique_detections, "minpersp_",
                        n_intervals, "ints_", n_visits, "visits",
                        ".rds", sep = ""))
 
@@ -148,7 +148,7 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
                           dir,
                           grid_size / 1000, "km_",
                           min_population_size, "minpop_",
-                          min_records_per_species, "minpersp", "_",
+                          min_unique_detections, "minpersp", "_",
                           n_intervals, "ints_",
                           n_visits, "visits",
                           ".rds"))
@@ -206,9 +206,9 @@ level_three_names_unique <- unique(level_three_names)
 
 #saveRDS(as.data.frame(cbind(CBSA_names, CBSA_lookup)), "./figures/species_names/CBSA_names_10km_urban.RDS")
 
-species_counts <- my_data$species_counts
-species_detections <- my_data$species_detections
-species_counts_full <- my_data$species_counts_full
+species_counts <- my_data$species_counts # number of species detections in time period at urban grid cells
+species_detections <- my_data$species_detections # number of unique species/site/year (in time period at urban grid cells) occasions with detections > 0
+species_counts_full <- my_data$species_counts_full # number of records anywhere in time frame (not just urban grid cells)
 
 genus_lookup <- my_data$genus_lookup
 genus_lookup <- as.numeric(factor(genus_lookup))
@@ -674,7 +674,7 @@ if(urban_sites == TRUE){
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
 
 ## Call Stan from R
-set.seed(3)
+set.seed(1)
 stan_out <- stan(stan_model,
                  data = stan_data, 
                  init = inits, 
