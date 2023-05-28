@@ -662,7 +662,7 @@ if(taxon == "bombus"){
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
   if(by_city == FALSE){
-    stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance.stan")
+    stan_model <- paste0("./occupancy/models/CopyOfmodel_", taxon, "_covariance.stan")
   } else {
     stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance_by_city.stan")
   }

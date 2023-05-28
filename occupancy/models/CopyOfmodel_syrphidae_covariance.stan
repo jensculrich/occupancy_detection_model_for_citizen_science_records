@@ -310,7 +310,7 @@ model {
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 0.25); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 0.5); // weakly-informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
   sigma_psi_genus ~ normal(0, 0.25); // weakly-informative prior
@@ -323,13 +323,13 @@ model {
   //mu_psi_income ~ normal(0, 2); // community mean
   //plotsigma_psi_income ~ normal(0, 0.1); // community variance
   
-  psi_site_area ~ normal(0, 0.1); // effect of site area on occupancy
+  psi_site_area ~ normal(0, 0.25); // effect of site area on occupancy
   
   // Detection (Observation Process)
   
   // citizen science records
   
-  mu_p_citsci_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_citsci_0 ~ normal(-2.5, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, sigma_p_citsci_site);
@@ -349,7 +349,7 @@ model {
   
   // museum records
   
-  mu_p_museum_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_museum_0 ~ normal(-1, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_museum_site  ~ normal(0, sigma_p_museum_site);
