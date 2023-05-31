@@ -238,6 +238,25 @@ intervals <- intervals_raw - 1
 sites <- seq(1, n_sites, by=1)
 species <- seq(1, n_species, by=1)
 
+# add nativity for syrphids
+if(taxon == "syrphidae"){
+  
+  library(tidyverse)
+  df <- read.csv("./data/occurrence_data/syrphidae_nativity.csv") 
+  df <- select(df, species, nativity)
+  species_df <- as.data.frame(species_names) %>% 
+    rename("species" = "species_names")
+  
+  species_df <- left_join(species_df, df, by ="species")
+  species_df <- species_df %>% dplyr::mutate(nativity = replace_na(nativity, 1))
+  
+  nativity <- pull(species_df, nativity)
+
+  detach("package:tidyverse", unload = TRUE)
+
+}
+
+
 rm(my_data)
 gc()
 
@@ -469,6 +488,7 @@ if(taxon == "bombus"){
                    "ecoregion_one_lookup",
                    "pop_densities", "site_areas", 
                    "avg_income", 
+                   "nativity",
                    "herb_shrub_forest", "museum_total_records") 
     
     # Parameters monitored
@@ -484,6 +504,8 @@ if(taxon == "bombus"){
                 #"mu_psi_income",
                 #"sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
+                "delta0",
+                "delta1",
                 "sigma_psi_herb_shrub_forest",
                 "psi_site_area",
                 
@@ -515,7 +537,8 @@ if(taxon == "bombus"){
                 #"T_obs_museum",
                 "P_species_museum",
                 
-                "mean_psi_site"
+                "mu_psi_nat_habitat_native",
+                "mu_psi_nat_habitat_nonnative"
     )
     
     
@@ -526,7 +549,7 @@ if(taxon == "bombus"){
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.8
+    delta = 0.9
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -544,7 +567,9 @@ if(taxon == "bombus"){
             sigma_psi_ecoregion_one = runif(1, 2, 3),
             #mu_psi_income = runif(1, -1, 1),
             #sigma_psi_income = runif(1, 0, 0.1),
-            mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
+            #mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
+            delta0 = runif(1, -0.5, 0.5),
+            delta1 = runif(1, 0, 0.5),
             sigma_psi_herb_shrub_forest = runif(1, 0.75, 1),
             psi_site_area = runif(1, -0.5, 0.5),
             
@@ -556,7 +581,7 @@ if(taxon == "bombus"){
             p_citsci_pop_density = runif(1, 0.4, 0.6),
             
             # start musuem values close to zero
-            mu_p_museum_0 = runif(1, -4, -3),
+            mu_p_museum_0 = runif(1, -3, -1),
             sigma_p_museum_site = runif(1, 0, 0.25),
             sigma_p_museum_level_three = runif(1, 0, 0.25),
             sigma_p_museum_ecoregion_one = runif(1, 0, 0.25),
@@ -662,7 +687,7 @@ if(taxon == "bombus"){
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
   if(by_city == FALSE){
-    stan_model <- paste0("./occupancy/models/CopyOfmodel_", taxon, "_covariance.stan")
+    stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance.stan")
   } else {
     stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance_by_city.stan")
   }
@@ -715,13 +740,15 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_site",
           "sigma_psi_level_three",
           "sigma_psi_ecoregion_one",
-          "mu_psi_herb_shrub_forest",
+          #"mu_psi_herb_shrub_forest",
+          "delta0",
+          "delta1",
+          "mu_psi_nat_habitat_native",
           "sigma_psi_herb_shrub_forest",
           #"psi_income",
           #mu_psi_income",
           #"sigma_psi_income",
-          "psi_site_area",
-          "mean_psi_site"))
+          "psi_site_area"))
 
 
 print(stan_out, digits = 3, pars=
@@ -778,7 +805,9 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "psi_site_area",
-  "mu_psi_herb_shrub_forest",
+  #"mu_psi_herb_shrub_forest",
+  "delta0",
+  "delta1",
   #"psi_income",
   #"mu_psi_income",
   "mu_p_citsci_0",
@@ -814,7 +843,10 @@ traceplot(stan_out, pars = c(
 ))
 
 traceplot(stan_out, pars=
-            c("mean_psi_site"))
+            c("mu_psi_nat_habitat_native"))
+
+traceplot(stan_out, pars=
+            c("mu_psi_nat_habitat_nonnative"))
 
 traceplot(stan_out, pars=
         c("psi_herb_shrub_forest[25]"))
