@@ -34,7 +34,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       non_urban_subsample_n,
                       infer_detections_at_genus,
                       generate_temporal_plots,
-                      by_city
+                      by_city,
+                      remove_city_outliers_5stddev
 ) {
   
   if((era_end - era_start + 1) %% n_intervals != 0){
@@ -54,7 +55,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # retrieve the spatial occurrence record data
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size, taxon, min_site_area,
-    urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start, by_city)
+    urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start, 
+    by_city, remove_city_outliers_5stddev)
   
   # save the data in case you want to make tweaks to the prep data
   # without redoing the raster extractions

@@ -43,7 +43,8 @@ get_spatial_data <- function(
   min_records_per_species,
   min_unique_detections,
   era_start,
-  by_city
+  by_city,
+  remove_city_outliers_5stddev
 ){
   
   ## --------------------------------------------------
@@ -238,34 +239,37 @@ get_spatial_data <- function(
                                          (length(which(x %in% c(52,71,41,42,43,90,95))) / length(x))
                                        }
     )                                
-                                       
-    grid_pop_dens <- cbind(grid_pop_dens,
-                           unlist(r.site_area),
-                           unlist(r.mean_herb_shrub),
-                           unlist(r.mean_dev_open),
-                           unlist(r.mean_high_dev),
-                           unlist(r.mean_forest),
-                           unlist(r.mean_herb_shrub_forest)) %>%
-      rename("site_area" = "unlist.r.site_area.",
-             "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
-             "developed_open" = "unlist.r.mean_dev_open.",
-             "developed_med_high" = "unlist.r.mean_high_dev.",
-             "forest" = "unlist.r.mean_forest.",
-             "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
-      # remove sites below filter for minimum site area
-      filter(site_area > min_site_area) %>%
-      # center-scale the variables
-      #mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
-      #       scaled_site_area = center_scale(site_area),
-      #       scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
-      #       scaled_developed_open = center_scale(developed_open),
-      #       scaled_developed_med_high = center_scale(developed_med_high),
-      #       scaled_forest = center_scale(forest),
-      #       scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
-      #      ) %>%
-      # remove extreme population outliers (more than 5 sd from the mean)
-      #filter(scaled_pop_den_km2 < 5) %>%
-      #filter(scaled_pop_den_km2 > -5) %>%
+    
+    # provide option to remove site outliers that are extremely different in pop dens (i.e. downtown NYC)
+    if(remove_city_outliers_5stddev == TRUE){
+      
+      grid_pop_dens <- cbind(grid_pop_dens,
+                             unlist(r.site_area),
+                             unlist(r.mean_herb_shrub),
+                             unlist(r.mean_dev_open),
+                             unlist(r.mean_high_dev),
+                             unlist(r.mean_forest),
+                             unlist(r.mean_herb_shrub_forest)) %>%
+        rename("site_area" = "unlist.r.site_area.",
+               "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
+               "developed_open" = "unlist.r.mean_dev_open.",
+               "developed_med_high" = "unlist.r.mean_high_dev.",
+               "forest" = "unlist.r.mean_forest.",
+               "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
+        # remove sites below filter for minimum site area
+        filter(site_area > min_site_area) %>%
+        # center-scale the variables
+        mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
+               scaled_site_area = center_scale(site_area),
+               scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+               scaled_developed_open = center_scale(developed_open),
+               scaled_developed_med_high = center_scale(developed_med_high),
+               scaled_forest = center_scale(forest),
+               scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
+              ) %>%
+        # remove extreme population outliers (more than 5 sd from the mean)
+      filter(scaled_pop_den_km2 < 5) %>%
+      filter(scaled_pop_den_km2 > -5) %>%
       # rescale the variables (in case any sites removed)
       mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
              scaled_site_area = center_scale(site_area),
@@ -274,7 +278,36 @@ get_spatial_data <- function(
              scaled_developed_med_high = center_scale(developed_med_high),
              scaled_forest = center_scale(forest),
              scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
-          )
+      )
+      
+    } else{
+      
+      grid_pop_dens <- cbind(grid_pop_dens,
+                             unlist(r.site_area),
+                             unlist(r.mean_herb_shrub),
+                             unlist(r.mean_dev_open),
+                             unlist(r.mean_high_dev),
+                             unlist(r.mean_forest),
+                             unlist(r.mean_herb_shrub_forest)) %>%
+        rename("site_area" = "unlist.r.site_area.",
+               "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
+               "developed_open" = "unlist.r.mean_dev_open.",
+               "developed_med_high" = "unlist.r.mean_high_dev.",
+               "forest" = "unlist.r.mean_forest.",
+               "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
+        # remove sites below filter for minimum site area
+        filter(site_area > min_site_area) %>%
+        # center-scale the variables
+        mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
+             scaled_site_area = center_scale(site_area),
+             scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+             scaled_developed_open = center_scale(developed_open),
+             scaled_developed_med_high = center_scale(developed_med_high),
+             scaled_forest = center_scale(forest),
+             scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
+      )
+    }                               
+    
     
     rm(crs_raster, grid, land, prj1, 
        r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
