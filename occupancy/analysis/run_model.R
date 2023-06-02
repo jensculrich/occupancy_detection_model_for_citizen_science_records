@@ -545,15 +545,15 @@ if(taxon == "bombus"){
     #)
     
     # Parameters monitored
-    params <- c("rho",
-                "sigma_species_intercepts",
+    params <- c(#"rho",
+                #"sigma_species_intercepts",
                 
                 "mu_psi_0",
+                "sigma_psi_species",
+                "sigma_psi_genus",
                 "sigma_psi_site",
                 "sigma_psi_level_three",
                 "sigma_psi_ecoregion_one",
-                "mu_psi_income",
-                "sigma_psi_income",
                 "mu_psi_herb_shrub_forest",
                 "delta0",
                 "delta1",
@@ -561,6 +561,7 @@ if(taxon == "bombus"){
                 "psi_site_area",
                 
                 "mu_p_citsci_0",
+                "sigma_p_citsci_species",
                 "sigma_p_citsci_site",
                 "sigma_p_citsci_level_three",
                 "sigma_p_citsci_ecoregion_one",
@@ -573,8 +574,8 @@ if(taxon == "bombus"){
                 #"sigma_p_museum_ecoregion_one",
                 #"p_museum_total_records",
                 
-                #"psi_species",
-                "species_intercepts",
+                "psi_species",
+                #"species_intercepts",
                 #"psi_income",
                 "psi_herb_shrub_forest",
                 
@@ -615,8 +616,6 @@ if(taxon == "bombus"){
             sigma_psi_site = runif(1, 3, 4),
             sigma_psi_level_three = runif(1, 0, 1),
             sigma_psi_ecoregion_one = runif(1, 2, 3),
-            mu_psi_income = runif(1, -1, 1),
-            sigma_psi_income = runif(1, 0, 0.1),
             #mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
             delta0 = runif(1, -0.5, 0.5),
             delta1 = runif(1, 0, 0.5),

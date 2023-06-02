@@ -75,11 +75,6 @@ parameters {
   real delta0;
   real delta1;
   real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
-
-  // random slope for species specific open low development effects on occupancy
-  vector[n_species] psi_income; // vector of species specific slope estimates
-  real mu_psi_income; // community mean of species specific slopes
-  real<lower=0> sigma_psi_income; // variance in species slopes
   
   // fixed effect of site area on occupancy
   real psi_site_area;
@@ -177,7 +172,6 @@ transformed parameters {
             psi0_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_herb_shrub_forest[species[i]]*herb_shrub_forest[j] + // an effect 
-            psi_income[species[i]]*avg_income[j] + // an effect
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -234,10 +228,6 @@ model {
   // species-specific effect is now a vector with intercept delta0 and an effect of nativity (delta1)
   delta0 ~ normal(0, 1); // community mean
   delta1 ~ normal(0, 1); // effect of nativity
-  
-  psi_income ~ normal(mu_psi_income, sigma_psi_income);
-  mu_psi_income ~ normal(0, 2); // community mean
-  sigma_psi_income ~ normal(0, 0.1); // community variance (strongly informative prior)
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
