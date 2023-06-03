@@ -74,8 +74,10 @@ parameters {
   //vector[n_species] mu_psi_herb_shrub_forest; // community mean of species specific slopes
   real delta0;
   real delta1;
-  real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
-  
+  //real<lower=0> sigma_psi_herb_shrub_forest; // variance in species slopes
+  real<lower=0> gamma0;
+  real gamma1;
+    
   // fixed effect of site area on occupancy
   real psi_site_area;
   
@@ -112,7 +114,8 @@ transformed parameters {
   real logit_p_citsci[n_species, n_sites, n_intervals]; // odds of detection by cit science
 
   vector[n_species] mu_psi_herb_shrub_forest; // community mean of species specific slopes
-
+  vector[n_species] sigma_psi_herb_shrub_forest; // community mean of species variation
+  
   // spatially nested intercepts
   real psi0_site[n_sites];
   real psi0_level_three[n_level_three];
@@ -122,6 +125,10 @@ transformed parameters {
 
   // phylogenetically nested intercepts
   real psi0_species[n_species];
+  
+  // intercept plus nativity adjustment can never be negative
+  real<lower=0> gamma0_plus_gamma1;
+  gamma0_plus_gamma1 = gamma0 + gamma1;
   
   //
   // compute the varying citsci detection intercept at the ecoregion3 level
@@ -164,6 +171,10 @@ transformed parameters {
     mu_psi_herb_shrub_forest[i] = delta0 + delta1*nativity[i];
   }
   
+  for(i in 1:n_species){
+    sigma_psi_herb_shrub_forest[i] = gamma0 + gamma1*nativity[i];
+  }
+  
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals  
@@ -203,20 +214,20 @@ model {
   // PRIORS
     
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 0.5); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 0.25); // global intercept for occupancy rate
   
   // level-2 spatial grouping
   psi_site  ~ normal(0, sigma_psi_site);
   sigma_psi_site ~ normal(0, 1); // weakly-informative prior
   // level-3 spatial grouping
   psi_level_three ~ normal(0, sigma_psi_level_three);
-  sigma_psi_level_three ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   psi_ecoregion_one ~ normal(0, sigma_psi_ecoregion_one);
   sigma_psi_ecoregion_one ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
-  psi_species ~ normal(mu_psi_0, sigma_psi_species); 
+  psi_species ~ normal(0, sigma_psi_species); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   // level-3 phylogenetic grouping
   psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
@@ -224,24 +235,27 @@ model {
   
   psi_herb_shrub_forest ~ normal(mu_psi_herb_shrub_forest, sigma_psi_herb_shrub_forest);
   //mu_psi_herb_shrub_forest ~ normal(0, 2); // community mean 
-  sigma_psi_herb_shrub_forest ~ normal(0, 1); // community variance
+  //sigma_psi_herb_shrub_forest ~ normal(0.75, 0.1); // community variance
   // species-specific effect is now a vector with intercept delta0 and an effect of nativity (delta1)
   delta0 ~ normal(0, 1); // community mean
-  delta1 ~ normal(0, 1); // effect of nativity
+  delta1 ~ normal(0, 2); // effect of nativity
+  gamma0 ~ normal(0, 0.5); // community mean
+  gamma1 ~ normal(0, 0.25); // effect of nativity
+  
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
   // Detection (Observation Process)
   
   // citizen science records
-  mu_p_citsci_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_citsci_0 ~ normal(0, 0.25); // global intercept for detection
   
   p_citsci_species ~ normal(mu_p_citsci_0, sigma_p_citsci_species); 
   sigma_p_citsci_species ~ normal(0, 1); // weakly-informative prior
   
   // level-2 spatial grouping
   p_citsci_site  ~ normal(0, sigma_p_citsci_site);
-  sigma_p_citsci_site ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_citsci_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_citsci_level_three ~ normal(0, sigma_p_citsci_level_three);
   sigma_p_citsci_level_three ~ normal(0, 0.25); // weakly-informative prior

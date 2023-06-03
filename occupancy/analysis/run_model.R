@@ -558,6 +558,8 @@ if(taxon == "bombus"){
                 "delta0",
                 "delta1",
                 "sigma_psi_herb_shrub_forest",
+                "gamma0",
+                "gamma1",
                 "psi_site_area",
                 
                 "mu_p_citsci_0",
@@ -610,8 +612,7 @@ if(taxon == "bombus"){
     set.seed(1)
     inits <- lapply(1:n_chains, function(i)
       
-      list( rho = runif(1, 0, 0.75),
-            
+      list(
             mu_psi_0 = runif(1, -0.5, 0.5),
             sigma_psi_site = runif(1, 3, 4),
             sigma_psi_level_three = runif(1, 0, 1),
@@ -619,10 +620,12 @@ if(taxon == "bombus"){
             #mu_psi_herb_shrub_forest = runif(1, 0, 0.5),
             delta0 = runif(1, -0.5, 0.5),
             delta1 = runif(1, 0, 0.5),
+            gamma0 = runif(1, 0.5, 0.75),
+            gamma1 = runif(1, 0, 0.1),
             sigma_psi_herb_shrub_forest = runif(1, 0.75, 1),
             psi_site_area = runif(1, -0.5, 0.5),
             
-            mu_p_citsci_0 = runif(1, -2, 0),
+            mu_p_citsci_0 = runif(1, -3.5, -2.5),
             sigma_p_citsci_site = runif(1, 0, 2),
             sigma_p_citsci_level_three = runif(1, 0, 2),
             sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
@@ -857,8 +860,10 @@ traceplot(stan_out, pars = c(
   #"mu_psi_herb_shrub_forest",
   "delta0",
   "delta1",
+  "gamma0",
+  "gamma1",
   #"psi_income",
-  "mu_psi_income",
+  #"mu_psi_income",
   "mu_p_citsci_0",
   "p_citsci_interval",
   "p_citsci_pop_density"
@@ -879,8 +884,8 @@ traceplot(stan_out, pars = c(
   "sigma_psi_level_three",
   #"sigma_psi_ecoregion_three",
   "sigma_psi_ecoregion_one",
-  "sigma_psi_income",
-  "sigma_psi_herb_shrub_forest",
+  #"sigma_psi_income",
+  #"sigma_psi_herb_shrub_forest",
   "sigma_p_citsci_site",
   "sigma_p_citsci_level_three",
   "sigma_p_citsci_ecoregion_one"
