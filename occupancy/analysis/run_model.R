@@ -808,17 +808,19 @@ print(stan_out, digits = 3, pars=
           "mu_p_citsci_0",
           #"sigma_p_citsci_species",
           "sigma_p_citsci_site",
-          "sigma_p_citsci_ecoregion_three",
+          "sigma_p_citsci_level_three",
           "sigma_p_citsci_ecoregion_one",
           "p_citsci_interval",
-          "p_citsci_pop_density", 
+          "p_citsci_pop_density"
 
-          "mu_p_museum_0",
+          #"mu_p_museum_0",
           #"sigma_p_museum_species",
-          "sigma_p_museum_site",
-          "sigma_p_museum_ecoregion_three",
-          "sigma_p_museum_ecoregion_one",
-          "p_museum_total_records"))
+          #"sigma_p_museum_site",
+          #"sigma_p_museum_ecoregion_three",
+          #"sigma_p_museum_ecoregion_one",
+          #"p_museum_total_records"
+          )
+          )
 
 print(stan_out, digits = 3, pars=
         c("rho",
