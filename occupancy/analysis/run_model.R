@@ -560,6 +560,8 @@ if(taxon == "bombus"){
                 "sigma_psi_herb_shrub_forest",
                 "gamma0",
                 "gamma1",
+                #"mu_psi_income",
+                #"sigma_psi_income",
                 "psi_site_area",
                 
                 "mu_p_citsci_0",
@@ -598,7 +600,7 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 300
+    n_iterations <- 500
     n_thin <- 1
     n_burnin <- 150
     n_chains <- 4
@@ -622,7 +624,7 @@ if(taxon == "bombus"){
             delta1 = runif(1, 0, 0.5),
             gamma0 = runif(1, 0.5, 0.75),
             gamma1 = runif(1, 0, 0.1),
-            sigma_psi_herb_shrub_forest = runif(1, 0.75, 1),
+            #sigma_psi_herb_shrub_forest = runif(1, 0.75, 1),
             psi_site_area = runif(1, -0.5, 0.5),
             
             mu_p_citsci_0 = runif(1, -3.5, -2.5),
@@ -796,7 +798,7 @@ print(stan_out, digits = 3, pars=
           "delta0",
           "delta1",
           "mu_psi_nat_habitat_native",
-          "sigma_psi_herb_shrub_forest",
+          #"sigma_psi_herb_shrub_forest",
           #"psi_income",
           #mu_psi_income",
           #"sigma_psi_income",
