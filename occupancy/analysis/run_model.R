@@ -17,8 +17,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 2
 # within the time span defined above
-grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 600 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -201,9 +201,18 @@ n_level_four <- my_data$n_ecoregion_one
 level_four_lookup <- my_data$ecoregion_one_lookup
 
 level_three_names <- my_data$level_three_names
-#View(as.data.frame(level_three_names))
 level_three_names_unique <- unique(level_three_names)
+#View(as.data.frame(level_three_lookup))
+#View(as.data.frame(level_three_names))
 #View(as.data.frame(level_three_names_unique))
+level_four_names <- my_data$ecoregion_one_names
+#View(as.data.frame(level_four_names))
+level_four_names_unique <- unique(level_four_names)
+#View(as.data.frame(level_four_lookup))
+#View(as.data.frame(level_three_names_unique))
+
+CBSA_names <- my_data$CBSA_names
+#View(as.data.frame(CBSA_names))
 
 #saveRDS(species_names, "./figures/species_names/syrphidae_names_50km_nonurban.RDS")
 #saveRDS(species_names, "./figures/species_names/bombus_names_10km_urban.RDS")
@@ -500,7 +509,7 @@ if(taxon == "bombus"){
     params <- c(
                 "mu_psi_0",
                 "sigma_psi_species",
-                "sigma_psi_genus",
+                #"sigma_psi_genus",
                 "sigma_psi_site",
                 "sigma_psi_level_three",
                 "sigma_psi_level_four",
@@ -536,13 +545,13 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 500
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 150
+    n_burnin <- 500
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.9
+    delta = 0.95
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -551,19 +560,19 @@ if(taxon == "bombus"){
     inits <- lapply(1:n_chains, function(i)
       
       list(
-            mu_psi_0 = runif(1, -0.5, 0.5),
-            sigma_psi_site = runif(1, 3, 4),
+            mu_psi_0 = runif(1, 0.25, 0.5),
+            sigma_psi_site = runif(1, 1, 2),
             sigma_psi_level_three = runif(1, 0, 1),
-            sigma_psi_level_four = runif(1, 2, 3),
+            sigma_psi_level_four = runif(1, 0, 1),
             delta0 = runif(1, -0.5, 0.5),
             delta1 = runif(1, 0, 0.5),
-            gamma0 = runif(1, 0.5, 0.75),
-            gamma1 = runif(1, 0, 0.1),
+            gamma0 = runif(1, 0.5, 0.75), # must be a positive value!
+            gamma1 = runif(1, 0, 0.1), # gamma0+gamma1 inits must be >0!
             psi_site_area = runif(1, -0.5, 0.5),
             
             mu_p_cs_0 = runif(1, -3.5, -2.5),
-            sigma_p_cs_site = runif(1, 0, 2),
-            sigma_p_cs_level_three = runif(1, 0, 2),
+            sigma_p_cs_site = runif(1, 0, 1),
+            sigma_p_cs_level_three = runif(1, 0, 1),
             sigma_p_cs_level_four = runif(1, 0, 0.5),
             p_cs_interval = runif(1, 0.5, 0.6),
             p_cs_pop_density = runif(1, 0.4, 0.6)
@@ -718,13 +727,14 @@ stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_1
 print(stan_out, digits = 3, pars=
         c("mu_psi_0",
           "sigma_psi_species",
-          "sigma_psi_genus",
+          #"sigma_psi_genus",
           "sigma_psi_site",
           "sigma_psi_level_three",
           "sigma_psi_level_four",
           #"mu_psi_herb_shrub_forest",
           "delta0",
           "delta1",
+          "mu_psi_natural_habitat_nonnative",
           "mu_psi_natural_habitat_native",
           #"sigma_psi_herb_shrub_forest",
           #"psi_income",
@@ -735,13 +745,13 @@ print(stan_out, digits = 3, pars=
 
 print(stan_out, digits = 3, pars=
         c(
-          "mu_p_citsci_0",
-          #"sigma_p_citsci_species",
-          "sigma_p_citsci_site",
-          "sigma_p_citsci_level_three",
-          "sigma_p_citsci_ecoregion_one",
-          "p_citsci_interval",
-          "p_citsci_pop_density"
+          "mu_p_cs_0",
+          #"sigma_p_cs_species",
+          "sigma_p_cs_site",
+          "sigma_p_cs_level_three",
+          "sigma_p_cs_level_four",
+          "p_cs_interval",
+          "p_cs_pop_density"
 
           #"mu_p_museum_0",
           #"sigma_p_museum_species",
@@ -769,10 +779,10 @@ print(stan_out, digits = 3, pars=
         c("psi_income"))
 
 print(stan_out, digits = 3, pars=
-        c("mu_psi_nat_habitat_native"))
+        c("mu_psi_natural_habitat_native"))
 
 print(stan_out, digits = 3, pars=
-        c("psi_herb_shrub_forest"))
+        c("sigma_psi_genus"))
 
 # print sampled ppc
 print(stan_out, digits = 3, pars=
@@ -811,7 +821,7 @@ traceplot(stan_out, pars = c(
 # traceplot
 traceplot(stan_out, pars = c(
   "sigma_psi_species",
-  "sigma_psi_genus",
+  #"sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_level_three",
   #"sigma_psi_ecoregion_three",
@@ -829,10 +839,11 @@ traceplot(stan_out, pars = c(
 ))
 
 traceplot(stan_out, pars=
-            c("mu_psi_nat_habitat_native"))
+            c("mu_psi_natural_habitat_native",
+              "mu_psi_natural_habitat_nonnative"))
 
 traceplot(stan_out, pars=
-            c("mu_psi_nat_habitat_nonnative"))
+            c("mu_psi_natural_habitat_nonnative"))
 
 traceplot(stan_out, pars=
         c("psi_herb_shrub_forest[25]"))

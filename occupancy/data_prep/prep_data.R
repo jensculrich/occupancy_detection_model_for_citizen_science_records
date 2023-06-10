@@ -95,13 +95,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # correlation matrix
   correlation_matrix <- my_spatial_data$correlation_matrix
   
-  my_spatial_data
-  
   ecoregion_one_lookup <- my_spatial_data$ecoregion_one_lookup
   n_ecoregion_one <- my_spatial_data$n_ecoregion_one
   level_three_names <- my_spatial_data$level_three_names
   level_three_lookup <- my_spatial_data$level_three_lookup
   n_level_three <- my_spatial_data$n_level_three
+  CBSA_names <- my_spatial_data$CBSA_names
+  ecoregion_one_names <- my_spatial_data$ecoregion_one_names
   
   # other info to pass to output that we may want to keep track of
   # correlation between variables
@@ -1137,11 +1137,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     ecoregion_one_vector = ecoregion_one_vector,
     ecoregion_one_lookup = ecoregion_one_lookup,
     n_ecoregion_one = n_ecoregion_one,
+    ecoregion_one_names = ecoregion_one_names,
     
     level_three_vector = level_three_vector,
     level_three_names = level_three_names,
     level_three_lookup = level_three_lookup,
     n_level_three = n_level_three,
+    
+    CBSA_names = CBSA_names,
     
     correlation_matrix = correlation_matrix,
     

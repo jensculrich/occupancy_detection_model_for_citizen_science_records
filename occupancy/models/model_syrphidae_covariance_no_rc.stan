@@ -5,8 +5,8 @@ data {
   
   int<lower=1> n_species;  // observed species
   int<lower=1> species[n_species]; // vector of species
-  int<lower=1> n_genera;  // (number of) genera (level-3 clusters)
-  int<lower=1> genus_lookup[n_species]; // level-3 cluster look up vector for level-2 cluster
+  //int<lower=1> n_genera;  // (number of) genera (level-3 clusters)
+  //int<lower=1> genus_lookup[n_species]; // level-3 cluster look up vector for level-2 cluster
 
   int<lower=1> n_sites;  // (number of) sites within region (level-2 clusters)
   int<lower=1, upper=n_sites> sites[n_sites];  // vector of sites
@@ -48,8 +48,8 @@ parameters {
   vector[n_species] psi_species; // species specific intercept for occupancy
   real<lower=0> sigma_psi_species; // variance in species intercepts// Level-3 spatial random effect
   // Level-3 phylogenetic random effect
-  vector[n_genera] psi_genus; // site specific intercept for PL outcome
-  real<lower=0> sigma_psi_genus; // variance in site intercepts
+  //vector[n_genera] psi_genus; // site specific intercept for PL outcome
+  //real<lower=0> sigma_psi_genus; // variance in site intercepts
   
   // Spatially nested random effect on occupancy rates
   // Level-2 spatial random effect
@@ -128,7 +128,7 @@ transformed parameters {
   real p0_cs_level_three[n_level_three];
 
   // phylogenetically nested intercepts
-  real psi0_species[n_species];
+  //real psi0_species[n_species];
   
   // intercept plus nativity adjustment can never be negative
   real<lower=0> gamma0_plus_gamma1;
@@ -167,9 +167,9 @@ transformed parameters {
   // Phylogenetic clustering for occurrence
   // compute the varying intercept at the level-2 species level
   // by clustering within Level-3 (n_genera level-3 random intercepts)
-  for(i in 1:n_species){
-    psi0_species[i] = psi_genus[genus_lookup[i]] + psi_species[i];
-  }
+  //for(i in 1:n_species){
+  //  psi0_species[i] = psi_genus[genus_lookup[i]] + psi_species[i];
+  //}
   
   for(i in 1:n_species){
     mu_psi_natural_habitat[i] = delta0 + delta1*nativity[i];
@@ -184,7 +184,8 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals  
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
-            psi0_species[species[i]] + // a phylogenetically nested, species-specific intercept
+            psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
+            //psi0_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // an effect 
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
@@ -231,11 +232,12 @@ model {
   sigma_psi_level_four ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
-  psi_species ~ normal(0, sigma_psi_species); 
+  psi_species ~ normal(mu_psi_0, sigma_psi_species); 
+  //psi_species ~ normal(0, sigma_psi_species); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   // level-3 phylogenetic grouping
-  psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
-  sigma_psi_genus ~ normal(0, 0.1); // weakly-informative prior
+  //psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
+  //sigma_psi_genus ~ normal(0, 0.05); // weakly-informative prior
   
   psi_natural_habitat ~ normal(mu_psi_natural_habitat, sigma_psi_natural_habitat);
   // community effect (mu) and variation among species (sigma) is defined as a vector 
@@ -264,7 +266,7 @@ model {
   sigma_p_cs_level_three ~ normal(0, 0.25); // weakly-informative prior
   // level-4 spatial grouping
   p_cs_level_four ~ normal(0, sigma_p_cs_level_four);
-  sigma_p_cs_level_four ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_cs_level_four ~ normal(0, 0.1); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 

@@ -220,13 +220,25 @@ get_spatial_data <- function(
                               function(x) { 
                                 (length(which(x %in% c(21))) / length(x))
                               } 
-    ) 
+    )
+    
+    r.mean_low_dev <- lapply(r.vals_land_NA, 
+                              function(x) { 
+                                (length(which(x %in% c(22))) / length(x))
+                              } 
+    )
     
     r.mean_high_dev <- lapply(r.vals_land_NA, 
                               function(x) { 
                                 (length(which(x %in% c(23,24))) / length(x))
                               } 
-    ) 
+    )
+    
+    r.mean_low_med_high_dev <- lapply(r.vals_land_NA, 
+                              function(x) { 
+                                (length(which(x %in% c(22,23,24))) / length(x))
+                              } 
+    )
     
     r.mean_forest <- lapply(r.vals_land_NA, 
                             function(x) { 
@@ -247,13 +259,17 @@ get_spatial_data <- function(
                              unlist(r.site_area),
                              unlist(r.mean_herb_shrub),
                              unlist(r.mean_dev_open),
+                             unlist(r.mean_low_dev),
                              unlist(r.mean_high_dev),
+                             unlist(r.mean_low_med_high_dev),
                              unlist(r.mean_forest),
                              unlist(r.mean_herb_shrub_forest)) %>%
         rename("site_area" = "unlist.r.site_area.",
                "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
                "developed_open" = "unlist.r.mean_dev_open.",
+               "developed_low" = "unlist.r.mean_low_dev.",
                "developed_med_high" = "unlist.r.mean_high_dev.",
+               "developed_low_med_high" = "unlist.r.mean_low_med_high_dev.",
                "forest" = "unlist.r.mean_forest.",
                "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
         # remove sites below filter for minimum site area
@@ -263,7 +279,9 @@ get_spatial_data <- function(
                scaled_site_area = center_scale(site_area),
                scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
                scaled_developed_open = center_scale(developed_open),
+               scaled_developed_low = center_scale(developed_low),
                scaled_developed_med_high = center_scale(developed_med_high),
+               scaled_developed_low_med_high = center_scale(developed_low_med_high),
                scaled_forest = center_scale(forest),
                scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
               ) %>%
@@ -275,7 +293,9 @@ get_spatial_data <- function(
              scaled_site_area = center_scale(site_area),
              scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
              scaled_developed_open = center_scale(developed_open),
+             scaled_developed_low = center_scale(developed_low),
              scaled_developed_med_high = center_scale(developed_med_high),
+             scaled_developed_low_med_high = center_scale(developed_low_med_high),
              scaled_forest = center_scale(forest),
              scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
       )
@@ -286,32 +306,39 @@ get_spatial_data <- function(
                              unlist(r.site_area),
                              unlist(r.mean_herb_shrub),
                              unlist(r.mean_dev_open),
+                             unlist(r.mean_low_dev),
                              unlist(r.mean_high_dev),
+                             unlist(r.mean_low_med_high_dev),
                              unlist(r.mean_forest),
                              unlist(r.mean_herb_shrub_forest)) %>%
         rename("site_area" = "unlist.r.site_area.",
                "herb_shrub_cover" = "unlist.r.mean_herb_shrub.",
                "developed_open" = "unlist.r.mean_dev_open.",
+               "developed_low" = "unlist.r.mean_low_dev.",
                "developed_med_high" = "unlist.r.mean_high_dev.",
+               "developed_low_med_high" = "unlist.r.mean_low_med_high_dev.",
                "forest" = "unlist.r.mean_forest.",
                "herb_shrub_forest" = "unlist.r.mean_herb_shrub_forest.") %>%
         # remove sites below filter for minimum site area
         filter(site_area > min_site_area) %>%
         # center-scale the variables
         mutate(scaled_pop_den_km2 = center_scale(pop_density_per_km2),
-             scaled_site_area = center_scale(site_area),
-             scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
-             scaled_developed_open = center_scale(developed_open),
-             scaled_developed_med_high = center_scale(developed_med_high),
-             scaled_forest = center_scale(forest),
-             scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
-      )
+               scaled_site_area = center_scale(site_area),
+               scaled_herb_shrub_cover = center_scale(herb_shrub_cover),
+               scaled_developed_open = center_scale(developed_open),
+               scaled_developed_low = center_scale(developed_low),
+               scaled_developed_med_high = center_scale(developed_med_high),
+               scaled_developed_low_med_high = center_scale(developed_low_med_high),
+               scaled_forest = center_scale(forest),
+               scaled_herb_shrub_forest = center_scale(herb_shrub_forest)
+        )
     }                               
     
     
     rm(crs_raster, grid, land, prj1, 
        r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
-       r.site_area, r.vals_land, r.vals_land_NA, states, states_trans)
+       r.site_area, r.vals_land, r.vals_land_NA, r.mean_low_med_high_dev, r.mean_low_dev,
+       states, states_trans)
     gc()
     
     ## --------------------------------------------------
@@ -418,6 +445,21 @@ get_spatial_data <- function(
       ungroup() %>%
       pull(ecoregion_one_vector)
     
+    
+    # pull city names for sites (not used for analysis but interesting to track when plotting
+    # out the site-specific random effects)
+    CBSA <- sf::read_sf("./data/spatial_data/tl_2019_us_cbsa/tl_2019_us_cbsa.shp")
+    
+    ## level 3 cluster (city)
+    crs_CBSA <- sf::st_crs(raster::crs(CBSA))
+    prj1 <- st_transform(grid_pop_dens, crs_CBSA)
+    
+    CBSA_names <- st_join(prj1, CBSA) %>%
+      group_by(grid_id) %>%
+      slice(which.max(ALAND)) %>% 
+      pull(NAME) 
+    
+    # clear the workspace
     rm(prj1, 
        level_three_cluster, 
        ecoregion1)
@@ -550,7 +592,9 @@ get_spatial_data <- function(
     correlation_matrix <- as.matrix(as.data.frame(cbind(grid_pop_dens$scaled_pop_den_km2,
                                                   grid_pop_dens$scaled_site_area,
                                                   grid_pop_dens$scaled_developed_open,
+                                                  grid_pop_dens$scaled_developed_low,
                                                   grid_pop_dens$scaled_developed_med_high,
+                                                  grid_pop_dens$scaled_developed_low_med_high,
                                                   grid_pop_dens$scaled_avg_income,
                                                   grid_pop_dens$scaled_herb_shrub_cover,
                                                   grid_pop_dens$scaled_forest,
@@ -559,7 +603,7 @@ get_spatial_data <- function(
 
   #} # end else
   
-  
+
   ## --------------------------------------------------
   # Return stuff
   return(list(
@@ -572,7 +616,8 @@ get_spatial_data <- function(
     level_three_names = level_three_names,
     level_three_lookup = level_three_lookup,
     n_level_three = n_level_three,
-    correlation_matrix = correlation_matrix
+    correlation_matrix = correlation_matrix,
+    CBSA_names = CBSA_names
     
   ))
 }
