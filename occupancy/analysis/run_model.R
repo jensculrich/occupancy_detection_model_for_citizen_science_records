@@ -354,9 +354,9 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 300
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 150
+    n_burnin <- 500
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -729,15 +729,15 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_site",
           "sigma_psi_level_three",
           "sigma_psi_level_four",
-          #"mu_psi_herb_shrub_forest",
-          "delta0",
-          "delta1",
-          "mu_psi_natural_habitat_nonnative",
-          "mu_psi_natural_habitat_native",
-          #"sigma_psi_herb_shrub_forest",
+          "mu_psi_natural_habitat",
+          "sigma_psi_natural_habitat",
+          #"delta0",
+          #"delta1",
+          #"mu_psi_natural_habitat_nonnative",
+          #"mu_psi_natural_habitat_native",
           #"psi_income",
-          #mu_psi_income",
-          #"sigma_psi_income",
+          "mu_psi_income",
+          "sigma_psi_income",
           "psi_site_area"))
 
 
