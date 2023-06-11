@@ -17,8 +17,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 2
 # within the time span defined above
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -85,6 +85,7 @@ generate_temporal_plots = FALSE # default to FALSE
 # define level 3 spatial clusters by CBSA metro area (by_city == TRUE)
 # or by fine scale ecogeographic region (by_city == FALSE)
 by_city = FALSE
+remove_city_outliers_5stddev = TRUE
 
 ## --------------------------------------------------
 # Run the prep_data() function to gather new data (this takes about 5 minutes)
@@ -188,7 +189,7 @@ herb_shrub <- my_data$herb_shrub_cover
 site_areas <- my_data$site_areas
 natural_habitat <- my_data$herb_shrub_forest
 developed_med_high <- my_data$developed_med_high
-museum_total_records <- my_data$museum_total_records
+rc_total_records <- my_data$museum_total_records
 
 # level three is either CBSA statistical metro areas or ecoregion 3 (depending on preset options above)
 level_three_cluster <- my_data$elevel_three_vector
@@ -295,16 +296,16 @@ if(taxon == "bombus"){
   
   if(urban_sites == TRUE){
    
-    stan_data <- c("V_citsci", "V_museum", 
-                   "ranges", "V_museum_NA",
+    stan_data <- c("V_cs", "V_rc", 
+                   "ranges", "V_rc_NA",
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
                    "n_level_three", 
                    "level_three_lookup", 
-                   "n_ecoregion_one",
-                   "ecoregion_one_lookup",
+                   "n_level_four",
+                   "level_four_lookup",
                    "pop_densities", "site_areas", "avg_income", 
-                   "herb_shrub_forest", "museum_total_records") 
+                   "natural_habitat", "rc_total_records") 
     
     # Parameters monitored
     params <- c("sigma_species_detection",
@@ -315,47 +316,47 @@ if(taxon == "bombus"){
                 "sigma_psi_species",
                 "sigma_psi_site",
                 "sigma_psi_level_three",
-                "sigma_psi_ecoregion_one",
+                "sigma_psi_level_four",
                 "mu_psi_income",
                 "sigma_psi_income",
-                "mu_psi_herb_shrub_forest",
-                "sigma_psi_herb_shrub_forest",
+                "mu_psi_natural_habitat",
+                "sigma_psi_natural_habitat",
                 "psi_site_area",
                 
-                "mu_p_citsci_0",
-                "sigma_p_citsci_site",
-                "sigma_p_citsci_level_three",
-                "sigma_p_citsci_ecoregion_one",
-                "p_citsci_interval",
-                "p_citsci_pop_density", 
+                "mu_p_cs_0",
+                "sigma_p_cs_site",
+                "sigma_p_cs_level_three",
+                "sigma_p_cs_level_four",
+                "p_cs_interval",
+                "p_cs_pop_density", 
                 
-                "mu_p_museum_0",
-                "sigma_p_museum_site",
-                "sigma_p_museum_level_three",
-                "sigma_p_museum_ecoregion_one",
-                "p_museum_total_records",
+                "mu_p_rc_0",
+                "sigma_p_rc_site",
+                "sigma_p_rc_level_three",
+                "sigma_p_rc_level_four",
+                "p_rc_total_records",
                 
                 "psi_species",
                 "psi_income",
-                "psi_herb_shrub_forest",
+                "psi_natural_habitat",
                 
+                "psi_site",
+                "psi_level_four",
                 "psi_level_three", # track city or eco3 effects
-                "psi_ecoregion_one",
                 
-                #"T_rep_citsci",
-                #"T_obs_citsci",
-                "P_species_citsci",
+                "T_rep_cs",
+                "T_obs_cs",
+                "P_species_cs",
                 
-                #"T_rep_museum",
-                #"T_obs_museum",
-                "P_species_museum"
+                "T_rep_rc",
+                "T_obs_rc",
+                "P_species_rc"
     )
     
-    
     # MCMC settings
-    n_iterations <- 500
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 250
+    n_burnin <- 150
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -373,26 +374,26 @@ if(taxon == "bombus"){
         sigma_psi_species = runif(1, 0, 1),
         sigma_psi_site = runif(1, 0, 1),
         sigma_psi_level_three = runif(1, 0, 1),
-        sigma_psi_ecoregion_one = runif(1, 0, 1),
+        sigma_psi_level_four = runif(1, 0, 1),
         mu_psi_income = runif(1, -1, 1),
         sigma_psi_income = runif(1, 0, 1),
-        mu_psi_herb_shrub_forest = runif(1, -1, 1),
-        sigma_psi_herb_shrub_forest = runif(1, 0, 1),
+        mu_psi_natural_habitat = runif(1, -1, 1),
+        sigma_psi_natural_habitat = runif(1, 0, 1),
         psi_site_area = runif(1, -1, 1),
         
-        mu_p_citsci_0 = runif(1, -1, 0),
-        sigma_p_citsci_site = runif(1, 0, 0.5),
-        sigma_p_citsci_level_three = runif(1, 0, 0.5),
-        sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
-        p_citsci_interval = runif(1, 0, 1),
-        p_citsci_pop_density = runif(1, -1, 1),
+        mu_p_cs_0 = runif(1, -1, 0),
+        sigma_p_cs_site = runif(1, 0, 0.5),
+        sigma_p_cs_level_three = runif(1, 0, 0.5),
+        sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
+        p_cs_interval = runif(1, 0, 1),
+        p_cs_pop_density = runif(1, -1, 1),
         
         # start musuem values close to zero
-        mu_p_museum_0 = runif(1, -0.5, 0.5),
-        sigma_p_museum_site = runif(1, 0, 0.25),
-        sigma_p_museum_level_three = runif(1, 0, 0.25),
-        sigma_p_museum_ecoregion_one = runif(1, 0, 0.25),
-        p_museum_total_records = runif(1, -0.5, 0.5)    
+        mu_p_rc_0 = runif(1, -0.5, 0.5),
+        sigma_p_rc_site = runif(1, 0, 0.25),
+        sigma_p_rc_level_three = runif(1, 0, 0.25),
+        sigma_p_rc_ecoregion_one = runif(1, 0, 0.25),
+        p_rc_total_records = runif(1, -0.5, 0.5)    
       )
     )
       
@@ -434,6 +435,7 @@ if(taxon == "bombus"){
                 
                 "psi_species",
                 
+                "psi_site",
                 "psi_level_three", # track city effects
                 "psi_ecoregion_one",
                 
@@ -676,11 +678,7 @@ if(taxon == "bombus"){
 
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
-  if(by_city == FALSE){
-    stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance_no_rc.stan")
-  } else {
-    stan_model <- paste0("./occupancy/models/model_", taxon, "_covariance_by_city.stan")
-  }
+  stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -799,13 +797,12 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "psi_site_area",
-  #"mu_psi_herb_shrub_forest",
-  "delta0",
-  "delta1",
-  "gamma0",
-  "gamma1",
-  #"psi_income",
-  #"mu_psi_income",
+  "mu_psi_natural_habitat",
+  "mu_psi_income",
+  #"delta0",
+  #"delta1",
+  #"gamma0",
+  #"gamma1",
   "mu_p_cs_0",
   "p_cs_interval",
   "p_cs_pop_density"
@@ -815,7 +812,7 @@ traceplot(stan_out, pars = c(
 
 traceplot(stan_out, pars = c(
   "rho",
-  "sigma_species_intercepts"
+  "sigma_species_detection"
 ))
 
 # traceplot
@@ -824,16 +821,15 @@ traceplot(stan_out, pars = c(
   #"sigma_psi_genus",
   "sigma_psi_site",
   "sigma_psi_level_three",
-  #"sigma_psi_ecoregion_three",
   "sigma_psi_level_four",
-  #"sigma_psi_income",
-  #"sigma_psi_herb_shrub_forest",
+  "sigma_psi_income",
+  "sigma_psi_natural_habitat",
   "sigma_p_cs_site",
   "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four"
-  #"sigma_p_museum_site",
-  #"sigma_p_museum_level_three",
-  #"sigma_p_museum_ecoregion_one"#,
+  "sigma_p_cs_level_four",
+  "sigma_p_rc_site",
+  "sigma_p_rc_level_three",
+  "sigma_p_rc_level_four"#,
   #"sigma_p_citsci_species",
   #"sigma_p_museum_species"
 ))
