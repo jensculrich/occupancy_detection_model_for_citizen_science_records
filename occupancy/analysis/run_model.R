@@ -17,7 +17,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 2
 # within the time span defined above
-grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+grid_size = 40000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
@@ -35,8 +35,9 @@ remove_unidentified_species = TRUE # default to TRUE
 consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
-urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
-non_urban_subsample_n = 500 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
+
+urban_sites = FALSE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+non_urban_subsample_n = 550 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
 
@@ -584,90 +585,79 @@ if(taxon == "bombus"){
     
   } else { 
     
-    stan_data <- c("V_citsci", "V_museum", 
-                 "ranges", "V_museum_NA",
-                 "n_species", "n_sites", "n_intervals", "n_visits", 
-                 "intervals", "species", "sites",
-                 "n_genera", "genus_lookup",
-                 "n_level_three", 
-                 "level_three_lookup", 
-                 "n_ecoregion_one",
-                 "ecoregion_one_lookup",
-                 "ecoregion_three_lookup", "ecoregion_one_lookup",
-                 "pop_densities", "site_areas", "museum_total_records") 
-  
-  # Parameters monitored
-  params <- c("mu_psi_0",
-              "sigma_psi_species",
-              "sigma_psi_genus",
-              "sigma_psi_site",
-              "sigma_psi_level_three",
-              "sigma_psi_ecoregion_one",
-              "psi_site_area",
-              
-              "mu_p_citsci_0",
-              "sigma_p_citsci_species",
-              "sigma_p_citsci_site",
-              "sigma_p_citsci_level_three",
-              "sigma_p_citsci_ecoregion_one",
-              "p_citsci_interval",
-              "p_citsci_pop_density", 
-              
-              "mu_p_museum_0",
-              "sigma_p_museum_species",
-              "sigma_p_museum_site",
-              "sigma_p_museum_level_three",
-              "sigma_p_museum_ecoregion_one",
-              "p_museum_total_records",
-              
-              "psi_species",
-
-              #"T_rep_citsci",
-              #"T_obs_citsci",
-              "P_species_citsci",
-              
-              #"T_rep_museum",
-              #"T_obs_museum",
-              "P_species_museum"
-  )
-  
-  
-  # MCMC settings
-  n_iterations <- 600
-  n_thin <- 1
-  n_burnin <- 300
-  n_chains <- 4
-  n_cores <- parallel::detectCores()
-  delta = 0.9
-  
-  ## Initial values
-  # given the number of parameters, the chains need some decent initial values
-  # otherwise sometimes they have a hard time starting to sample
-  inits <- lapply(1:n_chains, function(i)
+    stan_data <- c("V_cs", "V_rc", 
+                   "ranges", 
+                   "n_species", "n_sites", "n_intervals", "n_visits", 
+                   "intervals", "species", "sites",
+                   "n_genera", "genus_lookup",
+                   "n_level_three", 
+                   "level_three_lookup", 
+                   "n_level_four",
+                   "level_four_lookup",
+                   "pop_densities", "site_areas"
+                   ) 
     
-    list(mu_psi_0 = runif(1, 0, 1),
-         sigma_psi_species = runif(1, 0, 0.5),
-         sigma_psi_genus = runif(1, 0, 0.5),
-         sigma_psi_site = runif(1, 0, 0.5),
-         sigma_psi_level_three = runif(1, 0, 0.5),
-         sigma_psi_ecoregion_one = runif(1, 0, 0.5),
-         psi_site_area = runif(1, -1, 1),
-         
-         mu_p_citsci_0 = runif(1, -1, 0),
-         sigma_p_citsci_species = runif(1, 0, 0.5),
-         sigma_p_citsci_site = runif(1, 0, 0.5),
-         sigma_p_citsci_level_three = runif(1, 0, 0.5),
-         p_citsci_interval = runif(1, -1, 1),
-         p_citsci_pop_density = runif(1, -1, 1),
-         
-         mu_p_museum_0 = runif(1, -0.5, 0.5),
-         sigma_p_museum_species = runif(1, 0, 0.1),
-         sigma_p_museum_site = runif(1, 0, 0.1),
-         sigma_p_museum_level_three = runif(1, 0, 0.1),
-         p_museum_total_records = runif(1,  -0.5, 0.5)
-         
+    # Parameters monitored
+    params <- c(
+      "mu_psi_0",
+      "sigma_psi_species",
+      #"sigma_psi_genus",
+      "sigma_psi_site",
+      "sigma_psi_level_three",
+      "sigma_psi_level_four",
+      "psi_site_area",
+      
+      "mu_p_cs_0",
+      "sigma_p_cs_species",
+      "sigma_p_cs_site",
+      "sigma_p_cs_level_three",
+      "sigma_p_cs_level_four",
+      "p_cs_interval",
+      "p_cs_pop_density", 
+      
+      "psi_species",
+
+      #"psi_level_three", # track city/fine-ecoregion effects
+      #"psi_level_four", # track broad eco effects
+      
+      #"T_rep_cs",
+      #"T_obs_cs",
+      "P_species_cs"
+      
     )
-  )
+    
+    
+    # MCMC settings
+    n_iterations <- 2000
+    n_thin <- 1
+    n_burnin <- 500
+    n_chains <- 4
+    n_cores <- 4
+    #n_cores <- parallel::detectCores()
+    delta = 0.95
+    
+    ## Initial values
+    # given the number of parameters, the chains need some decent initial values
+    # otherwise sometimes they have a hard time starting to sample
+    set.seed(1)
+    inits <- lapply(1:n_chains, function(i)
+      
+      list(
+        mu_psi_0 = runif(1, 0.25, 0.5),
+        sigma_psi_site = runif(1, 1, 2),
+        sigma_psi_level_three = runif(1, 0, 1),
+        sigma_psi_level_four = runif(1, 0, 1),
+        psi_site_area = runif(1, -0.5, 0.5),
+        
+        mu_p_cs_0 = runif(1, -3.5, -2.5),
+        sigma_p_cs_site = runif(1, 0, 1),
+        sigma_p_cs_level_three = runif(1, 0, 1),
+        sigma_p_cs_level_four = runif(1, 0, 0.5),
+        p_cs_interval = runif(1, 0.5, 0.6),
+        p_cs_pop_density = runif(1, 0.4, 0.6)
+        
+      )
+    )
   
   }
 }
@@ -729,15 +719,15 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_site",
           "sigma_psi_level_three",
           "sigma_psi_level_four",
-          "mu_psi_natural_habitat",
-          "sigma_psi_natural_habitat",
+          #"mu_psi_natural_habitat",
+          #"sigma_psi_natural_habitat",
           #"delta0",
           #"delta1",
           #"mu_psi_natural_habitat_nonnative",
           #"mu_psi_natural_habitat_native",
           #"psi_income",
-          "mu_psi_income",
-          "sigma_psi_income",
+          #"mu_psi_income",
+          #"sigma_psi_income",
           "psi_site_area"))
 
 
@@ -771,6 +761,9 @@ View(as.data.frame(stan_out, pars=
 
 # print sampled random effects
 print(stan_out, digits = 3, pars=
+        c("psi_species"))
+
+print(stan_out, digits = 3, pars=
         c("species_intercepts[1,1]"))
 
 print(stan_out, digits = 3, pars=
@@ -797,8 +790,8 @@ print(stan_out, digits = 3, pars=
 traceplot(stan_out, pars = c(
   "mu_psi_0",
   "psi_site_area",
-  "mu_psi_natural_habitat",
-  "mu_psi_income",
+  #"mu_psi_natural_habitat",
+  #"mu_psi_income",
   #"delta0",
   #"delta1",
   #"gamma0",
@@ -822,14 +815,14 @@ traceplot(stan_out, pars = c(
   "sigma_psi_site",
   "sigma_psi_level_three",
   "sigma_psi_level_four",
-  "sigma_psi_income",
-  "sigma_psi_natural_habitat",
+  #"sigma_psi_income",
+  #"sigma_psi_natural_habitat",
   "sigma_p_cs_site",
   "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four",
-  "sigma_p_rc_site",
-  "sigma_p_rc_level_three",
-  "sigma_p_rc_level_four"#,
+  "sigma_p_cs_level_four"#,
+  #"sigma_p_rc_site",
+  #"sigma_p_rc_level_three",
+  #"sigma_p_rc_level_four"#,
   #"sigma_p_citsci_species",
   #"sigma_p_museum_species"
 ))
@@ -849,19 +842,19 @@ pairs(stan_out, pars = c(
   "mu_psi_0",
   "sigma_psi_species",
   #"mu_psi_interval",
-  #"sigma_psi_interval",
+  "sigma_psi_site",
   #"mu_psi_herb_shrub_forest",
   "psi_site_area",
   
-  "mu_p_citsci_0",
+  "mu_p_cs_0",
   #"sigma_p_citsci_species",
   #"sigma_p_citsci_site",
-  "p_citsci_interval",
+  "p_cs_interval"
   #"p_citsci_pop_density", 
   
-  "mu_p_museum_0",
+  #"mu_p_museum_0",
   #"sigma_p_museum_species",
-  "sigma_p_museum_site"
+  #"sigma_p_museum_site"
 ))
 
 x=seq(0,3,1)

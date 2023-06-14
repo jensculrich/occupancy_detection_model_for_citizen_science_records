@@ -548,10 +548,8 @@ get_spatial_data <- function(
       pull(species)
     
     # now filter out species that were detected at sites fewer than a minimum number of times
-    if(urban_sites == TRUE){
-      df_id_dens <- df_id_dens %>% 
-        filter(species %in% species_with_enough_detections)
-    }
+    df_id_dens <- df_id_dens %>% 
+      filter(species %in% species_with_enough_detections)
     
     # When we include random sites (lots of remote locations)
     # we end up with many sites with no or only one or two detections ever.
