@@ -269,7 +269,7 @@ model {
   
   // community science records
   
-  mu_p_cs_0 ~ normal(0, 2); // global intercept for detection
+  mu_p_cs_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_cs_site  ~ normal(0, 1);

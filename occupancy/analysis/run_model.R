@@ -58,8 +58,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 40000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -78,8 +78,8 @@ remove_unidentified_species = TRUE # default to TRUE
 consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
-urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
-non_urban_subsample_n = 600 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
+urban_sites = FALSE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+non_urban_subsample_n = 550 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
 
@@ -400,62 +400,64 @@ if(taxon == "bombus"){
       
   } else { # bombus non-urban
     
-    stan_data <- c("V_citsci", "V_museum", 
-                   "ranges", "V_museum_NA",
+    stan_data <- c("V_cs", "V_rc", 
+                   "ranges", "V_rc_NA",
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
                    "n_level_three", 
                    "level_three_lookup", 
-                   "n_ecoregion_one",
-                   "ecoregion_one_lookup",
-                   "ecoregion_three_lookup", "ecoregion_one_lookup",
-                   "pop_densities", "site_areas","museum_total_records") 
+                   "n_level_four",
+                   "level_four_lookup",
+                   "pop_densities", "site_areas", 
+                   "rc_total_records") 
     
     # Parameters monitored
-    params <- c("mu_psi_0",
+    params <- c("sigma_species_detection",
+                "species_intercepts_detection",
+                "rho",
+                
+                "mu_psi_0",
                 "sigma_psi_species",
                 "sigma_psi_site",
                 "sigma_psi_level_three",
-                "sigma_psi_ecoregion_one",
+                "sigma_psi_level_four",
                 "psi_site_area",
                 
-                "mu_p_citsci_0",
-                "sigma_p_citsci_species",
-                "sigma_p_citsci_site",
-                "sigma_p_citsci_level_three",
-                "sigma_p_citsci_ecoregion_one",
-                "p_citsci_interval",
-                "p_citsci_pop_density", 
+                "mu_p_cs_0",
+                "sigma_p_cs_site",
+                "sigma_p_cs_level_three",
+                "sigma_p_cs_level_four",
+                "p_cs_interval",
+                "p_cs_pop_density", 
                 
-                "mu_p_museum_0",
-                "sigma_p_museum_species",
-                "sigma_p_museum_site",
-                "sigma_p_museum_level_three",
-                "sigma_p_museum_ecoregion_one",
-                "p_museum_total_records",
+                "mu_p_rc_0",
+                "sigma_p_rc_site",
+                "sigma_p_rc_level_three",
+                "sigma_p_rc_level_four",
+                "p_rc_total_records",
                 
                 "psi_species",
-                
+
                 "psi_site",
-                "psi_level_three", # track city effects
-                "psi_ecoregion_one",
+                "psi_level_four",
+                "psi_level_three", # track city or eco3 effects
                 
-                #"T_rep_citsci",
-                #"T_obs_citsci",
-                "P_species_citsci",
+                "T_rep_cs",
+                "T_obs_cs",
+                "P_species_cs",
                 
-                #"T_rep_museum",
-                #"T_obs_museum",
-                "P_species_museum"
+                "T_rep_rc",
+                "T_obs_rc",
+                "P_species_rc"
     )
     
-    
     # MCMC settings
-    n_iterations <- 1200
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 600
+    n_burnin <- 500
     n_chains <- 4
-    n_cores <- parallel::detectCores()
+    #n_cores <- parallel::detectCores()
+    n_cores <- 4
     delta = 0.9
     
     ## Initial values
@@ -463,28 +465,29 @@ if(taxon == "bombus"){
     # otherwise sometimes they have a hard time starting to sample
     inits <- lapply(1:n_chains, function(i)
       
-      list(mu_psi_0 = runif(1, -1, 1),
-           sigma_psi_species = runif(1, 0, 0.5),
-           sigma_psi_site = runif(1, 0, 0.5),
-           sigma_psi_level_three = runif(1, 0, 0.5),
-           sigma_psi_ecoregion_one = runif(1, 0, 0.5),
-           psi_site_area = runif(1, -1, 1),
-           
-           mu_p_citsci_0 = runif(1, -1, 0),
-           sigma_p_citsci_species = runif(1, 0, 0.5),
-           sigma_p_citsci_site = runif(1, 0, 0.5),
-           sigma_p_citsci_level_three = runif(1, 0, 0.5),
-           sigma_p_citsci_ecoregion_one = runif(1, 0, 0.5),
-           p_citsci_interval = runif(1, -1, 1),
-           p_citsci_pop_density = runif(1, -1, 1),
-           
-           mu_p_museum_0 = runif(1, -0.5, 0.5),
-           sigma_p_museum_species = runif(1, 0, 0.1),
-           sigma_p_museum_site = runif(1, 0, 0.1),
-           sigma_p_museum_level_three = runif(1, 0, 0.1),
-           sigma_p_museum_ecoregion_one = runif(1, 0, 0.1),
-           p_museum_total_records = runif(1,  -0.5, 0.5)
-           
+      list(
+        rho = runif(1, 0, 1),
+        
+        mu_psi_0 = runif(1, -1, 1),
+        sigma_psi_species = runif(1, 0, 1),
+        sigma_psi_site = runif(1, 0, 1),
+        sigma_psi_level_three = runif(1, 0, 1),
+        sigma_psi_level_four = runif(1, 0, 1),
+        psi_site_area = runif(1, -1, 1),
+        
+        mu_p_cs_0 = runif(1, -1, 0),
+        sigma_p_cs_site = runif(1, 0, 0.5),
+        sigma_p_cs_level_three = runif(1, 0, 0.5),
+        sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
+        p_cs_interval = runif(1, 0, 1),
+        p_cs_pop_density = runif(1, -1, 1),
+        
+        # start musuem values close to zero
+        mu_p_rc_0 = runif(1, -0.5, 0.5),
+        sigma_p_rc_site = runif(1, 0, 0.25),
+        sigma_p_rc_level_three = runif(1, 0, 0.25),
+        sigma_p_rc_ecoregion_one = runif(1, 0, 0.25),
+        p_rc_total_records = runif(1, -0.5, 0.5)    
       )
     )
     
@@ -798,9 +801,9 @@ traceplot(stan_out, pars = c(
   #"gamma1",
   "mu_p_cs_0",
   "p_cs_interval",
-  "p_cs_pop_density"
-  #"mu_p_museum_0",
-  #"p_museum_total_records"
+  "p_cs_pop_density",
+  "mu_p_rc_0",
+  "p_rc_total_records"
 ))
 
 traceplot(stan_out, pars = c(
@@ -819,12 +822,12 @@ traceplot(stan_out, pars = c(
   #"sigma_psi_natural_habitat",
   "sigma_p_cs_site",
   "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four"#,
-  #"sigma_p_rc_site",
-  #"sigma_p_rc_level_three",
-  #"sigma_p_rc_level_four"#,
-  #"sigma_p_citsci_species",
-  #"sigma_p_museum_species"
+  "sigma_p_cs_level_four",
+  "sigma_p_rc_site",
+  "sigma_p_rc_level_three",
+  "sigma_p_rc_level_four"#,
+  #"sigma_p_cs_species",
+  #"sigma_p_rc_species"
 ))
 
 traceplot(stan_out, pars=
