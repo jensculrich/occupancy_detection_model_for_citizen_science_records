@@ -17,8 +17,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 2
 # within the time span defined above
-grid_size = 40000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -36,7 +36,7 @@ consider_species_occurring_outside_sites = FALSE # default to FALSE # consider s
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
 
-urban_sites = FALSE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
 non_urban_subsample_n = 550 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
@@ -216,8 +216,8 @@ level_four_names_unique <- unique(level_four_names)
 CBSA_names <- my_data$CBSA_names
 #View(as.data.frame(CBSA_names))
 
-#saveRDS(species_names, "./figures/species_names/syrphidae_names_50km_nonurban.RDS")
-#saveRDS(species_names, "./figures/species_names/bombus_names_10km_urban.RDS")
+#saveRDS(species_names, "./figures/species_names/syrphidae_names_10km_urban.RDS")
+#saveRDS(species_names, "./figures/species_names/bombus_names_40km_nonurban.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
 #saveRDS(as.data.frame(cbind(CBSA_names, CBSA_lookup)), "./figures/species_names/CBSA_names_10km_urban.RDS")
@@ -275,6 +275,8 @@ if(taxon == "syrphidae"){
 
 rm(my_data)
 gc()
+
+#saveRDS(nativity, "./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
 ## --------------------------------------------------
 # Once you have the data formatted for STAN..

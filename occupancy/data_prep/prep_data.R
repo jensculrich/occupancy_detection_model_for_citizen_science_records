@@ -453,55 +453,57 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     }
     
     # Chronological record counts split by basis of record (any)
-    ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+    ggplot(out2, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
       xlim(2000, 2023) + # choose some years for the axes
       geom_line() +
       scale_colour_manual(name = "Basis of records", 
-                          labels = c("Community science records", "Research collections"),
-                          values=c("red","blue")) +
+                          labels = c("community science", "research collections"),
+                          values=c("firebrick3","dodgerblue3")) +
       geom_vline(xintercept=xints, 
                  linewidth=3, alpha=0.5) +
       geom_vline(xintercept=xints2, 
                  linewidth=1, alpha=0.7, linetype = 'dotted') +
       theme_bw() +
-      xlab("Year") +
-      ylab("Number of Records \n(continental U.S.)") +
+      xlab("year") +
+      ylab("records per year") +
       theme(legend.position = c(0.15, 0.8),
-            legend.title = element_text(colour="black", size=14, 
+            legend.title = element_text(colour="black", size=16, 
                                         face="bold"),
-            legend.text = element_text(colour="black", size=12),
-            axis.text = element_text(size = 16),
-            axis.title = element_text(size = 16)
-      )
+            legend.text = element_text(colour="black", size=14),
+            axis.text = element_text(size = 18),
+            axis.title = element_text(size = 20),
+            panel.grid.major = element_blank(), panel.grid.minor = element_blank()
+      ) 
+      #+ theme(legend.position = "none")
     
     ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_full.pdf"),
            width = 11, height = 8, units = "in") 
     
     # Chronological record counts split by basis of record (sites only)
-    ggplot(out2, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
+    ggplot(out, aes(x = year, y = n, col = as.factor(basisOfRecord))) + 
       xlim(2000, 2023) + # choose some years for the axes
       geom_line() +
-      scale_colour_manual(name = "Basis of Records", 
-                          labels = c("Community science records", "Research collections"),
+      scale_colour_manual(name = "Basis of records", 
+                          labels = c("community science", "research collections"),
                           values=c("red","blue")) +
       geom_vline(xintercept=xints, 
                  linewidth=3, alpha=0.5) +
       geom_vline(xintercept=xints2, 
                  linewidth=1, alpha=0.7, linetype = 'dotted') +
       theme_bw() +
-      xlab("Year") +
-      ylab("Number of Records \n(urban sites)") +
+      xlab("year") +
+      ylab("records per year") +
       theme(legend.position = c(0.15, 0.8),
             legend.title = element_text(colour="black", size=14, 
                                         face="bold"),
             legend.text = element_text(colour="black", size=12),
-            axis.text = element_text(size = 16),
-            axis.title = element_text(size = 16)
+            axis.text = element_text(size = 18),
+            axis.title = element_text(size = 20),
+            panel.grid.major = element_blank(), panel.grid.minor = element_blank()
       )
     
-    ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_urban_sites.pdf"),
-           width = 11, height = 8, units = "in") 
-  }
+    ggsave(paste0("./figures/occurrence_data/", taxon, "_temporal_full.pdf"),
+           width = 11, height = 8, units = "in")   }
   
   rm(df_full)
   gc()
