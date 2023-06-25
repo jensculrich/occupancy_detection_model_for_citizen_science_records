@@ -9,24 +9,27 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-ten_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
-fifteen_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_15km_1000minpop_5minpersp_4ints_3visits_.RDS")
-twenty_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_20km_800minpop_5minpersp_4ints_3visits_.RDS")
-#twentyfive_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_25km_600minpop_5minpersp_4ints_3visits_.RDS")
+ten_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_3ints_3visits_.RDS")
+fifteen_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_15km_1000minpop_5minpersp_3ints_3visits_.RDS")
+twenty_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_20km_800minpop_5minpersp_3ints_3visits_.RDS")
+twentyfive_km <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_25km_600minpop_5minpersp_3ints_3visits_.RDS")
 
 fit_summary_10 <- rstan::summary(ten_km)
 fit_summary_15 <- rstan::summary(fifteen_km)
 fit_summary_20 <- rstan::summary(twenty_km)
-#fit_summary_25 <- rstan::summary(twentyfive_km)
+fit_summary_25 <- rstan::summary(twentyfive_km)
 
+View(cbind(1:nrow(fit_summary_10$summary), fit_summary_10$summary)) # View to see which row corresponds to the parameter of interest
 View(cbind(1:nrow(fit_summary_15$summary), fit_summary_15$summary)) # View to see which row corresponds to the parameter of interest
+View(cbind(1:nrow(fit_summary_20$summary), fit_summary_20$summary)) # View to see which row corresponds to the parameter of interest
+View(cbind(1:nrow(fit_summary_25$summary), fit_summary_25$summary)) # View to see which row corresponds to the parameter of interest
 
 ## --------------------------------------------------
 ## Make figure table 
 
 # parameter means
-params = 2 # mu_psi_0, mu_psi_herb_shrub_forest, mu_psi_income
-n_grains = 3 # 10, 15, 20, and 25km scales
+params = 2 # mu_psi_0, mu_psi_natural_habitat[native]
+n_grains = 4 # 10, 15, 20, and 25km scales
 
 x <- (rep(1:params, each=n_grains)) # parameter reference
 y <- (rep(1:n_grains, times=params)) # spatial grain reference
@@ -37,17 +40,13 @@ estimate <-  c(
   fit_summary_10$summary[1,1],
   fit_summary_15$summary[1,1],
   fit_summary_20$summary[1,1],
-  #fit_summary_25$summary[1,1],
-  # param 2 (psi income)
-  #fit_summary_10$summary[6,1],
-  #fit_summary_15$summary[6,1],
-  #fit_summary_20$summary[6,1],
-  #fit_summary_25$summary[6,1],
+  fit_summary_25$summary[1,1],
+
   # param 3 (psi natural)
-  fit_summary_10$summary[7,1],
-  fit_summary_15$summary[7,1],
-  fit_summary_20$summary[7,1]#,
-  #fit_summary_25$summary[7,1]
+  fit_summary_10$summary[494,1],
+  fit_summary_15$summary[494,1],
+  fit_summary_20$summary[536,1],
+  fit_summary_25$summary[547,1]
 )
 
 lower_95 <- c(
@@ -55,17 +54,13 @@ lower_95 <- c(
   fit_summary_10$summary[1,4],
   fit_summary_15$summary[1,4],
   fit_summary_20$summary[1,4],
-  #fit_summary_25$summary[1,4],
-  # param 2 (psi income)
-  #fit_summary_10$summary[6,4],
-  #fit_summary_15$summary[6,4],
-  #fit_summary_20$summary[6,4],
-  #fit_summary_25$summary[6,4],
+  fit_summary_25$summary[1,4],
+
   # param 3 (psi natural)
-  fit_summary_10$summary[7,4],
-  fit_summary_15$summary[7,4],
-  fit_summary_20$summary[7,4]#,
-  #fit_summary_25$summary[7,4]
+  fit_summary_10$summary[494,4],
+  fit_summary_15$summary[494,4],
+  fit_summary_20$summary[536,4],
+  fit_summary_25$summary[547,4]
 ) 
 
 upper_95 <- c(
@@ -73,17 +68,13 @@ upper_95 <- c(
   fit_summary_10$summary[1,8],
   fit_summary_15$summary[1,8],
   fit_summary_20$summary[1,8],
-  #fit_summary_25$summary[1,8],
-  # param 2 (psi income)
-  #fit_summary_10$summary[6,8],
-  #fit_summary_15$summary[6,8],
-  #fit_summary_20$summary[6,8],
-  #fit_summary_25$summary[6,8],
+  fit_summary_25$summary[1,8],
+
   # param 3 (psi natural)
-  fit_summary_10$summary[7,8],
-  fit_summary_15$summary[7,8],
-  fit_summary_20$summary[7,8]#,
-  #fit_summary_25$summary[7,8]
+  fit_summary_10$summary[494,8],
+  fit_summary_15$summary[494,8],
+  fit_summary_20$summary[536,8],
+  fit_summary_25$summary[547,8]
 ) 
 
 lower_50 <- c(
@@ -91,17 +82,13 @@ lower_50 <- c(
   fit_summary_10$summary[1,5],
   fit_summary_15$summary[1,5],
   fit_summary_20$summary[1,5],
-  #fit_summary_25$summary[1,5],
-  # param 2 (psi income)
-  #fit_summary_10$summary[6,5],
-  #fit_summary_15$summary[6,5],
-  #fit_summary_20$summary[6,5],
-  #fit_summary_25$summary[6,5],
+  fit_summary_25$summary[1,5],
+
   # param 3 (psi natural)
-  fit_summary_10$summary[7,5],
-  fit_summary_15$summary[7,5],
-  fit_summary_20$summary[7,5]#,
-  #fit_summary_25$summary[7,5]
+  fit_summary_10$summary[494,5],
+  fit_summary_15$summary[494,5],
+  fit_summary_20$summary[536,5],
+  fit_summary_25$summary[547,5]
 ) 
 
 upper_50 <- c(
@@ -109,17 +96,13 @@ upper_50 <- c(
   fit_summary_10$summary[1,7],
   fit_summary_15$summary[1,7],
   fit_summary_20$summary[1,7],
-  #fit_summary_25$summary[1,7],
-  # param 2 (psi income)
-  #fit_summary_10$summary[6,7],
-  #fit_summary_15$summary[6,7],
-  #fit_summary_20$summary[6,7],
-  #fit_summary_25$summary[6,7],
+  fit_summary_25$summary[1,7],
+
   # param 3 (psi natural)
-  fit_summary_10$summary[7,7],
-  fit_summary_15$summary[7,7],
-  fit_summary_20$summary[7,7]#,
-  #fit_summary_25$summary[7,7]
+  fit_summary_10$summary[494,7],
+  fit_summary_15$summary[494,7],
+  fit_summary_20$summary[536,7],
+  fit_summary_25$summary[547,7]
 ) 
 
 df <- as.data.frame(cbind(x, y, estimate, 
@@ -139,16 +122,14 @@ df <- as.data.frame(cbind(x, y, estimate,
     theme_bw() +
     scale_x_discrete(name="", breaks = c(1, 2),
                      labels=c(bquote(psi[0]),
-                              #bquote(psi[species[income]]),
-                              bquote(psi[species[natural.hab]])
-                              #bquote(FTP[citsci]),
-                              #bquote(FTP[museum])
+                              bquote(mu[psi["nat. habitat"]~"[native]"])
+
                      )) +
-    scale_y_discrete(name="Site size - \n square edge length (km)", breaks = rep(1:n_grains),
-                     labels=c("10", "15", "20")) +
-    scale_fill_gradient2(low = ("firebrick2"), 
+    scale_y_discrete(name="Spatial grain \n (square edge length (km))", breaks = rep(1:n_grains),
+                     labels=c("10", "15", "20", "25")) +
+    scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3"),
                          name="mean parameter \nestimate",
-                         limits=c(-1,3)) +
+                         limits=c(0,1.25), breaks = c(0, 0.5, 1)) +
     #geom_text(data = df, 
     #     aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
     
@@ -167,7 +148,7 @@ df <- as.data.frame(cbind(x, y, estimate,
     theme(legend.position = "right",
           legend.text=element_text(size=14),
           legend.title=element_text(size=16),
-          axis.text.x = element_text(size = 18, angle = 45, hjust=1),
+          axis.text.x = element_text(size = 24, angle = 45, hjust=1),
           axis.text.y = element_text(size = 16),
           axis.title.x = element_text(size = 12),
           axis.title.y = element_text(size = 18),

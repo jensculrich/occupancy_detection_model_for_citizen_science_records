@@ -58,8 +58,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 40000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+grid_size = 20000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 800 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -78,7 +78,7 @@ remove_unidentified_species = TRUE # default to TRUE
 consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
-urban_sites = FALSE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
+urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
 non_urban_subsample_n = 550 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
 generate_temporal_plots = FALSE # default to FALSE
@@ -217,7 +217,7 @@ CBSA_names <- my_data$CBSA_names
 #View(as.data.frame(CBSA_names))
 
 #saveRDS(species_names, "./figures/species_names/syrphidae_names_10km_urban.RDS")
-#saveRDS(species_names, "./figures/species_names/bombus_names_40km_nonurban.RDS")
+#saveRDS(species_names, "./figures/species_names/syrphidae_names_40km_nonurban.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
 #saveRDS(as.data.frame(cbind(CBSA_names, CBSA_lookup)), "./figures/species_names/CBSA_names_10km_urban.RDS")
@@ -523,7 +523,6 @@ if(taxon == "bombus"){
                 "sigma_psi_level_four",
                 "delta0",
                 "delta1",
-                #"sigma_psi_natural_habitat",
                 "gamma0",
                 "gamma1",
                 "psi_site_area",
@@ -559,7 +558,7 @@ if(taxon == "bombus"){
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.95
+    delta = 0.97
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -674,6 +673,9 @@ if(taxon == "bombus"){
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  # use model 2  for syrphidae 15-25km for stability
+  # which has narrower priors for spatial random effects 
+  #stan_model <- paste0("./occupancy/models/model_", taxon, "2.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -726,11 +728,11 @@ print(stan_out, digits = 3, pars=
           "sigma_psi_level_four",
           #"mu_psi_natural_habitat",
           #"sigma_psi_natural_habitat",
-          #"delta0",
-          #"delta1",
-          #"mu_psi_natural_habitat_nonnative",
-          #"mu_psi_natural_habitat_native",
-          #"psi_income",
+          "delta0",
+          "delta1",
+          "mu_psi_natural_habitat_all_species",
+          "mu_psi_natural_habitat_nonnative",
+          "mu_psi_natural_habitat_native",
           #"mu_psi_income",
           #"sigma_psi_income",
           "psi_site_area"))
@@ -744,14 +746,14 @@ print(stan_out, digits = 3, pars=
           "sigma_p_cs_level_three",
           "sigma_p_cs_level_four",
           "p_cs_interval",
-          "p_cs_pop_density"
+          "p_cs_pop_density"#,
 
-          #"mu_p_museum_0",
+          #"mu_p_rc_0",
           #"sigma_p_museum_species",
           #"sigma_p_museum_site",
           #"sigma_p_museum_ecoregion_three",
           #"sigma_p_museum_ecoregion_one",
-          #"p_museum_total_records"
+          #"p_rc_total_records"
           )
           )
 
@@ -773,6 +775,9 @@ print(stan_out, digits = 3, pars=
 
 print(stan_out, digits = 3, pars=
         c("psi_income"))
+
+print(stan_out, digits = 3, pars=
+        c("psi_natural_habitat"))
 
 print(stan_out, digits = 3, pars=
         c("mu_psi_natural_habitat_native"))
@@ -797,15 +802,15 @@ traceplot(stan_out, pars = c(
   "psi_site_area",
   #"mu_psi_natural_habitat",
   #"mu_psi_income",
-  #"delta0",
-  #"delta1",
-  #"gamma0",
-  #"gamma1",
+  "delta0",
+  "delta1",
+  "gamma0",
+  "gamma1",
   "mu_p_cs_0",
   "p_cs_interval",
-  "p_cs_pop_density",
-  "mu_p_rc_0",
-  "p_rc_total_records"
+  "p_cs_pop_density"#,
+  #"mu_p_rc_0",
+  #"p_rc_total_records"
 ))
 
 traceplot(stan_out, pars = c(
@@ -824,17 +829,18 @@ traceplot(stan_out, pars = c(
   #"sigma_psi_natural_habitat",
   "sigma_p_cs_site",
   "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four",
-  "sigma_p_rc_site",
-  "sigma_p_rc_level_three",
-  "sigma_p_rc_level_four"#,
+  "sigma_p_cs_level_four"#,
+  #"sigma_p_rc_site",
+  #"sigma_p_rc_level_three",
+  #"sigma_p_rc_level_four"#,
   #"sigma_p_cs_species",
   #"sigma_p_rc_species"
 ))
 
 traceplot(stan_out, pars=
             c("mu_psi_natural_habitat_native",
-              "mu_psi_natural_habitat_nonnative"))
+              "mu_psi_natural_habitat_nonnative",
+              "mu_psi_natural_habitat_all_species"))
 
 traceplot(stan_out, pars=
             c("mu_psi_natural_habitat_nonnative"))
@@ -874,3 +880,20 @@ ggplot(data = species_counts, aes(x = reorder(species, total_count), y = total_c
   labs(x = "", 
        y = "Number of detections in urban landscapes (2011-2022)") +
   coord_flip()
+
+# get an "average" P value
+fit_summary <- rstan::summary(stan_out)
+
+fit_summary$summary[1,] # top row (first monitored paramter from the fit)
+fit_summary$summary[1,1] # parameter mean
+fit_summary$summary[1,3] # parameter sd
+fit_summary$summary[1,4] # 2.5 % CI
+fit_summary$summary[1,8] # 97.5 % CI
+
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+# hoverflies
+mean_FTP <- mean(fit_summary$summary[353:493,1])
+# bumble bees cs
+mean_FTP <- mean(fit_summary$summary[761:792,1])
+# bumble bees rc
+mean_FTP <- mean(fit_summary$summary[857:888,1])

@@ -185,7 +185,6 @@ transformed parameters {
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
             psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
-            //psi0_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // an effect 
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
@@ -263,7 +262,7 @@ model {
   sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
-  sigma_p_cs_level_three ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_cs_level_three ~ normal(0, 0.1); // weakly-informative prior
   // level-4 spatial grouping
   p_cs_level_four ~ normal(0, sigma_p_cs_level_four);
   sigma_p_cs_level_four ~ normal(0, 0.1); // weakly-informative prior

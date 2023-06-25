@@ -29,35 +29,35 @@ n_species <- length(species_names)
 # parameter means
 X_eco <- c(1, 2, 3) # 4 ecological params of interest
 # mean of eco params
-Y_eco <- c(fit_summary$summary[6,1], # mu psi income
-           fit_summary$summary[8,1], # mu psi natural habitat
-           fit_summary$summary[10,1]#, # psi site area
+Y_eco <- c(fit_summary$summary[73,1], # mu psi income
+           fit_summary$summary[75,1], # mu psi natural habitat
+           fit_summary$summary[77,1]#, # psi site area
            #fit_summary$summary[1,1] # mu psi 0
           )
 
 # confidence intervals
-lower_95_eco <- c(fit_summary$summary[6,4], # mu psi income
-                  fit_summary$summary[8,4], # mu psi herb shrub forest
-                  fit_summary$summary[10,4]#,
+lower_95_eco <- c(fit_summary$summary[73,4], # mu psi income
+                  fit_summary$summary[75,4], # mu psi natural habitat
+                  fit_summary$summary[77,4]#, # psi site area
                   #fit_summary$summary[1,4] # mu psi 0
 )
 
-upper_95_eco <- c(fit_summary$summary[6,8], # mu psi income
-                  fit_summary$summary[8,8], # mu psi herb shrub forest
-                  fit_summary$summary[10,8]#,
+upper_95_eco <- c(fit_summary$summary[73,8], # mu psi income
+                  fit_summary$summary[75,8], # mu psi natural habitat
+                  fit_summary$summary[77,8]#, # psi site area
                   #fit_summary$summary[1,8] # mu psi 0
 )
 
 # confidence intervals
-lower_50_eco <- c(fit_summary$summary[6,5], # mu psi income
-                  fit_summary$summary[8,5], # mu psi herb shrub forest
-                  fit_summary$summary[10,5]#,
+lower_50_eco <- c(fit_summary$summary[73,5], # mu psi income
+                  fit_summary$summary[75,5], # mu psi natural habitat
+                  fit_summary$summary[77,5]#, # psi site area
                   #fit_summary$summary[1,5] # mu psi 0
 )
 
-upper_50_eco <- c(fit_summary$summary[6,7], # mu psi income
-                  fit_summary$summary[8,7], # mu psi herb shrub forest
-                  fit_summary$summary[10,7]#,
+upper_50_eco <- c(fit_summary$summary[73,7], # mu psi income
+                  fit_summary$summary[75,7], # mu psi natural habitat
+                  fit_summary$summary[77,7]#, # psi site area
                   #fit_summary$summary[1,7] # mu psi 0
 )
 
@@ -79,8 +79,8 @@ for(i in 1:n_species){
   #species_estimates[1,i] <- NA # psi species
   #species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[1,i] <- NA # site area
-  species_estimates[2,i] <- fit_summary$summary[89+i,1] # herb shrub forest
-  species_estimates[3,i] <- fit_summary$summary[56+i,1] # income
+  species_estimates[2,i] <- fit_summary$summary[153+i,1] # herb shrub forest
+  species_estimates[3,i] <- fit_summary$summary[120+i,1] # income
   
 }
 
@@ -102,7 +102,7 @@ for(i in 1:n_species){
     geom_hline(yintercept = 0, lty = "dashed") +
     theme(legend.text=element_text(size=10),
           axis.text.x = element_text(size = 18),
-          axis.text.y = element_text(size = 22),
+          axis.text.y = element_text(size = 24, angle=45, vjust=-0.5),
           axis.title.x = element_text(size = 18),
           axis.title.y = element_text(size = 18),
           panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -164,11 +164,12 @@ n_species <- length(species_names)
 ## Plot ecological paramter means and variation
 
 # parameter means
-X_eco <- c(1, 2, 3) # 3 ecological params of interest
+X_eco <- c(1, 2, 3, 4) # 3 ecological params of interest
 # mean of eco params
 Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
   fit_summary$summary[495,1], # mu psi natural habitat non native
   fit_summary$summary[494,1], # mu psi natural habitat native
+  fit_summary$summary[496,1], # mu psi natural habitat all
   fit_summary$summary[10,1]#, # psi site area
   #fit_summary$summary[1,1] # mu psi 0
 )
@@ -177,6 +178,7 @@ Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
 lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
   fit_summary$summary[495,4], # mu psi natural habitat non native
   fit_summary$summary[494,4], # mu psi natural habitat native
+  fit_summary$summary[496,4], # mu psi natural habitat all
   fit_summary$summary[10,4]#,
   #fit_summary$summary[1,4] # mu psi 0
 )
@@ -184,6 +186,7 @@ lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
 upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
   fit_summary$summary[495,8], # mu psi natural habitat non native
   fit_summary$summary[494,8], # mu psi natural habitat native
+  fit_summary$summary[496,8], # mu psi natural habitat all
   fit_summary$summary[10,8]#,
   #fit_summary$summary[1,8] # mu psi 0
 )
@@ -192,6 +195,7 @@ upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
 lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
   fit_summary$summary[495,5], # mu psi natural habitat non native
   fit_summary$summary[494,5], # mu psi natural habitat native
+  fit_summary$summary[496,5], # mu psi natural habitat all
   fit_summary$summary[10,5]#,
   #fit_summary$summary[1,5] # mu psi 0
 )
@@ -199,6 +203,7 @@ lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
 upper_50_eco <- c(#fit_summary$summary[6,7], # mu psi income
   fit_summary$summary[495,7], # mu psi natural habitat non native
   fit_summary$summary[494,7], # mu psi natural habitat native
+  fit_summary$summary[496,7], # mu psi natural habitat all
   fit_summary$summary[10,7]#,
   #fit_summary$summary[1,7] # mu psi 0
 )
@@ -233,8 +238,9 @@ for(i in 1:n_species){
   species_estimates[1,i] <- NA # site area
   #species_estimates[2,i] <- fit_summary$summary[136+i,1] # herb shrub forest
   #species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
-  species_estimates[2,i] <- subset_native[i,1]
-  species_estimates[3,i] <- subset_nonnative[i,1]
+  species_estimates[2,i] <- fit_summary$summary[158+i,1] # all
+  species_estimates[3,i] <- subset_native[i,1]
+  species_estimates[4,i] <- subset_nonnative[i,1]
 }
 
 ## --------------------------------------------------
@@ -243,11 +249,12 @@ for(i in 1:n_species){
 (s2 <- ggplot(df_estimates_eco) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
-   scale_x_discrete(name="", breaks = c(1, 2, 3),
+   scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
                     labels=c(#bquote(psi[income]),
-                      bquote(mu[psi["natural habitat [nonnative]"]]),
-                      bquote(mu[psi["natural habitat [native]"]]),
-                      bquote(psi[site.area])#, 
+                      bquote(mu[psi["nat. habitat"]~"[nonnative]"]),
+                      bquote(mu[psi["nat. habitat"]~"[native]"]),
+                      bquote(mu[psi["nat. habitat"]~"[all]"]),
+                      bquote(psi["site area"])#, 
                       #bquote(psi[0])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
@@ -256,7 +263,7 @@ for(i in 1:n_species){
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
-         axis.text.y = element_text(size = 22),
+         axis.text.y = element_text(size = 24, angle=45, vjust=-0.5),
          axis.title.x = element_text(size = 18),
          axis.title.y = element_text(size = 18),
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
@@ -431,7 +438,7 @@ for(i in 1:n_species){
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
-         axis.text.y = element_text(size = 18),
+         axis.text.y = element_text(size = 24, angle=45, vjust=-0.5),
          axis.title.x = element_text(size = 18),
          axis.title.y = element_text(size = 18),
          plot.title = element_text(size = 20),
@@ -444,16 +451,16 @@ for(i in 1:n_species){
 
 df_estimates_eco_species <- cbind(df_estimates_citsci, species_estimates_det)
 
-for(i in 1:n_species){
+#for(i in 1:n_species){
   
-  test <- as.data.frame(cbind(X_eco, rev(df_estimates_eco_species[,4+i])))
+#  test <- as.data.frame(cbind(X_eco, rev(df_estimates_eco_species[,4+i])))
   
-  colnames(test) <- c("X_citsci", "Y_citsci")
+#  colnames(test) <- c("X_citsci", "Y_citsci")
   
-  q <- q + geom_point(data = test, aes(x=X_eco, y=Y_eco), 
-                      col = "skyblue", size = 6, shape = "|", alpha = 0.5)
+#  q <- q + geom_point(data = test, aes(x=X_eco, y=Y_eco), 
+#                      col = "skyblue", size = 6, shape = "|", alpha = 0.5)
   
-}
+#}
 
 (q <- q +
     geom_point(aes(x=X_detection, y=Y_detection),
@@ -573,7 +580,7 @@ for(i in 1:n_species){
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
-         axis.text.y = element_text(size = 18),
+         axis.text.y = element_text(size = 24, angle=45, vjust=-0.5),
          axis.title.x = element_text(size = 18),
          axis.title.y = element_text(size = 18),
          plot.title = element_text(size = 20),
@@ -584,18 +591,18 @@ for(i in 1:n_species){
 )
 
 
-df_estimates_eco_species <- cbind(df_estimates_citsci, species_estimates_det)
+#df_estimates_eco_species <- cbind(df_estimates_citsci, species_estimates_det)
 
-for(i in 1:n_species){
+#for(i in 1:n_species){
   
-  test <- as.data.frame(cbind(X_eco, rev(df_estimates_eco_species[,4+i])))
+#  test <- as.data.frame(cbind(X_eco, rev(df_estimates_eco_species[,4+i])))
   
-  colnames(test) <- c("X_citsci", "Y_citsci")
+#  colnames(test) <- c("X_citsci", "Y_citsci")
   
-  q2 <- q2 + geom_point(data = test, aes(x=X_eco, y=Y_eco), 
-                      col = "skyblue", size = 6, shape = "|", alpha = 0.5)
+#  q2 <- q2 + geom_point(data = test, aes(x=X_eco, y=Y_eco), 
+#                      col = "skyblue", size = 6, shape = "|", alpha = 0.5)
   
-}
+#}
 
 (q2 <- q2 +
     geom_point(aes(x=X_detection, y=Y_detection),

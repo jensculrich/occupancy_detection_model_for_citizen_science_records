@@ -6,10 +6,10 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
-species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban_min5detections.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_3ints_3visits_.RDS")
+species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
+nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
-list_of_draws <- as.data.frame(stan_out)
 
 fit_summary <- rstan::summary(stan_out)
 
@@ -282,22 +282,61 @@ for(i in 1:n_species){
 # "psi_species[12]",
 # "psi_species[23]"
 
-
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_3ints_3visits_.RDS")
 fit_summary <- rstan::summary(stan_out)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
+stan_out2 <- readRDS("./occupancy/model_outputs/syrphidae/non_urban/syrphidae_40km_1000minpop_5minpersp_3ints_3visits_.RDS")
+fit_summary2 <- rstan::summary(stan_out2)
+View(cbind(1:nrow(fit_summary2$summary), fit_summary2$summary)) # View to see which row corresponds to the parameter of interest
+
+species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
+species_names2 <- readRDS("./figures/species_names/syrphidae_names_40km_nonurban.RDS")
+
+n_species <- length(species_names)
+
+
 # parameter means
-params = 2
+params = 3
 
 x <- (rep(1:params, each=n_species)) # parameter reference
 y = (rep(1:n_species, times=params)) # species reference
 
+species_names_df <- species_names %>%
+  as.data.frame(.)
+species_names2_df <- species_names2 %>%
+  as.data.frame(.)
+
+mismatches1 <- anti_join(species_names2_df, species_names_df,  by = ".")
+mismatches2 <- anti_join(species_names_df, species_names2_df,  by = ".") %>%
+  cbind(mismatch = "Y") 
+
+test <- left_join(species_names_df, mismatches2) %>%
+  rename("species" = ".") 
+
+# there are 48 species in the urban study that were not recovered in the random resampling
+mismatch_rows <- which(test$mismatch == "Y")
+
+# add an empty row to fit_summary2 with NAs whenever species was not recovered (mismatch rows)
+newrow <- rep(NA, ncol(fit_summary2$summary))
+
+temp <- fit_summary2$summary
+
+for(i in 1:length(mismatch_rows)){
+  r <- mismatch_rows[i] + 12
+  temp <- rbind(temp[1:r,],newrow,temp[-(1:r),])
+}
+
+View(cbind(1:nrow(temp), temp)) # View to see which row corresponds to the parameter of interest
 
 estimate <-  c(
+  # nativity
+  # param 1 (psi_species_rangewide)
+  temp[14:154,1], 
   # param 1 (psi_species)
-  fit_summary$summary[23:136,1],
+  fit_summary$summary[18:158,1],
   # param 2 (psi natural)
-  fit_summary$summary[137:250,1]#,
+  fit_summary$summary[159:299,1]#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -305,72 +344,44 @@ estimate <-  c(
 )
 
 lower <-  c(
+  # param 1 (psi_species_rangewide)
+  temp[14:154,4], 
   # param 1 (psi_species)
-  fit_summary$summary[23:136,4],
+  fit_summary$summary[18:158,4],
   # param 2 (psi natural)
-  fit_summary$summary[137:250,4]#,
+  fit_summary$summary[159:299,4]#,
   # param 3 (Freeman Tukey P cit sci)
-  #fit_summary$summary[253:367,4], 
+  #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
-  #fit_summary$summary[368:482,4]
+  #fit_summary$summary[368:482,1]
 )
 
 upper <-  c(
+  # param 1 (psi_species_rangewide)
+  temp[14:154,8], 
   # param 1 (psi_species)
-  fit_summary$summary[23:136,8],
+  fit_summary$summary[18:158,8],
   # param 2 (psi natural)
-  fit_summary$summary[137:250,8]#,
+  fit_summary$summary[159:299,8]#,
   # param 3 (Freeman Tukey P cit sci)
-  #fit_summary$summary[253:367,8], 
+  #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
-  #fit_summary$summary[368:482,8]
+  #fit_summary$summary[368:482,1]
 )
+
+ 
 
 df = as.data.frame(cbind(x,y,estimate, lower, upper)) %>%
   mutate(x = as.factor(x),
          y = as.factor(y))
 
-df_filtered <- df %>%
-  mutate(y_num = as.integer(y)) %>%
-  filter(y_num > 0)%>%
-  filter(y_num < 36)
-
-# species_names <- str_replace_all(species_names,'Bombus','B.')
-
-p1 <- ggplot(df_filtered, aes(x, y, width=1, height=1)) +
-  geom_tile(aes(fill = estimate)) +
-  theme_bw() +
-  scale_x_discrete(name="", breaks = c(1, 2),
-                   labels=c(bquote(psi[species]),
-                            bquote(psi[species[natural]]),
-                            bquote(FTP[citsci]),
-                            bquote(FTP[museum])
-                   )) +
-  scale_y_discrete(name="", breaks = rep(1:n_species),
-                   labels=species_names) +
-  scale_fill_gradient2(low = ("firebrick2")) +
-  #geom_text(data = df_filtered, 
-    #        aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
-  
-  geom_text(data = df_filtered, 
-            aes(x = x, y = y, label = paste0(
-              #signif(estimate, 2),"\n(", 
-              "(", signif(lower,2), ", ", signif(upper,2), ")")),
-            size = 3.5) +
-  theme(legend.position = "none",
-        #legend.text=element_text(size=14),
-        #legend.title=element_text(size=16),
-        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
-        axis.text.y = element_text(size = 11),
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 12),
-        plot.title = element_text(size = 12),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_blank())
+#df_filtered <- df %>%
+#  mutate(y_num = as.integer(y)) %>%
+#  filter(y_num > 0) %>%
+#  filter(y_num < 36)
 
 # parameter means
-params = 2
+params = 1
 
 x2 <- (rep(1:params, each=n_species)) # parameter reference
 y2 = (rep(1:n_species, times=params)) # species reference
@@ -378,48 +389,135 @@ y2 = (rep(1:n_species, times=params)) # species reference
 
 estimate2 <-  c(
   # param 3 (Freeman Tukey P cit sci)
-  fit_summary$summary[251:364,1], 
-  # param 4 (Freeman Tukey P museum)
-  fit_summary$summary[365:478,1]
+  fit_summary$summary[353:493,1]
 )
 
 df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%
   mutate(x2 = as.factor(x2),
          y2 = as.factor(y2))
 
-df_filtered2 <- df2 %>%
-  mutate(y_num = as.integer(y)) %>%
-  filter(y_num > 0)%>%
-  filter(y_num < 36)
-
-p2 <- ggplot(df_filtered2, aes(x2, y2, width=.8, height=1)) +
-  geom_tile(aes(fill = estimate2)) +
-  theme_bw() +
-  scale_x_discrete(name="", breaks = c(1, 2),
-                   labels=c(
-                     bquote(FTP[citsci]),
-                     bquote(FTP[museum])
-                   )) +
-  scale_y_discrete(name="", breaks = "",
-                   labels="") +
-  scale_fill_gradient2(low = ("firebrick2")) +
-  geom_text(data = df_filtered2, colour = "white",
-            aes(x = x2, y = y2, label = signif(estimate2, 2)), size = 3.5) +
-  theme(legend.position = "none",
-        #legend.text=element_text(size=14),
-        #legend.title=element_text(size=16),
-        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
-        axis.text.y = element_text(size = 11),
-        axis.title.x = element_text(size = 12),
-        axis.title.y = element_text(size = 12),
-        plot.title = element_text(size = 12),
-        plot.margin = unit(c(0,0,0,0), "cm"),
-        panel.border = element_blank(),
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        panel.background = element_blank(), axis.line = element_blank())
-
 library(cowplot)
-plot_grid(p1, p2, align = "h", axis = "bt", rel_widths = c(1, .6))
+
+for(i in 1:5){
+  
+  df_filtered <- df %>%
+    mutate(y_num = as.integer(y)) %>%
+    filter(y_num > 30*i - 30) %>%
+    filter(y_num < 30*i)
+  
+  p1 <- ggplot(df_filtered, aes(x, y, width=1, height=1)) +
+    geom_tile(aes(fill = estimate)) +
+    theme_bw() +
+    scale_x_discrete(name="", breaks = c(1, 2, 3),
+                     labels=c(bquote(psi[species - range]),
+                              bquote(psi[species - urban]),
+                              bquote(psi[species["natural habitat"]])
+                              #bquote(FTP[citsci]),
+                              #bquote(FTP[museum])
+                     )) +
+    scale_y_discrete(name="", breaks = rep(1:n_species),
+                     labels=species_names) +
+    scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+      #geom_text(data = df_filtered, 
+    #        aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+    
+    geom_text(data = df_filtered, 
+              aes(x = x, y = y, label = paste0(
+                #signif(estimate, 2),"\n(", 
+                "[", signif(lower,2), ", ", signif(upper,2), "]")),
+              size = 3.5) +
+    theme(legend.position = "none",
+          #legend.text=element_text(size=14),
+          #legend.title=element_text(size=16),
+          axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+          axis.text.y = element_text(size = 11),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          plot.title = element_text(size = 12),
+          panel.border = element_blank(),
+          plot.margin = unit(c(0,0,0,0), "cm"),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_blank())
+  
+  df_filtered2 <- df2 %>%
+    mutate(y_num = as.integer(y2)) %>%
+    filter(y_num > 30*i - 30) %>%
+    filter(y_num < 30*i)
+  
+  p2 <- ggplot(df_filtered2, aes(x2, y2, width=.8, height=1)) +
+    geom_tile(aes(fill = estimate2)) +
+    theme_bw() +
+    scale_x_discrete(name="", breaks = c(1),
+                     labels=c(
+                       bquote(FTP[cs])
+                     )) +
+    scale_y_discrete(name="", breaks = "",
+                     labels="") +
+    scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+    geom_text(data = df_filtered2, colour = "white",
+              aes(x = x2, y = y2, label = signif(estimate2, 2)), size = 3.5) +
+    theme(legend.position = "none",
+          #legend.text=element_text(size=14),
+          #legend.title=element_text(size=16),
+          axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+          axis.text.y = element_text(size = 11),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          plot.title = element_text(size = 12),
+          plot.margin = unit(c(0,-1,0,-1), "cm"),
+          panel.border = element_blank(),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_blank())
+  
+  nativity_temp <- nativity
+  df3 <- as.data.frame(cbind(rep(1, length(nativity_temp)), seq(1:length(nativity_temp)), nativity_temp)) %>%
+    mutate(new = ifelse(nativity_temp==1, "native", "non-native"))
+  
+  df_filtered3 <- df3 %>%
+    mutate(y_num = as.integer(V2)) %>%
+    filter(y_num > 30*i - 30) %>%
+    filter(y_num < 30*i)
+  
+  df_filtered4 <- cbind(df_filtered2, df_filtered3$nativity_temp, df_filtered3$new) %>% 
+    rename("nativity_temp" = "df_filtered3$nativity_temp",
+           "new" = "df_filtered3$new") %>% 
+    mutate(nativity_temp = as.factor(nativity_temp))
+  
+  str(df_filtered4)
+  
+  p3 <- ggplot(df_filtered4, aes(x2, y2, width=.8, height=1)) +
+    geom_tile(aes(fill = as.factor(nativity_temp)), colour = "white") +
+    theme_bw() +
+    scale_x_discrete(name="", breaks = c(1),
+                     labels=c(
+                       bquote("nativity")
+                     )) +
+    scale_y_discrete(name="", breaks = "",
+                     labels="") +
+    scale_fill_manual(values = c("0"="firebrick3","1"="dodgerblue3")) +
+      #values = c("0" = "white", "1" = "#EDE284")) +
+    #geom_text(data = df_filtered3, 
+    #          aes(x = V1, y = V2, label = new),
+    #          size = 3.5) +
+    theme(legend.position = "none",
+          #legend.text=element_text(size=14),
+          #legend.title=element_text(size=16),
+          #legend.title=element_text(size=16),
+          axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+          axis.text.y = element_text(size = 11),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          plot.title = element_text(size = 12),
+          plot.margin = unit(c(0,-1.5,0,-1.5), "cm"),
+          panel.border = element_blank(),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_blank())
+  
+
+  plot_grid(p1, p3, p2, nrow = 1, align = "h", axis = "bt", rel_widths = c(2, 0.5, 0.5))
+  
+}
+
 
 
 ## --------------------------------------------------
@@ -428,6 +526,8 @@ plot_grid(p1, p2, align = "h", axis = "bt", rel_widths = c(1, .6))
 ## ilogit and logit functions
 ilogit <- function(x) exp(x)/(1+exp(x))
 logit <- function(x) log(x/(1-x))
+
+list_of_draws <- as.data.frame(stan_out)
 
 # 95% conf int
 plot(NA, xlim=c(-3,3), ylim=c(0,1))
@@ -438,36 +538,13 @@ curve(ilogit(fit_summary$summary[7,8]*x), add=TRUE)
 ## --------------------------------------------------
 ## Natural habitat
 
-# intercept and effect
-n_lines <- 100
-params <- matrix(nrow = n_lines, ncol = 2)
-
-for(i in 1:n_lines){
-  row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,1]
-  params[i,2] <- list_of_draws[row,7]
-}
-
-plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occupancy)")
-
-for(i in 1:n_lines){
-  curve(ilogit(params[i,1] + params[i,2]*x), 
-        add=TRUE, col = "lightgrey", lwd = 1)
-}
-
-
-curve(ilogit(fit_summary$summary[1,1] + fit_summary$summary[7,1]*x), 
-      add=TRUE, col = "blue", lwd = 3)
-
 # effect and all others held at mean
 n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
   row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,7]
+  params[i,1] <- list_of_draws[row,496]
 }
 
 plot(NA, xlim=c(-3,3), ylim=c(0,1),
@@ -477,9 +554,7 @@ plot(NA, xlim=c(-3,3), ylim=c(0,1),
 for(i in 1:n_lines){
   curve(ilogit(
     fit_summary$summary[1,1] + # intercept
-      # should add non-centered random effects
-      #fit_summary$summary[6,1] + # income  
-      fit_summary$summary[9,1] + # site area 
+      fit_summary$summary[10,1] + # site area 
       params[i,1]*x), 
     add=TRUE, col = "lightgrey", lwd = 1)
 }
@@ -488,30 +563,6 @@ for(i in 1:n_lines){
 curve(ilogit(
   fit_summary$summary[1,1] + # intercept
     # should add non-centered random effects
-    #fit_summary$summary[6,1] + # income  
-    fit_summary$summary[9,1] + # site area 
-    fit_summary$summary[7,1]*x), 
+    fit_summary$summary[10,1] + # site area 
+    fit_summary$summary[496,1]*x), 
   add=TRUE, col = "blue", lwd = 3)
-
-# just effect
-n_lines <- 100
-params <- matrix(nrow = n_lines, ncol = 1)
-
-for(i in 1:n_lines){
-  row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,7]
-}
-
-plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occupancy)")
-
-for(i in 1:n_lines){
-  curve(ilogit(params[i,1]*x), 
-        add=TRUE, col = "lightgrey", lwd = 1)
-}
-
-
-curve(ilogit(fit_summary$summary[7,1]*x), 
-      add=TRUE, col = "blue", lwd = 3)
-
