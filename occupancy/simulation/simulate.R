@@ -7,6 +7,20 @@
 # for any species were probably not visited or that sites with only detections for
 # a few species only might be targeted and not fully community wide)
 
+library(rstan)
+
+# choose a taxon group
+taxon = "syrphidae"
+taxon = "bombus"
+
+# then you will enter the sim data function
+# then you will enter the parameter values (targets)
+# then run the simulation
+# then prepare the simmed data for stan
+# then run and save the stan model
+# then inspect the results in comparison with the targets
+# as well as model run diagnostics
+
 # model fitting using 'model_simplest.stan' should return the parameter inputs
 simulate_data <- function(taxon,
                           n_genera,
@@ -117,8 +131,8 @@ simulate_data <- function(taxon,
   # correlate records through time by site
   mu2 <- c(0, 0, 0)
   stddev2 <- c(1, 1, 1)
-  corMat2 <- matrix(c(1, 0.8, 0.8,
-                     0.8, 1, 0.8,
+  corMat2 <- matrix(c(1, 0.8, 0.8, 
+                     0.8, 1, 0.8, 
                      0.8, 0.8, 1),
                    ncol = 3)
   covMat2 <- stddev2 %*% t(stddev2) * corMat2
@@ -314,7 +328,7 @@ simulate_data <- function(taxon,
     
   }
   
-  View(as.data.frame(cbind(site_intercepts_p_cs, level_three_intercepts_p_cs, ecoregion_one_intercepts_p_cs, p_cs_site_nested)))
+  # View(as.data.frame(cbind(site_intercepts_p_cs, level_three_intercepts_p_cs, ecoregion_one_intercepts_p_cs, p_cs_site_nested)))
   
   ## Museum
   
@@ -349,7 +363,7 @@ simulate_data <- function(taxon,
     
   }
   
-  View(as.data.frame(cbind(site_intercepts_p_rc, level_three_intercepts_p_rc, ecoregion_one_intercepts_p_rc, p_rc_site_nested)))
+  # View(as.data.frame(cbind(site_intercepts_p_rc, level_three_intercepts_p_rc, ecoregion_one_intercepts_p_rc, p_rc_site_nested)))
   
   
   # spatiotemporal variability in detection probability (changing across sites and 
@@ -672,72 +686,140 @@ simulate_data <- function(taxon,
 
 ## --------------------------------------------------
 ### Variable values for data simulation
-# choose a taxon group
-#taxon = "syrphidae"
-taxon = "bombus"
-## study dimensions
-n_genera = 1 # us 1 unless you want to introduce generic variation
-n_species_per_genera = 50 ## number of species
-n_species = n_genera*n_species_per_genera
-n_level_four = 10
-n_level_three_per_one = 10 # ecoregion3 per ecoregion1
-n_level_three = n_level_four*n_level_three_per_one
-n_sites_per_level_three = 5
-n_sites = n_sites_per_level_three*n_level_three ## number of sites
 
-## currently the civariance matrix for total records is set up for 3 intervals
-n_intervals = 3 ## number of occupancy intervals # if not three will have to change columns in cormatrix2
-n_visits = 3 ## number of samples per year
+if(taxon == "syrphidae"){
+  
+  ## study dimensions
+  n_genera = 1 # us 1 unless you want to introduce generic variation
+  n_species_per_genera = 100 ## number of species
+  n_species = n_genera*n_species_per_genera
+  n_level_four = 10
+  n_level_three_per_one = 7 # ecoregion3 per ecoregion1
+  n_level_three = n_level_four*n_level_three_per_one
+  n_sites_per_level_three = 7
+  n_sites = n_sites_per_level_three*n_level_three ## number of sites
+  
+  ## currently the civariance matrix for total records is set up for 3 intervals
+  n_intervals = 3 ## number of occupancy intervals # if not three will have to change columns in cormatrix2
+  n_visits = 3 ## number of samples per year
+  
+  ## occupancy
+  mu_psi_0 = 0
+  sigma_psi_species = 1.5
+  sigma_psi_genus = 0  # this won't be used if taxon is "bombus", keep at 0 unless want to introduce
+  sigma_psi_site = 1.5 # variation across level2
+  sigma_psi_level_three = 1 # variation across level3
+  sigma_psi_level_four = 1 # variation across level4
+  mu_psi_income = 0 # make sure to specify as 0 if using a model without income 
+  sigma_psi_income = 0 # make sure to specify as 0 if using a model without income 
+  mu_psi_natural_habitat = 0.75 
+  sigma_psi_natural_habitat = 0.75
+  delta0 = -0.5
+  delta1 = 1
+  gamma0 = 0.75
+  gamma1 = 0.15
+  psi_site_area = 0.25 # fixed effect of site area on occupancy
+  
+  ## detection
+  # citizen science observation process
+  mu_p_cs_0 = -3
+  sigma_p_cs_species = 1.5
+  sigma_p_cs_site = 1.5
+  sigma_p_cs_level_three = 1 # variation across level3
+  sigma_p_cs_level_four = 0.75 
+  p_cs_interval = 0.5
+  p_cs_pop_density = 0.5 
+  
+  # museum record observation process
+  mu_p_rc_0 = 0
+  sigma_p_rc_species = 0.75
+  sigma_p_rc_site = 1
+  sigma_p_rc_level_three = 0.75 
+  sigma_p_rc_level_four = 0.5 
+  p_rc_total_records = 0.25
+  
+  # correlations
+  rho = 0.5
+  
+  # introduce NAs (missed visits)?
+  omega_community = 0.05
+  omega_species = 0.005
+  ignore_community_misses = TRUE
+  
+  #sites_missing = 0.5*n_sites 
+  #intervals_missing = 2
+  #visits_missing = 1
+  
+  sites_in_range_beta1 = 2
+  sites_in_range_beta2 = 2
+  
+} else {
+  
+  ## study dimensions
+  n_genera = 1 # us 1 unless you want to introduce generic variation
+  n_species_per_genera = 50 ## number of species
+  n_species = n_genera*n_species_per_genera
+  n_level_four = 10
+  n_level_three_per_one = 7 # ecoregion3 per ecoregion1
+  n_level_three = n_level_four*n_level_three_per_one
+  n_sites_per_level_three = 7
+  n_sites = n_sites_per_level_three*n_level_three ## number of sites
+  
+  ## currently the civariance matrix for total records is set up for 3 intervals
+  n_intervals = 3 ## number of occupancy intervals # if not three will have to change columns in cormatrix2
+  n_visits = 3 ## number of samples per year
+  
+  ## occupancy
+  mu_psi_0 = 0
+  sigma_psi_species = 1.5
+  sigma_psi_genus = 0  # this won't be used if taxon is "bombus", keep at 0 unless want to introduce
+  sigma_psi_site = 1 # variation across level2
+  sigma_psi_level_three = 1 # variation across level3
+  sigma_psi_level_four = 0.75 # variation across level4
+  mu_psi_income = 0.25 # make sure to specify as 0 if using a model without income 
+  sigma_psi_income = 0.5 # make sure to specify as 0 if using a model without income 
+  mu_psi_natural_habitat = 0.75 
+  sigma_psi_natural_habitat = 1
+  delta0 = 0
+  delta1 = 0
+  gamma0 = 0
+  gamma1 = 0
+  psi_site_area = 0.25 # fixed effect of site area on occupancy
+  
+  ## detection
+  # citizen science observation process
+  mu_p_cs_0 = -2.7
+  sigma_p_cs_species = 1.25
+  sigma_p_cs_site = 1.25
+  sigma_p_cs_level_three = 0.75 # variation across level3
+  sigma_p_cs_level_four = 0.35 
+  p_cs_interval = 0.55
+  p_cs_pop_density = 0.5 
+  
+  # museum record observation process
+  mu_p_rc_0 = 0
+  sigma_p_rc_species = 0.75
+  sigma_p_rc_site = 1
+  sigma_p_rc_level_three = 0.75 
+  sigma_p_rc_level_four = 0.25 
+  p_rc_total_records = 0.25
+  
+  # correlations
+  rho = 0.75
+  
+  # introduce NAs (missed visits)?
+  omega_community = 0.3
+  omega_species = 0.025
+  ignore_community_misses = TRUE
+  
+  #sites_missing = 0.5*n_sites 
+  #intervals_missing = 2
+  #visits_missing = 1
+  
+  sites_in_range_beta1 = 2
+  sites_in_range_beta2 = 2
+}
 
-## occupancy
-mu_psi_0 = 0
-sigma_psi_species = 1.5
-sigma_psi_genus = 0  # this won't be used if taxon is "bombus", keep at 0 unless want to introduce
-sigma_psi_site = 0.75 # variation across level2
-sigma_psi_level_three = 0.5 # variation across level3
-sigma_psi_level_four = 0.25 # variation across level4
-mu_psi_income = 0 # make sure to specify as 0 if using a model without income 
-sigma_psi_income = 0.25 # make sure to specify as 0 if using a model without income 
-mu_psi_natural_habitat = 0.75 
-sigma_psi_natural_habitat = 1
-delta0 = -0.5
-delta1 = 1.25
-gamma0 = 0.75
-gamma1 = 0.1
-psi_site_area = 0.25 # fixed effect of site area on occupancy
-
-## detection
-# citizen science observation process
-mu_p_cs_0 = -3
-sigma_p_cs_species = 1.5
-sigma_p_cs_level_three = 0.3 # variation across level3
-sigma_p_cs_level_four = 0.25 
-sigma_p_cs_site = 0.5
-p_cs_interval = 0.5
-p_cs_pop_density = 0.5 
-
-# museum record observation process
-mu_p_rc_0 = 0
-sigma_p_rc_species = 0.5
-sigma_p_rc_level_three = 0.25 
-sigma_p_rc_level_four = 0.1 
-sigma_p_rc_site = 0.25
-p_rc_total_records = 0.25
-
-# correlations
-rho = 0.75
-
-# introduce NAs (missed visits)?
-omega_community = 0.35
-omega_species = 0.025
-ignore_community_misses = TRUE
-
-#sites_missing = 0.5*n_sites 
-#intervals_missing = 2
-#visits_missing = 1
-
-sites_in_range_beta1 = 2
-sites_in_range_beta2 = 2
 
 ## --------------------------------------------------
 ### Simulate data
@@ -843,7 +925,8 @@ rc_total_records <- my_simulated_data$total_records_rc
 nativity = my_simulated_data$nativity
 
 species_intercepts <- my_simulated_data$species_intercepts # see how close we get with the estimates
-
+mean(species_intercepts) # should be really close to mu_psi_0
+sd(species_intercepts) # should be really close to sigma_psi_species
 
 # the models for each group are slightly different and tracking different params
 if(taxon == "syrphidae"){
@@ -933,13 +1016,13 @@ if(taxon == "syrphidae"){
   
   
   # MCMC settings
-  n_iterations <- 400
+  n_iterations <- 300
   n_thin <- 1
-  n_burnin <- 200
+  n_burnin <- 150
   n_chains <- 4
   n_cores <- 4
   #n_cores <- parallel::detectCores()
-  delta = 0.95
+  delta = 0.97
   
   ## Initial values
   # given the number of parameters, the chains need some decent initial values
@@ -948,7 +1031,7 @@ if(taxon == "syrphidae"){
   inits <- lapply(1:n_chains, function(i)
     
     list(
-      mu_psi_0 = runif(1, 0.25, 0.5),
+      mu_psi_0 = runif(1, -0.2, 0.2),
       sigma_psi_site = runif(1, 1, 2),
       sigma_psi_level_three = runif(1, 0, 1),
       sigma_psi_level_four = runif(1, 0, 1),
@@ -958,10 +1041,10 @@ if(taxon == "syrphidae"){
       gamma1 = runif(1, 0, 0.1), # gamma0+gamma1 inits must be >0!
       psi_site_area = runif(1, -0.5, 0.5),
       
-      mu_p_cs_0 = runif(1, -3.5, -2.5),
+      mu_p_cs_0 = runif(1, -3.25, -2.75),
       sigma_p_cs_site = runif(1, 0, 1),
-      sigma_p_cs_level_three = runif(1, 0, 1),
-      sigma_p_cs_level_four = runif(1, 0, 0.5),
+      sigma_p_cs_level_three = runif(1, 0, 0.2),
+      sigma_p_cs_level_four = runif(1, 0, 0.2),
       p_cs_interval = runif(1, 0.5, 0.6),
       p_cs_pop_density = runif(1, 0.4, 0.6)
       
@@ -1080,9 +1163,9 @@ if(taxon == "syrphidae"){
   )
   
   # MCMC settings
-  n_iterations <- 400
+  n_iterations <- 2000
   n_thin <- 1
-  n_burnin <- 200
+  n_burnin <- 500
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.95
@@ -1096,7 +1179,7 @@ if(taxon == "syrphidae"){
     list(
       rho = runif(1, 0, 1),
       
-      mu_psi_0 = runif(1, -1, 1),
+      mu_psi_0 = runif(1, -0.5, 0.5),
       sigma_psi_species = runif(1, 0, 1),
       sigma_psi_site = runif(1, 0, 1),
       sigma_psi_level_three = runif(1, 0, 1),
@@ -1105,14 +1188,14 @@ if(taxon == "syrphidae"){
       sigma_psi_income = runif(1, 0, 1),
       mu_psi_natural_habitat = runif(1, -1, 1),
       sigma_psi_natural_habitat = runif(1, 0, 1),
-      psi_site_area = runif(1, -1, 1),
+      psi_site_area = runif(1, 0, 0.25),
       
-      mu_p_cs_0 = runif(1, -1, 0),
+      mu_p_cs_0 = runif(1, -3, -2.75),
       sigma_p_cs_site = runif(1, 0, 0.5),
       sigma_p_cs_level_three = runif(1, 0, 0.5),
       sigma_p_cs_level_four = runif(1, 0, 0.5),
-      p_cs_interval = runif(1, 0, 1),
-      p_cs_pop_density = runif(1, -1, 1),
+      p_cs_interval = runif(1, 0.5, 0.6),
+      p_cs_pop_density = runif(1, 0.4, 0.6),
       
       # start musuem values close to zero
       mu_p_rc_0 = runif(1, -0.5, 0.5),
@@ -1139,8 +1222,6 @@ View(targets)
 
 ## --------------------------------------------------
 ### Run model
-library(rstan)
-
 
 stan_model <-  paste0("./occupancy/models/model_", taxon, ".stan")
 
@@ -1155,100 +1236,156 @@ stan_out_sim <- stan(stan_model,
                      control=list(adapt_delta=delta),
                      cores = n_cores)
 
-saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "stan_out_sim.rds"))
-stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "stan_out_sim.rds"))
+saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
 
-print(stan_out_sim, digits = 3, pars = c(
-  "rho", 
-  
-  "mu_psi_0",
-  #"sigma_psi_species",
-  "sigma_psi_site",
-  "sigma_psi_level_three",
-  "sigma_psi_level_four",
-  "mu_psi_income",
-  "sigma_psi_income",
-  #"mu_psi_natural_habitat",
-  "delta0",
-  "delta1",
-  "sigma_psi_natural_habitat",
-  "psi_site_area",
-  
-  "mu_p_cs_0",
-  #"sigma_p_cs_species",
-  "sigma_p_cs_site",
-  "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four",
-  "p_cs_interval",
-  "p_cs_pop_density", 
-  
-  "mu_p_rc_0",
-  #"sigma_p_rc_species",
-  "sigma_p_rc_site",
-  "sigma_p_rc_level_three",
-  "sigma_p_rc_level_four",
-  "p_rc_total_records"
-))
+stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
+
+# print results
+if(taxon == "syrphidae"){
+  print(stan_out_sim, digits = 3, pars = c(
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "delta0",
+    "delta1",
+    "gamma0",
+    "gamma1",
+    "psi_site_area",
+    
+    "mu_p_cs_0",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density"
+  ))
+} else {
+  print(stan_out_sim, digits = 3, pars = c(
+    "rho", 
+    "sigma_species_detection[1]",
+    "sigma_species_detection[2]", 
+    "mu_psi_0",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "mu_psi_income",
+    "sigma_psi_income",
+    "mu_psi_natural_habitat",
+    "sigma_psi_natural_habitat",
+    "psi_site_area",
+    
+    "mu_p_cs_0",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density", 
+    
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four",
+    "p_rc_total_records"
+  ))
+}
+
 View(targets)
 
-print(stan_out_sim, digits = 3, pars=
-        c("sigma_species[1]","sigma_species[2]" , "sigma_species[3]"))
+# print some specific parameter if desired
 print(stan_out_sim, digits = 3, pars=
         c("species_intercepts"))
+
+View(as.data.frame(fit_summary <- rstan::summary(stan_out_sim)))
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
 
-# traceplot
-traceplot(stan_out_sim, pars = c(
-  "mu_psi_0",
-  "mu_psi_natural_habitat",
-  #"delta0",
-  #"delta1",
-  "mu_psi_income",
-  "mu_p_cs_0",
-  "p_cs_interval",
-  "p_cs_pop_density",
-  "mu_p_rc_0",
-  "p_rc_total_records"
-))
+# traceplots
+if(taxon == "syrphidae"){
+  traceplot(stan_out_sim, pars = c( # occupancy
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "delta0",
+    "delta1",
+    "gamma0",
+    "gamma1",
+  ))
+  traceplot(stan_out_sim, pars = c(
+    "mu_p_cs_0",
+    "p_cs_interval",
+    "p_cs_pop_density",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four"
+  ))
+} else{
+  traceplot(stan_out_sim, pars = c( # occupancy
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "mu_psi_natural_habitat",
+    "sigma_psi_natural_habitat",
+    "mu_psi_income",
+    "sigma_psi_income"
+  ))
+  traceplot(stan_out_sim, pars = c( # detection
+    "mu_p_cs_0",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density",
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four",
+    "p_rc_total_records"
+  ))
+  traceplot(stan_out_sim, pars = c( # species detection
+    "rho",
+    "sigma_species_detection"
+  ))
+}
 
-traceplot(stan_out_sim, pars = c(
-  "rho",
-  "sigma_species_detection"
-))
+# pairs plot (for a sample of parameters)
+if(taxon == "syrphidae"){
+  pairs(stan_out_sim, pars = c(
+    "mu_psi_0",
+    "mu_p_cs_0",
+    
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "delta1",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site"
+  ))
+} else {
+  pairs(stan_out_sim, pars = c(
+    "mu_psi_0",
+    "mu_p_cs_0",
+    "mu_p_rc_0",
+    "mu_psi_income",
+    "mu_psi_natural_habitat",
+    
+    "sigma_psi_site",
+    "sigma_p_cs_site",
+    "sigma_p_rc_site"
+  ))
+}
 
-# traceplot
-traceplot(stan_out_sim, pars = c(
-  "sigma_psi_species",
-  #"sigma_psi_genus",
-  "sigma_psi_site",
-  "sigma_psi_level_three",
-  "sigma_psi_level_four",
-  "sigma_psi_income",
-  "sigma_psi_natural_habitat",
-  #"gamma0",
-  #"gamma1",
-  "sigma_p_cs_site",
-  "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four",
-  "sigma_p_rc_site",
-  "sigma_p_rc_level_three",
-  "sigma_p_rc_level_four"#,
-  #"sigma_p_cs_species"#,
-  #"sigma_p_rc_species"
-))
+## --------------------------------------------------
+### Plot parameter estimates and targets
 
 
-# pairs plot
-pairs(stan_out_sim, pars = c(
-  "mu_psi_0",
-  "mu_p_cs_0",
-  "mu_p_rc_0",
-  
-  "sigma_psi_level_four",
-  "sigma_p_cs_site"
-))
 
 ## --------------------------------------------------
 ### PPC
@@ -1303,3 +1440,5 @@ plot(list_of_draws[,124], list_of_draws[,159], main = "", xlab =
 
 abline(0, 1, lwd = 2, col = "black")
 
+## --------------------------------------------------
+### Check how many species FAIL the P-value (above .95 or below 0.05)

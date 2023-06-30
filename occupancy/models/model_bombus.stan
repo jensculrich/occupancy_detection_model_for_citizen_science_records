@@ -197,7 +197,7 @@ transformed parameters {
   // Level-3 (n_level_three level-3 random intercepts)
   for(i in 1:n_level_three){
     p0_rc_level_three[i] = p_rc_level_four[level_four_lookup[i]] + 
-      p_cs_level_three[i];
+      p_rc_level_three[i];
   } 
 
   // compute varying intercept at the site level
@@ -266,7 +266,7 @@ model {
   
   // level-2 spatial grouping
   psi_site  ~ normal(0, sigma_psi_site);
-  sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_site ~ normal(0, 1); // weakly-informative prior
   // level-3 spatial grouping
   psi_level_three ~ normal(0, sigma_psi_level_three);
   sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
@@ -315,13 +315,13 @@ model {
   
   // level-2 spatial grouping
   p_rc_site  ~ normal(0, sigma_p_rc_site);
-  sigma_p_rc_site ~ normal(0, 0.1); // weakly-informative prior
+  sigma_p_rc_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_rc_level_three ~ normal(0, sigma_p_rc_level_three);
-  sigma_p_rc_level_three ~ normal(0, 0.1); // weakly-informative prior
+  sigma_p_rc_level_three ~ normal(0, 0.25); // weakly-informative prior
   // level-4 spatial grouping
   p_rc_level_four ~ normal(0, sigma_p_rc_level_four);
-  sigma_p_rc_level_four ~ normal(0, 0.1); // weakly-informative prior
+  sigma_p_rc_level_four ~ normal(0, 0.25); // weakly-informative prior
   
   // an effect of total records at the site during the interval
   p_rc_total_records ~ normal(0, 0.5);

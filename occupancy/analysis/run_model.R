@@ -552,9 +552,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 400
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 200
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -716,7 +716,7 @@ stan_out <- readRDS(paste0(
 )
 )
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
+#stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
 
 # print main effects
 print(stan_out, digits = 3, pars=
