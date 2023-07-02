@@ -1016,9 +1016,9 @@ if(taxon == "syrphidae"){
   
   
   # MCMC settings
-  n_iterations <- 300
+  n_iterations <- 1000
   n_thin <- 1
-  n_burnin <- 150
+  n_burnin <- 300
   n_chains <- 4
   n_cores <- 4
   #n_cores <- parallel::detectCores()
