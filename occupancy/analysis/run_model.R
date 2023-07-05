@@ -552,9 +552,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 400
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 200
+    n_burnin <- 150
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -567,20 +567,22 @@ if(taxon == "bombus"){
     inits <- lapply(1:n_chains, function(i)
       
       list(
-            mu_psi_0 = runif(1, 0.25, 0.5),
-            sigma_psi_site = runif(1, 1, 2),
-            sigma_psi_level_three = runif(1, 0, 1),
-            sigma_psi_level_four = runif(1, 0, 1),
+            mu_psi_0 = runif(1, 0, 0.5),
+            sigma_psi_species = runif(1, 1.5, 2.5),
+            sigma_psi_site = runif(1, 1.5, 2.5),
+            sigma_psi_level_three = runif(1, 0.75, 1.25),
+            sigma_psi_level_four = runif(1, 0.5, 1),
             delta0 = runif(1, -0.5, 0.5),
             delta1 = runif(1, 0, 0.5),
-            gamma0 = runif(1, 0.5, 0.75), # must be a positive value!
+            gamma0 = runif(1, 0.75, 1), # must be a positive value!
             gamma1 = runif(1, 0, 0.1), # gamma0+gamma1 inits must be >0!
             psi_site_area = runif(1, -0.5, 0.5),
             
-            mu_p_cs_0 = runif(1, -3.5, -2.5),
-            sigma_p_cs_site = runif(1, 0, 1),
-            sigma_p_cs_level_three = runif(1, 0, 1),
-            sigma_p_cs_level_four = runif(1, 0, 0.5),
+            mu_p_cs_0 = runif(1, -3, -2.5),
+            sigma_p_cs_species = runif(1, 0, 1),
+            sigma_p_cs_site = runif(1, 1, 1.25),
+            sigma_p_cs_level_three = runif(1, 0.75, 1),
+            sigma_p_cs_level_four = runif(1, 0.75, 1),
             p_cs_interval = runif(1, 0.5, 0.6),
             p_cs_pop_density = runif(1, 0.4, 0.6)
            
@@ -672,10 +674,10 @@ if(taxon == "bombus"){
 
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
-  stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  #stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
   # use model 2  for syrphidae 15-25km for stability
   # which has narrower priors for spatial random effects 
-  #stan_model <- paste0("./occupancy/models/model_", taxon, "2.stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, "2.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -719,134 +721,132 @@ stan_out <- readRDS(paste0(
 #stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
 
 # print main effects
+# print results
+if(taxon == "syrphidae"){
+  print(stan_out, digits = 3, pars = c(
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "delta0",
+    "delta1",
+    "gamma0",
+    "gamma1",
+    "psi_site_area",
+    "mu_psi_natural_habitat_native",
+    "mu_psi_natural_habitat_nonnative",
+    "mu_psi_natural_habitat_all_species",
+    
+    "mu_p_cs_0",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density"
+  ))
+} else {
+  print(stan_out, digits = 3, pars = c(
+    "rho", 
+    "sigma_species_detection[1]",
+    "sigma_species_detection[2]", 
+    "mu_psi_0",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "mu_psi_income",
+    "sigma_psi_income",
+    "mu_psi_natural_habitat",
+    "sigma_psi_natural_habitat",
+    "psi_site_area",
+    
+    "mu_p_cs_0",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density", 
+    
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four",
+    "p_rc_total_records"
+  ))
+}
+
+View(targets)
+
+# print some specific parameter if desired
 print(stan_out, digits = 3, pars=
-        c("mu_psi_0",
-          "sigma_psi_species",
-          #"sigma_psi_genus",
-          "sigma_psi_site",
-          "sigma_psi_level_three",
-          "sigma_psi_level_four",
-          #"mu_psi_natural_habitat",
-          #"sigma_psi_natural_habitat",
-          "delta0",
-          "delta1",
-          "mu_psi_natural_habitat_all_species",
-          "mu_psi_natural_habitat_nonnative",
-          "mu_psi_natural_habitat_native",
-          #"mu_psi_income",
-          #"sigma_psi_income",
-          "psi_site_area"))
+        c("species_intercepts"))
 
-
-print(stan_out, digits = 3, pars=
-        c(
-          "mu_p_cs_0",
-          #"sigma_p_cs_species",
-          "sigma_p_cs_site",
-          "sigma_p_cs_level_three",
-          "sigma_p_cs_level_four",
-          "p_cs_interval",
-          "p_cs_pop_density"#,
-
-          #"mu_p_rc_0",
-          #"sigma_p_museum_species",
-          #"sigma_p_museum_site",
-          #"sigma_p_museum_ecoregion_three",
-          #"sigma_p_museum_ecoregion_one",
-          #"p_rc_total_records"
-          )
-          )
-
-print(stan_out, digits = 3, pars=
-        c("rho",
-          "sigma_species_detection"))
-
-View(as.data.frame(species_names))
-
-View(as.data.frame(stan_out, pars=
-                     c("psi_CBSA")))
-
-# print sampled random effects
-print(stan_out, digits = 3, pars=
-        c("psi_species"))
-
-print(stan_out, digits = 3, pars=
-        c("species_intercepts[1,1]"))
-
-print(stan_out, digits = 3, pars=
-        c("psi_income"))
-
-print(stan_out, digits = 3, pars=
-        c("psi_natural_habitat"))
-
-print(stan_out, digits = 3, pars=
-        c("mu_psi_natural_habitat_native"))
-
-print(stan_out, digits = 3, pars=
-        c("sigma_psi_genus"))
-
-# print sampled ppc
-print(stan_out, digits = 3, pars=
-        c("P_species_cs"))
-
-print(stan_out, digits = 3, pars=
-        c("P_species_rc"))
+View(as.data.frame(rstan::summary(stan_out)))
 
 
 ## --------------------------------------------------
 ### Simple diagnostic plots
 
-# traceplot
-traceplot(stan_out, pars = c(
-  "mu_psi_0",
-  "psi_site_area",
-  #"mu_psi_natural_habitat",
-  #"mu_psi_income",
-  "delta0",
-  "delta1",
-  "gamma0",
-  "gamma1",
-  "mu_p_cs_0",
-  "p_cs_interval",
-  "p_cs_pop_density"#,
-  #"mu_p_rc_0",
-  #"p_rc_total_records"
-))
+# traceplots
+if(taxon == "syrphidae"){
+  traceplot(stan_out, pars = c( # occupancy
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "delta0",
+    "delta1",
+    "gamma0",
+    "gamma1"
+  ))
+  traceplot(stan_out, pars = c(
+    "mu_p_cs_0",
+    "p_cs_interval",
+    "p_cs_pop_density",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four"
+  ))
+  traceplot(stan_out, pars=
+              c("mu_psi_natural_habitat_native",
+                "mu_psi_natural_habitat_nonnative",
+                "mu_psi_natural_habitat_all_species"
+  ))
+} else{
+  traceplot(stan_out, pars = c( # occupancy
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "mu_psi_natural_habitat",
+    "sigma_psi_natural_habitat",
+    "mu_psi_income",
+    "sigma_psi_income"
+  ))
+  traceplot(stan_out, pars = c( # detection
+    "mu_p_cs_0",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density",
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four",
+    "p_rc_total_records"
+  ))
+  traceplot(stan_out, pars = c( # species detection
+    "rho",
+    "sigma_species_detection"
+  ))
+}
 
-traceplot(stan_out, pars = c(
-  "rho",
-  "sigma_species_detection"
-))
 
-# traceplot
-traceplot(stan_out, pars = c(
-  "sigma_psi_species",
-  #"sigma_psi_genus",
-  "sigma_psi_site",
-  "sigma_psi_level_three",
-  "sigma_psi_level_four",
-  #"sigma_psi_income",
-  #"sigma_psi_natural_habitat",
-  "sigma_p_cs_site",
-  "sigma_p_cs_level_three",
-  "sigma_p_cs_level_four"#,
-  #"sigma_p_rc_site",
-  #"sigma_p_rc_level_three",
-  #"sigma_p_rc_level_four"#,
-  #"sigma_p_cs_species",
-  #"sigma_p_rc_species"
-))
-
-traceplot(stan_out, pars=
-            c("mu_psi_natural_habitat_native",
-              "mu_psi_natural_habitat_nonnative",
-              "mu_psi_natural_habitat_all_species"))
-
-traceplot(stan_out, pars=
-            c("mu_psi_natural_habitat_nonnative"))
-
-traceplot(stan_out, pars=
-        c("psi_herb_shrub_forest[25]"))
 
 # pairs plot
 pairs(stan_out, pars = c(

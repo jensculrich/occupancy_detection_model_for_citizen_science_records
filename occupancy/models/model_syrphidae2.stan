@@ -185,7 +185,6 @@ transformed parameters {
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
             psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
-            //psi0_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // an effect 
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
@@ -223,18 +222,18 @@ model {
   
   // level-2 spatial grouping
   psi_site  ~ normal(0, sigma_psi_site);
-  sigma_psi_site ~ normal(0, 0.25); // weakly-informative prior
+  sigma_psi_site ~ normal(0, 1); // weakly-informative prior
   // level-3 spatial grouping
   psi_level_three ~ normal(0, sigma_psi_level_three);
-  sigma_psi_level_three ~ normal(0, 0.1); // weakly-informative prior
+  sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   psi_level_four ~ normal(0, sigma_psi_level_four);
-  sigma_psi_level_four ~ normal(0, 0.1); // weakly-informative prior
+  sigma_psi_level_four ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(mu_psi_0, sigma_psi_species); 
   //psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   // level-3 phylogenetic grouping
   //psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
   //sigma_psi_genus ~ normal(0, 0.05); // weakly-informative prior
@@ -245,28 +244,28 @@ model {
   // and intercept gamma0 and an effect of nativity (gamma1) on variation
   delta0 ~ normal(0, 1); // community mean
   delta1 ~ normal(0, 2); // effect of nativity
-  gamma0 ~ normal(0, 0.25); // community mean
-  gamma1 ~ normal(0, 0.1); // effect of nativity
+  gamma0 ~ normal(0, 1); // community mean
+  gamma1 ~ normal(0, 0.25); // effect of nativity
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
   // Detection (Observation Process)
   
   // community science records
-  mu_p_cs_0 ~ normal(-2, 0.25); // global intercept for detection
+  mu_p_cs_0 ~ normal(-1, 0.5); // global intercept for detection
   
   p_cs_species ~ normal(mu_p_cs_0, sigma_p_cs_species); 
   sigma_p_cs_species ~ normal(0, 1); // weakly-informative prior
   
   // level-2 spatial grouping
   p_cs_site  ~ normal(0, sigma_p_cs_site);
-  sigma_p_cs_site ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
-  sigma_p_cs_level_three ~ normal(0, 0.05); // weakly-informative prior
+  sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   p_cs_level_four ~ normal(0, sigma_p_cs_level_four);
-  sigma_p_cs_level_four ~ normal(0, 0.05); // weakly-informative prior
+  sigma_p_cs_level_four ~ normal(0, 0.25); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 
