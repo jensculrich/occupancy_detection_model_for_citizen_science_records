@@ -191,7 +191,7 @@ model {
   
   // level-2 spatial grouping
   psi_site  ~ normal(0, sigma_psi_site);
-  sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_site ~ normal(0, 1); // weakly-informative prior
   // level-3 spatial grouping
   psi_level_three ~ normal(0, sigma_psi_level_three);
   sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
@@ -222,10 +222,10 @@ model {
   sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
-  sigma_p_cs_level_three ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   p_cs_level_four ~ normal(0, sigma_p_cs_level_four);
-  sigma_p_cs_level_four ~ normal(0, 0.1); // weakly-informative prior
+  sigma_p_cs_level_four ~ normal(0, 0.25); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 

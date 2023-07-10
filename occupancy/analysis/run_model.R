@@ -58,8 +58,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 20000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 800 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -357,13 +357,13 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 3000
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 1000
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
-    delta = 0.9
+    delta = 0.99
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -538,6 +538,7 @@ if(taxon == "bombus"){
                 "psi_species",
                 "psi_natural_habitat",
                 
+                "psi_site",
                 "psi_level_three", # track city/fine-ecoregion effects
                 "psi_level_four", # track broad eco effects
                 
@@ -552,9 +553,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 300
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 150
+    n_burnin <- 500
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -674,10 +675,7 @@ if(taxon == "bombus"){
 
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
-  #stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
-  # use model 2  for syrphidae 15-25km for stability
-  # which has narrower priors for spatial random effects 
-  stan_model <- paste0("./occupancy/models/model_", taxon, "2.stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -722,6 +720,7 @@ stan_out <- readRDS(paste0(
 
 # print main effects
 # print results
+# for urban sites
 if(taxon == "syrphidae"){
   print(stan_out, digits = 3, pars = c(
     "mu_psi_0",
@@ -776,11 +775,53 @@ if(taxon == "syrphidae"){
   ))
 }
 
-View(targets)
+# non urban sites
+if(taxon == "syrphidae"){
+  print(stan_out, digits = 3, pars = c(
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "psi_site_area",
+    
+    "mu_p_cs_0",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density"
+  ))
+} else {
+  print(stan_out, digits = 3, pars = c(
+    "rho", 
+    "sigma_species_detection[1]",
+    "sigma_species_detection[2]", 
+    "mu_psi_0",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "psi_site_area",
+    
+    "mu_p_cs_0",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density", 
+    
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four",
+    "p_rc_total_records"
+  ))
+}
 
 # print some specific parameter if desired
 print(stan_out, digits = 3, pars=
-        c("species_intercepts"))
+        c("psi_site"))
 
 View(as.data.frame(rstan::summary(stan_out)))
 
@@ -789,6 +830,7 @@ View(as.data.frame(rstan::summary(stan_out)))
 ### Simple diagnostic plots
 
 # traceplots
+# urban sites
 if(taxon == "syrphidae"){
   traceplot(stan_out, pars = c( # occupancy
     "mu_psi_0",
@@ -799,7 +841,8 @@ if(taxon == "syrphidae"){
     "delta0",
     "delta1",
     "gamma0",
-    "gamma1"
+    "gamma1",
+    "psi_site_area",
   ))
   traceplot(stan_out, pars = c(
     "mu_p_cs_0",
@@ -825,7 +868,8 @@ if(taxon == "syrphidae"){
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
     "mu_psi_income",
-    "sigma_psi_income"
+    "sigma_psi_income",
+    "psi_site_area"
   ))
   traceplot(stan_out, pars = c( # detection
     "mu_p_cs_0",
@@ -846,7 +890,51 @@ if(taxon == "syrphidae"){
   ))
 }
 
-
+# non-urban
+if(taxon == "syrphidae"){
+  traceplot(stan_out, pars = c( # occupancy
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
+    "psi_site_area"
+  ))
+  traceplot(stan_out, pars = c(
+    "mu_p_cs_0",
+    "p_cs_interval",
+    "p_cs_pop_density",
+    "sigma_p_cs_species",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four"
+  ))
+} else{
+  traceplot(stan_out, pars = c( # occupancy
+    "mu_psi_0",
+    "sigma_psi_species",
+    "sigma_psi_site",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four"
+  ))
+  traceplot(stan_out, pars = c( # detection
+    "mu_p_cs_0",
+    "sigma_p_cs_site",
+    "sigma_p_cs_level_three",
+    "sigma_p_cs_level_four",
+    "p_cs_interval",
+    "p_cs_pop_density",
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four",
+    "p_rc_total_records"
+  ))
+  traceplot(stan_out, pars = c( # species detection
+    "rho",
+    "sigma_species_detection"
+  ))
+}
 
 # pairs plot
 pairs(stan_out, pars = c(
@@ -859,7 +947,7 @@ pairs(stan_out, pars = c(
   
   "mu_p_cs_0",
   #"sigma_p_citsci_species",
-  #"sigma_p_citsci_site",
+  "sigma_p_cs_site",
   "p_cs_interval"
   #"p_citsci_pop_density", 
   

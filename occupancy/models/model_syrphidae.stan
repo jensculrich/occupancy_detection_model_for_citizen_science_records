@@ -244,7 +244,7 @@ model {
   // and intercept gamma0 and an effect of nativity (gamma1) on variation
   delta0 ~ normal(0, 1); // community mean
   delta1 ~ normal(0, 2); // effect of nativity
-  gamma0 ~ normal(0, 0.5); // community mean
+  gamma0 ~ normal(0, 1); // community mean
   gamma1 ~ normal(0, 0.25); // effect of nativity
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
@@ -262,7 +262,7 @@ model {
   sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
-  sigma_p_cs_level_three ~ normal(0, 0.25); // weakly-informative prior
+  sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
   // level-4 spatial grouping
   p_cs_level_four ~ normal(0, sigma_p_cs_level_four);
   sigma_p_cs_level_four ~ normal(0, 0.25); // weakly-informative prior
