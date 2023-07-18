@@ -58,8 +58,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 600 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -78,6 +78,7 @@ remove_unidentified_species = TRUE # default to TRUE
 consider_species_occurring_outside_sites = FALSE # default to FALSE # consider species that were detected outside of the sites but not at sites?
 min_records_per_species_full = 15 # min rec threshold if above is true
 make_range_plot = FALSE # default to FALSE # plot ranges
+
 urban_sites = TRUE # default to TRUE # cut sites to above urban threshold if true - if false will return non urban sites
 non_urban_subsample_n = 550 # if urban_sites is true, then how many sites do you want to keep? Keeping all will yield too much site data for computer to handle
 infer_detections_at_genus = FALSE # default to FALSE # if true, infer non detections only for species in the same genus as a species detected (as opposed to any in the clade)
@@ -357,9 +358,9 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 3000
+    n_iterations <- 1200
     n_thin <- 1
-    n_burnin <- 1000
+    n_burnin <- 500
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -375,7 +376,7 @@ if(taxon == "bombus"){
         
         mu_psi_0 = runif(1, -1, 1),
         sigma_psi_species = runif(1, 0, 1),
-        sigma_psi_site = runif(1, 0, 1),
+        sigma_psi_site = runif(1, 0.5, 1),
         sigma_psi_level_three = runif(1, 0, 1),
         sigma_psi_level_four = runif(1, 0, 1),
         mu_psi_income = runif(1, -1, 1),
@@ -385,7 +386,7 @@ if(taxon == "bombus"){
         psi_site_area = runif(1, -1, 1),
         
         mu_p_cs_0 = runif(1, -1, 0),
-        sigma_p_cs_site = runif(1, 0, 0.5),
+        sigma_p_cs_site = runif(1, 0.5, 1),
         sigma_p_cs_level_three = runif(1, 0, 0.5),
         sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
         p_cs_interval = runif(1, 0, 1),
@@ -393,7 +394,7 @@ if(taxon == "bombus"){
         
         # start musuem values close to zero
         mu_p_rc_0 = runif(1, -0.5, 0.5),
-        sigma_p_rc_site = runif(1, 0, 0.25),
+        sigma_p_rc_site = runif(1, 0.5, 1),
         sigma_p_rc_level_three = runif(1, 0, 0.25),
         sigma_p_rc_ecoregion_one = runif(1, 0, 0.25),
         p_rc_total_records = runif(1, -0.5, 0.5)    
@@ -434,8 +435,8 @@ if(taxon == "bombus"){
                 
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
-                "sigma_p_rc_level_three",
-                "sigma_p_rc_level_four",
+                #"sigma_p_rc_level_three",
+                #"sigma_p_rc_level_four",
                 "p_rc_total_records",
                 
                 "psi_species",
@@ -460,7 +461,7 @@ if(taxon == "bombus"){
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
-    delta = 0.9
+    delta = 0.95
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -487,8 +488,8 @@ if(taxon == "bombus"){
         # start musuem values close to zero
         mu_p_rc_0 = runif(1, -0.5, 0.5),
         sigma_p_rc_site = runif(1, 0, 0.25),
-        sigma_p_rc_level_three = runif(1, 0, 0.25),
-        sigma_p_rc_ecoregion_one = runif(1, 0, 0.25),
+        #sigma_p_rc_level_three = runif(1, 0, 0.25),
+        #sigma_p_rc_level_four = runif(1, 0, 0.25),
         p_rc_total_records = runif(1, -0.5, 0.5)    
       )
     )
@@ -553,9 +554,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 400
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 200
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -676,6 +677,7 @@ if(taxon == "bombus"){
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  #stan_model <- paste0("./occupancy/models/model_", taxon, "_narrower_re_priors.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
@@ -813,8 +815,8 @@ if(taxon == "syrphidae"){
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four",
+    #"sigma_p_rc_level_three",
+    #"sigma_p_rc_level_four",
     "p_rc_total_records"
   ))
 }
@@ -842,7 +844,7 @@ if(taxon == "syrphidae"){
     "delta1",
     "gamma0",
     "gamma1",
-    "psi_site_area",
+    "psi_site_area"
   ))
   traceplot(stan_out, pars = c(
     "mu_p_cs_0",
@@ -926,8 +928,8 @@ if(taxon == "syrphidae"){
     "p_cs_pop_density",
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four",
+    #"sigma_p_rc_level_three",
+    #"sigma_p_rc_level_four",
     "p_rc_total_records"
   ))
   traceplot(stan_out, pars = c( # species detection
@@ -943,15 +945,17 @@ pairs(stan_out, pars = c(
   #"mu_psi_interval",
   "sigma_psi_site",
   #"mu_psi_herb_shrub_forest",
-  "psi_site_area",
+  #"psi_site_area",
   
   "mu_p_cs_0",
   #"sigma_p_citsci_species",
   "sigma_p_cs_site",
-  "p_cs_interval"
+  #"p_cs_interval",
   #"p_citsci_pop_density", 
   
-  #"mu_p_museum_0",
+  "mu_p_rc_0",
+  "sigma_p_rc_site",
+  "sigma_p_rc_level_three"
   #"sigma_p_museum_species",
   #"sigma_p_museum_site"
 ))

@@ -123,11 +123,11 @@ parameters {
   vector[n_sites] p_rc_site; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_rc_site; // variance in site slopes
   // level-3 spatial clusters
-  vector[n_level_three] p_rc_level_three; // site specific intercept for PL outcome
-  real<lower=0> sigma_p_rc_level_three; 
+  //vector[n_level_three] p_rc_level_three; // site specific intercept for PL outcome
+  //real<lower=0> sigma_p_rc_level_three; 
   // level-4 spatial clusters
-  vector[n_level_four] p_rc_level_four; // site specific intercept for PL outcome
-  real<lower=0> sigma_p_rc_level_four;
+  //vector[n_level_four] p_rc_level_four; // site specific intercept for PL outcome
+  //real<lower=0> sigma_p_rc_level_four;
   
   real p_rc_total_records; // fixed effect of total records on detection probability
   
@@ -147,8 +147,8 @@ transformed parameters {
   real p0_cs_site[n_sites];
   real p0_cs_level_three[n_level_three];
   
-  real p0_rc_site[n_sites];
-  real p0_rc_level_three[n_level_three];
+  //real p0_rc_site[n_sites];
+  //real p0_rc_level_three[n_level_three];
 
   //
   // compute the varying community science detection intercept at the ecoregion3 level
@@ -183,17 +183,17 @@ transformed parameters {
   //
   // compute the varying community science detection intercept at the ecoregion3 level
   // Level-3 (n_level_three level-3 random intercepts)
-  for(i in 1:n_level_three){
-    p0_rc_level_three[i] = p_rc_level_four[level_four_lookup[i]] + 
-      p_rc_level_three[i];
-  } 
+  //for(i in 1:n_level_three){
+  //  p0_rc_level_three[i] = p_rc_level_four[level_four_lookup[i]] + 
+  //    p_rc_level_three[i];
+  //} 
 
   // compute varying intercept at the site level
   // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
-  for(i in 1:n_sites){
-    p0_rc_site[i] = p0_rc_level_three[level_three_lookup[i]] + 
-      p_rc_site[i];
-  } 
+  //for(i in 1:n_sites){
+  //  p0_rc_site[i] = p0_rc_level_three[level_three_lookup[i]] + 
+  //    p_rc_site[i];
+  //} 
   
   
   for (i in 1:n_species){   // loop across all species
@@ -223,7 +223,8 @@ transformed parameters {
            
           logit_p_rc[i,j,k] = // the inverse of the log odds of detection is equal to..
             species_intercepts_detection[species[i],2] + // a species specific intercept
-            p0_rc_site[sites[j]] + // a spatially specific intercept // includes global intercept
+            //p0_rc_site[sites[j]] + // a spatially specific intercept // includes global intercept
+            p_rc_site[sites[j]] + // a spatially specific intercept // includes global intercept
             p_rc_total_records*rc_total_records[j,k] //records at site in interval
            ; // end p_rc[i,j,k]
            
@@ -248,7 +249,7 @@ model {
     custom_cov_matrix(sigma_species_detection, rho));
   
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 0.5); // global intercept for occupancy rate
   
   // level-2 spatial grouping
   psi_site  ~ normal(0, sigma_psi_site);
@@ -269,11 +270,11 @@ model {
   
   // community science records
   
-  mu_p_cs_0 ~ normal(0, 2); // global intercept for detection
+  mu_p_cs_0 ~ normal(0, 1); // global intercept for detection
   
   // level-2 spatial grouping
   p_cs_site  ~ normal(0, sigma_p_cs_site);
-  sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_cs_site ~ normal(0, 0.25); // weakly-informative prior
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
   sigma_p_cs_level_three ~ normal(0, 0.25); // weakly-informative prior
@@ -289,17 +290,17 @@ model {
   
   // museum records
   
-  mu_p_rc_0 ~ normal(0, 0.5); // global intercept for detection
+  mu_p_rc_0 ~ normal(0, 0.25); // global intercept for detection
   
   // level-2 spatial grouping
   p_rc_site  ~ normal(0, sigma_p_rc_site);
   sigma_p_rc_site ~ normal(0, 0.25); // weakly-informative prior
   // level-3 spatial grouping
-  p_rc_level_three ~ normal(0, sigma_p_rc_level_three);
-  sigma_p_rc_level_three ~ normal(0, 0.25); // weakly-informative prior
+  //p_rc_level_three ~ normal(0, sigma_p_rc_level_three);
+  //sigma_p_rc_level_three ~ normal(0, 0.1); // weakly-informative prior
   // level-4 spatial grouping
-  p_rc_level_four ~ normal(0, sigma_p_rc_level_four);
-  sigma_p_rc_level_four ~ normal(0, 0.25); // weakly-informative prior
+  //p_rc_level_four ~ normal(0, sigma_p_rc_level_four);
+  //sigma_p_rc_level_four ~ normal(0, 0.1); // weakly-informative prior
   
   // an effect of total records at the site during the interval
   p_rc_total_records ~ normal(0, 0.5);
