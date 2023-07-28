@@ -142,7 +142,7 @@ simulate_data <- function(taxon,
   total_records_rc <- MASS::mvrnorm(n = n_sites, mu = mu2, Sigma = covMat2, empirical = FALSE)
   
   ## --------------------------------------------------
-  ### Introduce correlations between species occupancy and species detection rates 
+  ### Introduce correlations between species detection rates 
   
   species_mu <- c(mu_p_cs_0, mu_p_rc_0)
 
@@ -691,7 +691,7 @@ if(taxon == "syrphidae"){
   
   ## study dimensions
   n_genera = 1 # us 1 unless you want to introduce generic variation
-  n_species_per_genera = 100 ## number of species
+  n_species_per_genera = 120 ## number of species
   n_species = n_genera*n_species_per_genera
   n_level_four = 10
   n_level_three_per_one = 7 # ecoregion3 per ecoregion1
@@ -707,9 +707,9 @@ if(taxon == "syrphidae"){
   mu_psi_0 = 0
   sigma_psi_species = 1.5
   sigma_psi_genus = 0  # this won't be used if taxon is "bombus", keep at 0 unless want to introduce
-  sigma_psi_site = 1.5 # variation across level2
-  sigma_psi_level_three = 1 # variation across level3
-  sigma_psi_level_four = 1 # variation across level4
+  sigma_psi_site = 1 # variation across level2
+  sigma_psi_level_three = 0.75 # variation across level3
+  sigma_psi_level_four = 0.5 # variation across level4
   mu_psi_income = 0 # make sure to specify as 0 if using a model without income 
   sigma_psi_income = 0 # make sure to specify as 0 if using a model without income 
   mu_psi_natural_habitat = 0.75 
@@ -723,10 +723,10 @@ if(taxon == "syrphidae"){
   ## detection
   # citizen science observation process
   mu_p_cs_0 = -3
-  sigma_p_cs_species = 1.5
-  sigma_p_cs_site = 1.5
-  sigma_p_cs_level_three = 1 # variation across level3
-  sigma_p_cs_level_four = 0.75 
+  sigma_p_cs_species = 1
+  sigma_p_cs_site = 1
+  sigma_p_cs_level_three = 0.75 # variation across level3
+  sigma_p_cs_level_four = 0.5 
   p_cs_interval = 0.5
   p_cs_pop_density = 0.5 
   
@@ -773,9 +773,9 @@ if(taxon == "syrphidae"){
   mu_psi_0 = 0
   sigma_psi_species = 1.5
   sigma_psi_genus = 0  # this won't be used if taxon is "bombus", keep at 0 unless want to introduce
-  sigma_psi_site = 1 # variation across level2
+  sigma_psi_site = 0.5 # variation across level2
   sigma_psi_level_three = 1 # variation across level3
-  sigma_psi_level_four = 0.75 # variation across level4
+  sigma_psi_level_four = 0.5 # variation across level4
   mu_psi_income = 0.25 # make sure to specify as 0 if using a model without income 
   sigma_psi_income = 0.5 # make sure to specify as 0 if using a model without income 
   mu_psi_natural_habitat = 0.75 
@@ -799,8 +799,8 @@ if(taxon == "syrphidae"){
   # museum record observation process
   mu_p_rc_0 = 0
   sigma_p_rc_species = 0.75
-  sigma_p_rc_site = 1
-  sigma_p_rc_level_three = 0.75 
+  sigma_p_rc_site = 0.75
+  sigma_p_rc_level_three = 0.5 
   sigma_p_rc_level_four = 0.25 
   p_rc_total_records = 0.25
   
@@ -823,7 +823,7 @@ if(taxon == "syrphidae"){
 
 ## --------------------------------------------------
 ### Simulate data
-set.seed(1)
+set.seed(2)
 my_simulated_data <- simulate_data(taxon,
                                    n_genera,
                                    n_species_per_genera,
@@ -1016,9 +1016,9 @@ if(taxon == "syrphidae"){
   
   
   # MCMC settings
-  n_iterations <- 1000
+  n_iterations <- 500
   n_thin <- 1
-  n_burnin <- 300
+  n_burnin <- 250
   n_chains <- 4
   n_cores <- 4
   #n_cores <- parallel::detectCores()
@@ -1163,9 +1163,9 @@ if(taxon == "syrphidae"){
   )
   
   # MCMC settings
-  n_iterations <- 2000
+  n_iterations <- 300
   n_thin <- 1
-  n_burnin <- 500
+  n_burnin <- 150
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.95
@@ -1225,6 +1225,10 @@ View(targets)
 
 stan_model <-  paste0("./occupancy/models/model_", taxon, ".stan")
 
+# stan_model <- paste0("./occupancy/models/model_", taxon, "_reparameterized_rand_effects.stan")
+
+# level_four_lookup <- rep(1:10, each = 49)
+
 ## Call Stan from R
 stan_out_sim <- stan(stan_model,
                      data = stan_data, 
@@ -1236,7 +1240,8 @@ stan_out_sim <- stan(stan_model,
                      control=list(adapt_delta=delta),
                      cores = n_cores)
 
-saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
+#saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
+saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim2.rds"))
 
 stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
 
@@ -1315,6 +1320,7 @@ if(taxon == "syrphidae"){
     "delta1",
     "gamma0",
     "gamma1",
+    "psi_site_area"
   ))
   traceplot(stan_out_sim, pars = c(
     "mu_p_cs_0",
@@ -1384,8 +1390,222 @@ if(taxon == "syrphidae"){
 
 ## --------------------------------------------------
 ### Plot parameter estimates and targets
+library(ggplot2)
+library(tidyverse)
 
+# syrphidae
+targets2 <- targets[1:17,]
 
+fit_summary <- rstan::summary(stan_out_sim)
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
+X <- as.factor(seq(1:nrow(targets2))) # 4 ecological params of interest
+
+estimates_lower <- c(
+  fit_summary$summary[1,4], # mu psi 0
+  fit_summary$summary[2,4], # sigma psi species
+  fit_summary$summary[3,4], # sigma psi site
+  fit_summary$summary[4,4], # sigma psi level three
+  fit_summary$summary[5,4], # sigma psi level four
+  fit_summary$summary[6,4], # delta0
+  fit_summary$summary[7,4], # delta1
+  fit_summary$summary[8,4], # gamma0
+  fit_summary$summary[9,4], # gamma1
+  fit_summary$summary[10,4], # psi site area
+  fit_summary$summary[11,4], # mu p cs 0
+  fit_summary$summary[12,4], # sigma p cs species
+  fit_summary$summary[13,4], # sigma p cs site
+  fit_summary$summary[14,4], # sigma p cs level three
+  fit_summary$summary[15,4], # sigma p cs level four
+  fit_summary$summary[16,4], # p cs interval^2
+  fit_summary$summary[17,4] # p cs pop density
+)
+
+estimates_upper <- c(
+  fit_summary$summary[1,8], # mu psi 0
+  fit_summary$summary[2,8], # sigma psi species
+  fit_summary$summary[3,8], # sigma psi site
+  fit_summary$summary[4,8], # sigma psi level three
+  fit_summary$summary[5,8], # sigma psi level four
+  fit_summary$summary[6,8], # delta0
+  fit_summary$summary[7,8], # delta1
+  fit_summary$summary[8,8], # gamma0
+  fit_summary$summary[9,8], # gamma1
+  fit_summary$summary[10,8], # psi site area
+  fit_summary$summary[11,8], # mu p cs 0
+  fit_summary$summary[12,8], # sigma p cs species
+  fit_summary$summary[13,8], # sigma p cs site
+  fit_summary$summary[14,8], # sigma p cs level three
+  fit_summary$summary[15,8], # sigma p cs level four
+  fit_summary$summary[16,8], # p cs interval^2
+  fit_summary$summary[17,8] # p cs pop density
+)
+
+df_estimates <- as.data.frame(cbind(X, targets2, estimates_lower, estimates_upper))
+df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
+
+(p <- ggplot(df_estimates) +
+    theme_bw() +
+    scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                         10, 11, 12, 13, 14, 15, 16, 17),
+                     labels=c(bquote(mu[psi[0]]), 
+                              bquote(sigma[psi["species"]]),
+                              bquote(sigma[psi["site"]]),
+                              bquote(sigma[psi["level 3"]]), 
+                              bquote(sigma[psi["level 4"]]),
+                              bquote(delta[0]),
+                              bquote(delta[1]),
+                              bquote(gamma[0]),
+                              bquote(gamma[1]),
+                              bquote(psi["site area"]),
+                              bquote(mu["p.cs"[0]]),
+                              bquote(sigma["p.cs"["species"]]),
+                              bquote(sigma["p.cs"["site"]]),
+                              bquote(sigma["p.cs"["level 3"]]), 
+                              bquote(sigma["p.cs"["level 4"]]),
+                              bquote("p.cs"["interval^2"]),
+                              bquote("p.cs"["pop. density"])
+                     )
+    ) +
+    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
+                       limits = c(-3.5, 3)) +
+    guides(color = guide_legend(title = "")) +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    theme(legend.text=element_text(size=10),
+          axis.text.x = element_text(size = 18),
+          axis.text.y = element_text(size = 20, angle=0, vjust=0),
+          axis.title.x = element_text(size = 18),
+          axis.title.y = element_text(size = 18),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+    coord_flip()
+)
+
+p <- p +
+  geom_errorbar(aes(x=X, ymin=estimates_lower, ymax=estimates_upper),
+                color="black",width=0.1,size=1,alpha=0.5) +
+  geom_point(aes(x=X, y=parameter_value),
+             size = 5, alpha = 0.8, shape = 10, colour = "firebrick2") 
+
+p
+
+# bombus
+targets2 <- targets[1:24,]
+
+fit_summary <- rstan::summary(stan_out_sim)
+View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
+
+X <- as.factor(seq(1:nrow(targets2))) # 4 ecological params of interest
+
+estimates_lower <- c(
+  fit_summary$summary[1,4], # sigma p cs species
+  fit_summary$summary[2,4], # sigma p rc species
+  fit_summary$summary[3,4], # rho
+  fit_summary$summary[4,4], # mu psi 0
+  fit_summary$summary[5,4], # sigma psi species
+  fit_summary$summary[6,4], # sigma psi site
+  fit_summary$summary[7,4], # sigma psi level three
+  fit_summary$summary[8,4], # sigma psi level four
+  fit_summary$summary[9,4], # mu psi income
+  fit_summary$summary[10,4], # sigma psi income
+  fit_summary$summary[11,4], # mu psi nat hab
+  fit_summary$summary[12,4], # sigma psi natural habitat
+  fit_summary$summary[13,4], # psi site area
+  fit_summary$summary[14,4], # mu p cs 0
+  fit_summary$summary[15,4], # sigma p cs site
+  fit_summary$summary[16,4], # sigma p cs level three
+  fit_summary$summary[17,4], # sigma p cs level four
+  fit_summary$summary[18,4], # p cs interval^2
+  fit_summary$summary[19,4], # p cs pop density
+  fit_summary$summary[20,4], # mu p rc 0
+  fit_summary$summary[21,4], # sigma p rc site
+  fit_summary$summary[22,4], # sigma p rc level three
+  fit_summary$summary[23,4], # sigma p rc level four
+  fit_summary$summary[24,4] # p rc total records
+)
+
+estimates_upper <- c(
+  fit_summary$summary[1,8], # sigma p cs species
+  fit_summary$summary[2,8], # sigma p rc species
+  fit_summary$summary[3,8], # rho
+  fit_summary$summary[4,8], # mu psi 0
+  fit_summary$summary[5,8], # sigma psi species
+  fit_summary$summary[6,8], # sigma psi site
+  fit_summary$summary[7,8], # sigma psi level three
+  fit_summary$summary[8,8], # sigma psi level four
+  fit_summary$summary[9,8], # mu psi income
+  fit_summary$summary[10,8], # sigma psi income
+  fit_summary$summary[11,8], # mu psi nat hab
+  fit_summary$summary[12,8], # sigma psi natural habitat
+  fit_summary$summary[13,8], # psi site area
+  fit_summary$summary[14,8], # mu p cs 0
+  fit_summary$summary[15,8], # sigma p cs site
+  fit_summary$summary[16,8], # sigma p cs level three
+  fit_summary$summary[17,8], # sigma p cs level four
+  fit_summary$summary[18,8], # p cs interval^2
+  fit_summary$summary[19,8], # p cs pop density
+  fit_summary$summary[20,8], # mu p rc 0
+  fit_summary$summary[21,8], # sigma p rc site
+  fit_summary$summary[22,8], # sigma p rc level three
+  fit_summary$summary[23,8], # sigma p rc level four
+  fit_summary$summary[24,8] # p rc total records
+)
+
+df_estimates <- as.data.frame(cbind(X, targets2, estimates_lower, estimates_upper))
+df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
+
+(q <- ggplot(df_estimates) +
+    theme_bw() +
+    scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9,
+                                         10, 11, 12, 13, 14, 15, 16, 
+                                         17, 18, 19, 20, 21, 22, 23, 24),
+                     labels=c(bquote(sigma["p.cs"["species"]]),
+                              bquote(sigma["p.rc"["species"]]),
+                              bquote(rho),
+                              bquote(mu[psi[0]]), 
+                              bquote(sigma[psi["species"]]),
+                              bquote(sigma[psi["site"]]),
+                              bquote(sigma[psi["level 3"]]), 
+                              bquote(sigma[psi["level 4"]]),
+                              bquote(mu[psi["income"]]),
+                              bquote(sigma[psi["income"]]),
+                              bquote(mu[psi["nat. habitat"]]),
+                              bquote(sigma[psi["nat. habitat"]]),
+                              bquote(psi["site area"]),
+                              bquote(mu["p.cs"[0]]),
+                              bquote(sigma["p.cs"["site"]]),
+                              bquote(sigma["p.cs"["level 3"]]), 
+                              bquote(sigma["p.cs"["level 4"]]),
+                              bquote("p.cs"["interval^2"]),
+                              bquote("p.cs"["pop. density"]),
+                              bquote(mu["p.rc"[0]]),
+                              bquote(sigma["p.rc"["site"]]),
+                              bquote(sigma["p.rc"["level 3"]]), 
+                              bquote(sigma["p.rc"["level 4"]]),
+                              bquote("p.rc"["total records"])
+                     )
+    ) +
+    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
+                       limits = c(-3, 3)) +
+    guides(color = guide_legend(title = "")) +
+    geom_hline(yintercept = 0, lty = "dashed") +
+    theme(legend.text=element_text(size=10),
+          axis.text.x = element_text(size = 18),
+          axis.text.y = element_text(size = 20, angle=0, vjust=0),
+          axis.title.x = element_text(size = 18),
+          axis.title.y = element_text(size = 18),
+          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
+    coord_flip()
+)
+
+q <- q +
+  geom_errorbar(aes(x=X, ymin=estimates_lower, ymax=estimates_upper),
+                color="black",width=0.1,size=1,alpha=0.5) +
+  geom_point(aes(x=X, y=parameter_value),
+             size = 5, alpha = 0.8, shape = 10, colour = "firebrick2") 
+
+q
 
 ## --------------------------------------------------
 ### PPC
@@ -1398,21 +1618,33 @@ print(stan_out_sim, digits = 3, pars=
 
 # as data frame
 list_of_draws <- as.data.frame(stan_out_sim)
-list_of_draws <- list_of_draws[(n_burnin+1):n_iterations,]
 
-# Citizen Science
+# community science
+# (thes values are all set up for the dimensions of the syrphidae simulation)
 # P-values
-m <- n_iterations - n_burnin
+m <- nrow(list_of_draws)
 P_average_cs = vector(length = n_species)
 
 for(i in 1:n_species){
-  P_average_cs[i] = sum(list_of_draws[,88+i])/m
+  P_average_cs[i] = sum(list_of_draws[,497+i])/m
 }
 
 print(P_average_cs)
 
-# Evaluation of fit
-plot(list_of_draws[,54], list_of_draws[,19], main = "", xlab =
+mean_P_average_cs <- mean(P_average_cs)
+
+# Evaluation of fit 
+# a species with not very good fit
+plot(list_of_draws[,398], list_of_draws[,298], main = "", xlab =
+       "Discrepancy actual data", ylab = "Discrepancy replicate data",
+     frame.plot = FALSE,
+     ylim = c(0, 300),
+     xlim = c(0, 300))
+
+abline(0, 1, lwd = 2, col = "black")
+
+# a species with very good fit
+plot(list_of_draws[,399], list_of_draws[,299], main = "", xlab =
        "Discrepancy actual data", ylab = "Discrepancy replicate data",
      frame.plot = FALSE,
      ylim = c(0, 100),

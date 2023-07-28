@@ -811,7 +811,7 @@ main_map <- ggplot() +
       colour ="black")
   ) 
 
-cities <- c("Los Angeles", "Pheonix", "Las Vegas", "Tuscon", "San Diego")
+cities <- c("Los Angeles", "Phoenix", "Las Vegas", "Tuscon", "San Diego")
 longitude <- c("-118.241736", "-112.072499", "-115.141447", "-110.978051", "-117.15")
 latitude <- c("34.054091", "33.448200", "36.170334", "32.250236", "32.713097")
 
@@ -821,7 +821,7 @@ city_df <- st_as_sf(city_df, coords = c(2:3), crs = 4326)
 crs <- sf::st_crs(raster::crs(states_trans))
 prj_city_df <- st_transform(city_df, crs)
 
-cities_labels <- c("Los Angeles", "Pheonix", "Las Vegas", "Tuscon", "San Diego")
+cities_labels <- c("Los Angeles", "Phoenix", "Las Vegas", "Tuscon", "San Diego")
 longitude_labels <- c("-117.1", "-112.9", "-113.95", "-111.72", "-118.15")
 latitude_labels <- c("34.575", "33.1", "36.0", "31.9", "32.25")
 

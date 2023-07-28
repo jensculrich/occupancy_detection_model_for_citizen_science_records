@@ -64,3 +64,5 @@ main_map2 <- ggplot() +
     legend.position = "none")
 
 main_map2
+
+

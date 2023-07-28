@@ -445,6 +445,16 @@ get_spatial_data <- function(
       ungroup() %>%
       pull(ecoregion_one_vector)
     
+    # just do level 3 clustered directly in eco1 as level 4
+    ecoregion_one_lookup_by_grid_cell <- grid_pop_dens %>%
+      group_by(grid_id, ecoregion_one_vector) %>%
+      slice(1) %>%
+      ungroup() %>%
+      group_by(grid_id) %>%
+      slice(1) %>%
+      ungroup() %>%
+      pull(ecoregion_one_vector)
+    
     
     # pull city names for sites (not used for analysis but interesting to track when plotting
     # out the site-specific random effects)
@@ -613,6 +623,7 @@ get_spatial_data <- function(
     ecoregion_one_names = ecoregion_one_names,
     level_three_names = level_three_names,
     level_three_lookup = level_three_lookup,
+    ecoregion_one_lookup_by_grid_cell = ecoregion_one_lookup_by_grid_cell,
     n_level_three = n_level_three,
     correlation_matrix = correlation_matrix,
     CBSA_names = CBSA_names

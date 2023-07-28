@@ -18,7 +18,7 @@ min_records_per_species = 5 # filters species with less than this many records (
 min_unique_detections = 2
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -51,15 +51,15 @@ remove_city_outliers_5stddev = TRUE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
 era_start = 2011 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 4 # must define number of intervals to break up the era into
-n_visits = 3 # must define the number of repeat obs years within each interval
+n_intervals = 6 # must define number of intervals to break up the era into
+n_visits = 2 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 600 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -142,7 +142,7 @@ saveRDS(my_data, paste("./occupancy/analysis/prepped_data/",
                        dir, 
                        grid_size / 1000, 
                        "km_", min_population_size, "minpop_", 
-                       min_unique_detections, "minpersp_",
+                       min_unique_detections, "minUniqueDetections_",
                        n_intervals, "ints_", n_visits, "visits",
                        ".rds", sep = ""))
 
@@ -152,7 +152,7 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
                           dir,
                           grid_size / 1000, "km_",
                           min_population_size, "minpop_",
-                          min_unique_detections, "minpersp", "_",
+                          min_unique_detections, "minUniqueDetections", "_",
                           n_intervals, "ints_",
                           n_visits, "visits",
                           ".rds"))
@@ -166,6 +166,8 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
 gc()
 
 library(rstan)
+# use non-centered spatial random effects model?
+use_reparameterized_rand_effects_model = FALSE
 
 # data to feed to the model
 # cs = community science / "citizen science"
@@ -202,6 +204,7 @@ level_three_lookup <- my_data$level_three_lookup
 level_four <- my_data$ecoregion_one_vector
 n_level_four <- my_data$n_ecoregion_one
 level_four_lookup <- my_data$ecoregion_one_lookup
+level_four_lookup_by_site <- my_data$ecoregion_one_lookup_by_grid_cell
 
 level_three_names <- my_data$level_three_names
 level_three_names_unique <- unique(level_three_names)
@@ -358,13 +361,13 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 1200
+    n_iterations <- 1000
     n_thin <- 1
     n_burnin <- 500
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
-    delta = 0.99
+    delta = 0.95
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -376,7 +379,7 @@ if(taxon == "bombus"){
         
         mu_psi_0 = runif(1, -1, 1),
         sigma_psi_species = runif(1, 0, 1),
-        sigma_psi_site = runif(1, 0.5, 1),
+        sigma_psi_site = runif(1, 1, 2),
         sigma_psi_level_three = runif(1, 0, 1),
         sigma_psi_level_four = runif(1, 0, 1),
         mu_psi_income = runif(1, -1, 1),
@@ -554,9 +557,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 400
+    n_iterations <- 1000
     n_thin <- 1
-    n_burnin <- 200
+    n_burnin <- 500
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -677,13 +680,14 @@ if(taxon == "bombus"){
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
-  #stan_model <- paste0("./occupancy/models/model_", taxon, "_narrower_re_priors.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
 }
 
-# for bombus 20km and 25km which required narrower prior for mu_psi_0 identifiability
-# stan_model <- paste0("./occupancy/models/model_", taxon, "_2.stan")
+if(use_reparameterized_rand_effects_model == TRUE){
+  level_four_lookup <- level_four_lookup_by_site
+  stan_model <- paste0("./occupancy/models/model_", taxon, "_reparameterized_rand_effects.stan")
+}
 
 ## Call Stan from R
 set.seed(1)
@@ -703,7 +707,7 @@ saveRDS(stan_out, paste0(
   taxon, "_",
   grid_size / 1000,
   "km_", min_population_size, "minpop_", 
-  min_records_per_species, "minpersp_",
+  min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
   ".rds"
 )
@@ -712,13 +716,12 @@ saveRDS(stan_out, paste0(
 stan_out <- readRDS(paste0(
   "./occupancy/model_outputs/", taxon, dir, taxon, "_", grid_size / 1000, 
   "km_", min_population_size, "minpop_", 
-  min_records_per_species, "minpersp_",
+  min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_", 
   ".rds"
 )
 )
 
-#stan_out <- readRDS("./occupancy/model_outputs/syrphidae/old_results/syrphidae_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
 
 # print main effects
 # print results

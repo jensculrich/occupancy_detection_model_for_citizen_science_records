@@ -5,12 +5,12 @@ library(corrplot)
 # read in the data
 # manually
 my_data <- readRDS(
-  "./occupancy/analysis/prepped_data/bombus/10km_1200minpop_10minpersp_4ints_3visits.rds")
+  "./occupancy/analysis/prepped_data/bombus/10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
 # or using analysis selections
 my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
                                      taxon, "/", grid_size / 1000, "km_",
                                      min_population_size, "minpop_",
-                                     min_records_per_species, "minpersp", "_",
+                                     min_records_per_species, "minUniqueDetections", "_",
                                      n_intervals, "ints_",
                                      n_visits, "visits",
                                      #"_nonurban",
@@ -25,40 +25,52 @@ gc()
 correlation_matrix <- rcorr(correlation_matrix)
 
 colnames(correlation_matrix$r) <- c("population density", 
-                                      "site area", 
-                                      "developed open space",
-                                      "med/high development",
-                                      "income",
-                                      "herb, shrub cover",
-                                      "forest cover",
-                                      "natural habitat area")
+                                    "site area", 
+                                    "developed open space",
+                                    "low development",
+                                    "med/high development",
+                                    "low/med/high development",
+                                    "income",
+                                    "natural habitat (herb/shrub)",
+                                    "natural habitat (forest)",
+                                    "natural habitat (any)"
+                                    )
 
 rownames(correlation_matrix$r) <- c("population density", 
                                     "site area", 
                                     "developed open space",
+                                    "low development",
                                     "med/high development",
+                                    "low/med/high development",
                                     "income",
-                                    "herb, shrub cover",
-                                    "forest cover",
-                                    "natural habitat area")
+                                    "natural habitat (herb/shrub)",
+                                    "natural habitat (forest)",
+                                    "natural habitat (any)"
+                                    )
 
 colnames(correlation_matrix$P) <- c("population density", 
                                     "site area", 
                                     "developed open space",
+                                    "low development",
                                     "med/high development",
+                                    "low/med/high development",
                                     "income",
-                                    "herb, shrub cover",
-                                    "forest cover",
-                                    "natural habitat area")
+                                    "natural habitat (herb/shrub)",
+                                    "natural habitat (forest)",
+                                    "natural habitat (any)"
+                                    )
 
 rownames(correlation_matrix$P) <- c("population density", 
                                     "site area", 
                                     "developed open space",
+                                    "low development",
                                     "med/high development",
+                                    "low/med/high development",
                                     "income",
-                                    "herb, shrub cover",
-                                    "forest cover",
-                                    "natural habitat area")
+                                    "natural habitat (herb/shrub)",
+                                    "natural habitat (forest)",
+                                    "natural habitat (any)"
+                                    )
 
 # ++++++++++++++++++++++++++++
 # flattenCorrMatrix

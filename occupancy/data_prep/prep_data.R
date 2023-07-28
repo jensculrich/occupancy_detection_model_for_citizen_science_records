@@ -95,6 +95,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # correlation matrix
   correlation_matrix <- my_spatial_data$correlation_matrix
   
+  ecoregion_one_lookup_by_grid_cell <-my_spatial_data$ecoregion_one_lookup_by_grid_cell
   ecoregion_one_lookup <- my_spatial_data$ecoregion_one_lookup
   n_ecoregion_one <- my_spatial_data$n_ecoregion_one
   level_three_names <- my_spatial_data$level_three_names
@@ -1138,6 +1139,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     
     ecoregion_one_vector = ecoregion_one_vector,
     ecoregion_one_lookup = ecoregion_one_lookup,
+    ecoregion_one_lookup_by_grid_cell = ecoregion_one_lookup_by_grid_cell,
     n_ecoregion_one = n_ecoregion_one,
     ecoregion_one_names = ecoregion_one_names,
     
