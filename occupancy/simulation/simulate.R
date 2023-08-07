@@ -773,7 +773,7 @@ if(taxon == "syrphidae"){
   mu_psi_0 = 0
   sigma_psi_species = 1.5
   sigma_psi_genus = 0  # this won't be used if taxon is "bombus", keep at 0 unless want to introduce
-  sigma_psi_site = 0.5 # variation across level2
+  sigma_psi_site = 0.75 # variation across level2
   sigma_psi_level_three = 1 # variation across level3
   sigma_psi_level_four = 0.5 # variation across level4
   mu_psi_income = 0.25 # make sure to specify as 0 if using a model without income 
@@ -805,10 +805,10 @@ if(taxon == "syrphidae"){
   p_rc_total_records = 0.25
   
   # correlations
-  rho = 0.75
+  rho = 0.8
   
   # introduce NAs (missed visits)?
-  omega_community = 0.3
+  omega_community = 0.25
   omega_species = 0.025
   ignore_community_misses = TRUE
   
@@ -1163,9 +1163,9 @@ if(taxon == "syrphidae"){
   )
   
   # MCMC settings
-  n_iterations <- 300
+  n_iterations <- 500
   n_thin <- 1
-  n_burnin <- 150
+  n_burnin <- 250
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.95
@@ -1243,7 +1243,7 @@ stan_out_sim <- stan(stan_model,
 #saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
 saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim2.rds"))
 
-stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
+stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "_stan_out_sim2.rds"))
 
 # print results
 if(taxon == "syrphidae"){
@@ -1600,8 +1600,8 @@ df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
 )
 
 q <- q +
-  geom_errorbar(aes(x=X, ymin=estimates_lower, ymax=estimates_upper),
-                color="black",width=0.1,size=1,alpha=0.5) +
+  #geom_errorbar(aes(x=X, ymin=estimates_lower, ymax=estimates_upper),
+   #             color="black",width=0.1,size=1,alpha=0.5) +
   geom_point(aes(x=X, y=parameter_value),
              size = 5, alpha = 0.8, shape = 10, colour = "firebrick2") 
 

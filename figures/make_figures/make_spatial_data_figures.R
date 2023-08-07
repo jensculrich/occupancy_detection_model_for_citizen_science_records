@@ -406,3 +406,478 @@ rm(crs_raster, grid, land, prj1,
    r.site_area, r.vals_land, r.vals_land_NA, states)
 
 gc()
+
+## --------------------------------------------------
+# Visualize the data
+
+library(cowplot)
+
+# view extent only with population density
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = pop_density_per_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("population/km"^2),
+                       low="white", high="dodgerblue3") +
+  #geom_text(data = urban_grid_lab, 
+  #          aes(x = X, y = Y, label = grid_id), size = 2) +
+  #ggtitle("Population density in urban areas") +
+  #labs(x = "Longitude") +
+  #labs(y = "Latitude") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(1, 0.01),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+# southwestern inset
+main_map +
+  coord_sf(
+    xlim = c(-2150000 , -1350000), 
+    ylim = c(1000000, 1700000),
+    expand = FALSE
+  )
+
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)
+
+##
+# view sites only with scaled population density
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_pop_den_km2), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("scaled pop. density"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    #legend.box.margin = margin(50,50,50,50),
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(1, 0.01),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)
+
+
+##
+# scaled site area data
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_site_area), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("scaled site area"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    #legend.box.margin = margin(50,50,50,50),
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(1, 0.01),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)
+
+##
+# scaled income
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_income), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("scaled relative income"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    #legend.box.margin = margin(50,50,50,50),
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(1, 0.01),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)
+
+
+##
+# scaled natural habitat area
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_herb_shrub_forest), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("scaled natural habitat area"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    #legend.box.margin = margin(50,50,50,50),
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(1, 0.01),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)
+
+
+
+##
+# solid map with insets for southwest for both income and natural habitat
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'grey95', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, 
+          #aes(fill = scaled_herb_shrub_forest), 
+          lwd = 0.3,
+          fill = "grey20",
+          alpha = 0.8
+  ) +
+  #scale_fill_gradient2(name = expression("scaled natural habitat area"),
+  #                     low="firebrick3", high="dodgerblue3") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    #legend.box.margin = margin(50,50,50,50),
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("left", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(0, 0),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+cities <- c("Los Angeles", "Phoenix", "Las Vegas", "Tuscon", "San Diego")
+longitude <- c("-118.241736", "-112.072499", "-115.141447", "-110.978051", "-117.15")
+latitude <- c("34.054091", "33.448200", "36.170334", "32.250236", "32.713097")
+
+city_df <- as.data.frame(cbind(cities, longitude, latitude))
+city_df <- st_as_sf(city_df, coords = c(2:3), crs = 4326)
+
+crs <- sf::st_crs(raster::crs(states_trans))
+prj_city_df <- st_transform(city_df, crs)
+
+cities_labels <- c("Los Angeles", "Phoenix", "Las Vegas", "Tuscon", "San Diego")
+longitude_labels <- c("-117.1", "-112.9", "-113.95", "-111.72", "-118.15")
+latitude_labels <- c("34.575", "33.1", "36.0", "31.9", "32.25")
+
+city_df_labels <- as.data.frame(cbind(cities_labels, longitude_labels, latitude_labels))
+city_df_labels <- st_as_sf(city_df_labels, coords = c(2:3), crs = 4326)
+
+crs <- sf::st_crs(raster::crs(states_trans))
+prj_city_df_labels <- st_transform(city_df_labels, crs)
+
+# southwestern inset
+inset1 <- main_map +
+  geom_sf(data = grid_pop_dens, 
+          aes(fill = scaled_herb_shrub_forest), 
+          lwd = 0.3,
+          #fill = "grey20",
+          alpha = 0.8
+  ) +
+  geom_sf(data = prj_city_df, size = 8, 
+          shape = 1, fill = "black", alpha = 0.9) +
+  geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
+  scale_fill_gradient2(name = expression("scaled natural habitat area"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(
+    xlim = c(-2150000 , -1350000), 
+    ylim = c(1000000, 1700000),
+    expand = FALSE
+  ) +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+inset2 <- main_map +
+  geom_sf(data = grid_pop_dens, 
+          aes(fill = scaled_avg_income), 
+          lwd = 0.3,
+          #fill = "grey20",
+          alpha = 0.8
+  ) +
+  geom_sf(data = prj_city_df, size = 8, 
+          shape = 1, fill = "black", alpha = 0.9) +
+  geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
+  scale_fill_gradient2(name = expression("scaled relative income"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(
+    xlim = c(-2150000 , -1350000), 
+    ylim = c(1000000, 1700000),
+    expand = FALSE
+  ) +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+plot_grid(inset1, NULL, inset2, 
+          #labels = c('b)', "", 'c)'),
+          #label_size = 20,
+          nrow=1,
+          rel_widths = c(1,0.05,1))
+
+main_map
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)

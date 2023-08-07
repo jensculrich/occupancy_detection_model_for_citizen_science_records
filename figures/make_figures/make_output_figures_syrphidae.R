@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_3ints_3visits_.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits_.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
@@ -286,53 +286,53 @@ stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minp
 fit_summary <- rstan::summary(stan_out)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
-stan_out2 <- readRDS("./occupancy/model_outputs/syrphidae/non_urban/syrphidae_40km_1000minpop_5minpersp_3ints_3visits_.RDS")
+#stan_out2 <- readRDS("./occupancy/model_outputs/syrphidae/non_urban/syrphidae_40km_1000minpop_5minpersp_3ints_3visits_.RDS")
 fit_summary2 <- rstan::summary(stan_out2)
 View(cbind(1:nrow(fit_summary2$summary), fit_summary2$summary)) # View to see which row corresponds to the parameter of interest
 
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
-species_names2 <- readRDS("./figures/species_names/syrphidae_names_40km_nonurban.RDS")
+#species_names2 <- readRDS("./figures/species_names/syrphidae_names_40km_nonurban.RDS")
 
 n_species <- length(species_names)
 
 
 # parameter means
-params = 3
+params = 2
 
 x <- (rep(1:params, each=n_species)) # parameter reference
 y = (rep(1:n_species, times=params)) # species reference
 
 species_names_df <- species_names %>%
   as.data.frame(.)
-species_names2_df <- species_names2 %>%
-  as.data.frame(.)
+#species_names2_df <- species_names2 %>%
+ # as.data.frame(.)
 
-mismatches1 <- anti_join(species_names2_df, species_names_df,  by = ".")
-mismatches2 <- anti_join(species_names_df, species_names2_df,  by = ".") %>%
-  cbind(mismatch = "Y") 
+#mismatches1 <- anti_join(species_names2_df, species_names_df,  by = ".")
+#mismatches2 <- anti_join(species_names_df, species_names2_df,  by = ".") %>%
+#  cbind(mismatch = "Y") 
 
-test <- left_join(species_names_df, mismatches2) %>%
-  rename("species" = ".") 
+#test <- left_join(species_names_df, mismatches2) %>%
+#  rename("species" = ".") 
 
 # there are 48 species in the urban study that were not recovered in the random resampling
-mismatch_rows <- which(test$mismatch == "Y")
+#mismatch_rows <- which(test$mismatch == "Y")
 
 # add an empty row to fit_summary2 with NAs whenever species was not recovered (mismatch rows)
-newrow <- rep(NA, ncol(fit_summary2$summary))
+#newrow <- rep(NA, ncol(fit_summary2$summary))
 
-temp <- fit_summary2$summary
+#temp <- fit_summary2$summary
 
-for(i in 1:length(mismatch_rows)){
-  r <- mismatch_rows[i] + 12
-  temp <- rbind(temp[1:r,],newrow,temp[-(1:r),])
-}
+#for(i in 1:length(mismatch_rows)){
+#  r <- mismatch_rows[i] + 12
+#  temp <- rbind(temp[1:r,],newrow,temp[-(1:r),])
+#}
 
-View(cbind(1:nrow(temp), temp)) # View to see which row corresponds to the parameter of interest
+#View(cbind(1:nrow(temp), temp)) # View to see which row corresponds to the parameter of interest
 
 estimate <-  c(
   # nativity
   # param 1 (psi_species_rangewide)
-  temp[14:154,1], 
+  #temp[14:154,1], 
   # param 1 (psi_species)
   fit_summary$summary[18:158,1],
   # param 2 (psi natural)
@@ -345,7 +345,7 @@ estimate <-  c(
 
 lower <-  c(
   # param 1 (psi_species_rangewide)
-  temp[14:154,4], 
+  #temp[14:154,4], 
   # param 1 (psi_species)
   fit_summary$summary[18:158,4],
   # param 2 (psi natural)
@@ -358,7 +358,7 @@ lower <-  c(
 
 upper <-  c(
   # param 1 (psi_species_rangewide)
-  temp[14:154,8], 
+  #temp[14:154,8], 
   # param 1 (psi_species)
   fit_summary$summary[18:158,8],
   # param 2 (psi natural)
@@ -389,7 +389,7 @@ y2 = (rep(1:n_species, times=params)) # species reference
 
 estimate2 <-  c(
   # param 3 (Freeman Tukey P cit sci)
-  fit_summary$summary[353:493,1]
+  fit_summary$summary[812:952,1]
 )
 
 df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%
@@ -408,10 +408,10 @@ for(i in 1:5){
   p1 <- ggplot(df_filtered, aes(x, y, width=1, height=1)) +
     geom_tile(aes(fill = estimate)) +
     theme_bw() +
-    scale_x_discrete(name="", breaks = c(1, 2, 3),
-                     labels=c(bquote(psi[species - range]),
-                              bquote(psi[species - urban]),
-                              bquote(psi[species["natural habitat"]])
+    scale_x_discrete(name="", breaks = c(1, 2),
+                     labels=c(#bquote(psi[species - range]),
+                              bquote(psi[species]),
+                              bquote(psi[species["nat. habitat"]])
                               #bquote(FTP[citsci]),
                               #bquote(FTP[museum])
                      )) +
@@ -454,7 +454,7 @@ for(i in 1:5){
     scale_y_discrete(name="", breaks = "",
                      labels="") +
     scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
-    geom_text(data = df_filtered2, colour = "white",
+    geom_text(data = df_filtered2, colour = "black",
               aes(x = x2, y = y2, label = signif(estimate2, 2)), size = 3.5) +
     theme(legend.position = "none",
           #legend.text=element_text(size=14),
@@ -544,12 +544,12 @@ params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
   row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,496]
+  params[i,1] <- list_of_draws[row,953]
 }
 
 plot(NA, xlim=c(-3,3), ylim=c(0,1),
      xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occupancy)")
+     ylab = "Pr(Occurrence (native hoverlfy species))")
 
 for(i in 1:n_lines){
   curve(ilogit(
@@ -564,5 +564,5 @@ curve(ilogit(
   fit_summary$summary[1,1] + # intercept
     # should add non-centered random effects
     fit_summary$summary[10,1] + # site area 
-    fit_summary$summary[496,1]*x), 
+    fit_summary$summary[953,1]*x), 
   add=TRUE, col = "blue", lwd = 3)

@@ -51,8 +51,8 @@ remove_city_outliers_5stddev = TRUE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
 era_start = 2011 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 6 # must define number of intervals to break up the era into
-n_visits = 2 # must define the number of repeat obs years within each interval
+n_intervals = 4 # must define number of intervals to break up the era into
+n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start + 1) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
@@ -837,7 +837,8 @@ View(as.data.frame(rstan::summary(stan_out)))
 # traceplots
 # urban sites
 if(taxon == "syrphidae"){
-  traceplot(stan_out, pars = c( # occupancy
+  traceplot(
+    stan_out, pars = c( # occupancy
     "mu_psi_0",
     "sigma_psi_species",
     "sigma_psi_site",

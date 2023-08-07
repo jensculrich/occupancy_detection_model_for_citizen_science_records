@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
@@ -628,34 +628,34 @@ plot_grid(q, q2, labels = c('c)', 'd)'),
 # "psi_species[12]",
 # "psi_species[23]"
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.RDS")
 fit_summary <- rstan::summary(stan_out)
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
-stan_out2 <- readRDS("./occupancy/model_outputs/bombus/non_urban/bombus_40km_1000minpop_5minpersp_4ints_3visits_.RDS")
-fit_summary2 <- rstan::summary(stan_out2)
-species_names2 <- readRDS("./figures/species_names/bombus_names_40km_nonurban.RDS")
+#stan_out2 <- readRDS("./occupancy/model_outputs/bombus/non_urban/bombus_40km_1000minpop_5minpersp_4ints_3visits_.RDS")
+#fit_summary2 <- rstan::summary(stan_out2)
+#species_names2 <- readRDS("./figures/species_names/bombus_names_40km_nonurban.RDS")
 
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
-View(cbind(1:nrow(fit_summary2$summary), fit_summary2$summary)) # View to see which row corresponds to the parameter of interest
+#View(cbind(1:nrow(fit_summary2$summary), fit_summary2$summary)) # View to see which row corresponds to the parameter of interest
 
 species_names_df <- species_names %>%
   as.data.frame(.)
-species_names2_df <- species_names2 %>%
-  as.data.frame(.)
+#species_names2_df <- species_names2 %>%
+#  as.data.frame(.)
 
-mismatches <- anti_join(species_names2_df, species_names_df,  by = ".")
-mismatch_rows <- which(species_names2_df == "insularis")
+#mismatches <- anti_join(species_names2_df, species_names_df,  by = ".")
+#mismatch_rows <- which(species_names2_df == "insularis")
 
 # parameter means
-params = 4
+params = 3
 
 x <- (rep(1:params, each=n_species)) # parameter reference
 y <- (rep(1:n_species, times=params)) # species reference
 
 estimate <-  c(
   # param 1 (psi_species_rangewide)
-  fit_summary2$summary[87:103,1], fit_summary2$summary[105:119,1],
+  #fit_summary2$summary[87:103,1], fit_summary2$summary[105:119,1],
   # param 1 (psi_species_urban)
   fit_summary$summary[89:120,1],
   # param 2 (psi income)
@@ -666,7 +666,7 @@ estimate <-  c(
 
 lower <- c(
   # param 1 (psi_species_rangewide)
-  fit_summary2$summary[87:103,4], fit_summary2$summary[105:119,4],
+  #fit_summary2$summary[87:103,4], fit_summary2$summary[105:119,4],
   # param 1 (psi_species_urban)
   fit_summary$summary[89:120,4],
   # param 2 (psi income)
@@ -677,7 +677,7 @@ lower <- c(
 
 upper <- c(
   # param 1 (psi_species_rangewide)
-  fit_summary2$summary[87:103,8], fit_summary2$summary[105:119,8],
+  #fit_summary2$summary[87:103,8], fit_summary2$summary[105:119,8],
   # param 1 (psi_species_urban)
   fit_summary$summary[89:120,8],
   # param 2 (psi income)
@@ -702,11 +702,11 @@ df <- as.data.frame(cbind(x, y, estimate, lower, upper
 p1 <- ggplot(df, aes(x, y, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
-                   labels=c(bquote(psi[species - range]),
-                            bquote(psi[species - urban]),
+  scale_x_discrete(name="", breaks = c(1, 2, 3),
+                   labels=c(#bquote(psi[species - range]),
+                            bquote(psi[species]),
                             bquote(psi[species[income]]),
-                            bquote(psi[species["natural habitat"]])
+                            bquote(psi[species["nat. habitat"]])
                             #bquote(FTP[citsci]),
                             #bquote(FTP[museum])
                             )) +
@@ -797,29 +797,6 @@ curve(ilogit(fit_summary$summary[77,8]*x), add=TRUE)
 ## --------------------------------------------------
 ## Natural habitat
 
-# intercept and effect
-n_lines <- 100
-params <- matrix(nrow = n_lines, ncol = 2)
-
-for(i in 1:n_lines){
-  row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,68]
-  params[i,2] <- list_of_draws[row,75]
-}
-
-plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occupancy)")
-
-for(i in 1:n_lines){
-  curve(ilogit(params[i,1] + params[i,2]*x), 
-        add=TRUE, col = "lightgrey", lwd = 1)
-}
-
-
-curve(ilogit(fit_summary$summary[68,1] + fit_summary$summary[75,1]*x), 
-      add=TRUE, col = "blue", lwd = 3)
-
 # effect and all others held at mean
 n_lines <- 100
 params <- matrix(nrow = n_lines, ncol = 1)
@@ -831,7 +808,7 @@ for(i in 1:n_lines){
 
 plot(NA, xlim=c(-3,3), ylim=c(0,1),
      xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occupancy)")
+     ylab = "Pr(Occurrence)")
 
 for(i in 1:n_lines){
   curve(ilogit(
@@ -852,27 +829,7 @@ curve(ilogit(
     fit_summary$summary[75,1]*x), 
       add=TRUE, col = "blue", lwd = 3)
 
-# just effect
-n_lines <- 100
-params <- matrix(nrow = n_lines, ncol = 1)
 
-for(i in 1:n_lines){
-  row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,8]
-}
-
-plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occupancy)")
-
-for(i in 1:n_lines){
-  curve(ilogit(params[i,1]*x), 
-        add=TRUE, col = "lightgrey", lwd = 1)
-}
-
-
-curve(ilogit(fit_summary$summary[8,1]*x), 
-      add=TRUE, col = "blue", lwd = 3)
 
 ## --------------------------------------------------
 ## Income
@@ -887,8 +844,8 @@ for(i in 1:n_lines){
 }
 
 plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Relative Income (scaled)",
-     ylab = "Pr(Occupancy)")
+     xlab = "Household Income (scaled)",
+     ylab = "Pr(Occurence)")
 
 for(i in 1:n_lines){
   curve(ilogit(
@@ -909,27 +866,6 @@ curve(ilogit(
     fit_summary$summary[73,1]*x), 
   add=TRUE, col = "blue", lwd = 3)
 
-# just effect
-n_lines <- 100
-params <- matrix(nrow = n_lines, ncol = 1)
-
-for(i in 1:n_lines){
-  row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,6]
-}
-
-plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Median household income (relative to state avg.; scaled)",
-     ylab = "Pr(Occupancy)")
-
-for(i in 1:n_lines){
-  curve(ilogit(params[i,1]*x), 
-        add=TRUE, col = "lightgrey", lwd = 1)
-}
-
-
-curve(ilogit(fit_summary$summary[6,1]*x), 
-      add=TRUE, col = "blue", lwd = 3)
 
 ## --------------------------------------------------
 ## Site Area
