@@ -19,7 +19,7 @@ Contains simulation files (./simulation/), data prep(./data_prep/), models (./mo
 
 Run a model (./analysis/run_model.R) by specifying the data level constraints (taxonomic group, spatial grain and temporal divisions of occupancy intervals) and by tweaking the MCMC settings if desired.
 
-The models used for the main analyses (held in the models subdirectory) are labelled "model_syrphidae.stan" and "model_bombus.stan". I also used a simplified model to estimate range wide occurrence rate to conduct a post hoc correlation analysis with species-specific effects of range wide occurrence (a proxy for habitat generality) and species-specific association with natural habitat area in urban landscapes. The folder also holds a reparameterized random effects model (non-centered random effects). I explored whether this parameterization resulted in more stable scale estimates for site-specific random effects but since it did not, I do not use this reparametrization for the final analyses.
+The models used for the main analyses (held in the models subdirectory) are labelled "model_syrphidae.stan" and "model_bombus.stan". I also used a simplified model to estimate range wide occurrence rate ("model_taxon_simple.stan") to conduct a post hoc correlation analysis with species-specific effects of range wide occurrence (a proxy for habitat generality) and species-specific association with natural habitat area in urban landscapes. The folder also holds a reparameterized random effects model (non-centered random effects; "model_taxon_reparameterized_rand_effects.stan"). I explored whether this parameterization resulted in more stable scale estimates for site-specific random effects but since it did not, I do not use this reparametrization for the final analyses.
 
 
 
