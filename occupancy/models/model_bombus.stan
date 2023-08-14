@@ -1,18 +1,15 @@
-// multi-species occupancy model for GBIF occurrence data
+// multi-species occupancy model for BBNA occurrence data
 // jcu, started nov 21, 2022.
-// builds on model0 by introducing integrated model structure where
-// citizen science data and gbif data may have their own observation processes
-// and also allows for missing (NA) data
 
 functions {
   
-  // covariance matrix for detection rates for different data sources
+  // covariance matrix for detection rates from different data sources
   matrix custom_cov_matrix(vector sigma, real rho) {
     matrix[2,2] Sigma;
     Sigma[1,1] = square(sigma[1]); // species variation in community science detection rates
     Sigma[2,2] = square(sigma[2]); // species variation in research collection detection rates
     Sigma[1,2] = sigma[1] * sigma[2] * rho; // correlation between species-specific detection rates
-    Sigma[2,1] = Sigma[1,2];
+    Sigma[2,1] = Sigma[1,2]; // correlation between species-specific detection rates
     return Sigma;
   }
   
@@ -28,13 +25,13 @@ functions {
 
 data {
   
-  int<lower=1> n_species;  // observed species
-  int<lower=1> species[n_species]; // vector of species
+  int<lower=1> n_species; // number of observed species
+  int<lower=1> species[n_species]; // vector of species identities
   
-  int<lower=1> n_sites;  // (number of) sites within region (level-2 clusters)
-  int<lower=1, upper=n_sites> sites[n_sites];  // vector of sites
-  int<lower=1> n_level_three;  // (number of) fine-scale (3) ecoregion areas (level-3 clusters)
-  int<lower=1> n_level_four;  // (number of) broad-scale (1) ecoregion areas (level-4 clusters)
+  int<lower=1> n_sites;  // number of sites (level-2 clusters)
+  int<lower=1, upper=n_sites> sites[n_sites]; // vector of site identities
+  int<lower=1> n_level_three;  // (number of) fine-scale ecoregion areas (level-3 clusters)
+  int<lower=1> n_level_four;  // (number of) broad-scale ecoregion areas (level-4 clusters)
 
   int<lower=1> level_three_lookup[n_sites]; // level-3 cluster look up vector for level-3 cluster
   int<lower=1> level_four_lookup[n_level_three]; // level-4 cluster look up vector for level-4 cluster
@@ -42,10 +39,7 @@ data {
   int<lower=1> n_intervals;  // intervals during which sites are visited
   
   int intervals[n_intervals]; // vector of intervals (used as covariate data for 
-                                // species specific effect of occupancy interval (time) on occupancy)
-                                // needs to begin with intervals[1] = 0, i.e., 
-                                // there is no temporal addition in the first interval
-  
+                                // species specific effect of occupancy interval (time) on detection)
   int<lower=1> n_visits; // visits within intervals
   
   int<lower=0> V_cs[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
@@ -56,7 +50,7 @@ data {
   
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
-  vector[n_sites] avg_income; // (scaled) developed open surface cover of each site
+  vector[n_sites] avg_income; // (scaled) household income of each site
   vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
   real rc_total_records[n_sites, n_intervals]; // (scaled) number of records
   
@@ -66,10 +60,12 @@ data {
 parameters {
   
   // Covararying Parameters
-  real<lower=-1,upper=1> rho;  // correlation of (occupancy, cit sci detection)
-  vector<lower=0>[2] sigma_species_detection; // sd of (occupancy, detection)
-  vector[2] species_intercepts_detection[n_species];  // species-level (occupancy, citsci detection, museum detection)
-  
+  real<lower=-1,upper=1> rho;  // correlation of (community science and research collections detection)
+  vector<lower=0>[2] sigma_species_detection; // variance in species-specific detection rates 
+    // (sigma_species_detection[1] == community science and sigma_species_detection[2] == research collections detection)
+  vector[2] species_intercepts_detection[n_species];// species-level detection intercepts
+    // (species_intercepts_detection[1] == community science and species_intercepts_detection[2] == research collections detection)
+
   // OCCUPANCY
   real mu_psi_0; // global intercept for occupancy
   
@@ -80,27 +76,21 @@ parameters {
   
   // Spatially nested random effect on occupancy rates
   // Level-2 spatial random effect
-  // site specific intercept allows some sites to be occupied at higher rates than others, 
-  // but with overall estimates for occupancy partially informed by the data pooled across all sites.
   vector[n_sites] psi_site; // site specific intercept for occupancy
   real<lower=0> sigma_psi_site; // variance in site intercepts
   // Level-3 spatial random effect
-  // site specific intercept allows some sites to have lower success than others, 
-  // but with overall estimates for success partially informed by the data pooled across all sites.
-  vector[n_level_three] psi_level_three; // site specific intercept for PL outcome
-  real<lower=0> sigma_psi_level_three; // variance in site intercepts
+  vector[n_level_three] psi_level_three; // level-three specific intercept for PL outcome
+  real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
   // Level-4 spatial random effect
-  // site specific intercept allows some sites to have lower success than others, 
-  // but with overall estimates for success partially informed by the data pooled across all sites.
-  vector[n_level_four] psi_level_four; // site specific intercept for PL outcome
-  real<lower=0> sigma_psi_level_four; // variance in site intercepts
+  vector[n_level_four] psi_level_four; // level-four specific intercept for PL outcome
+  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
   
   // random slope for species specific natural habitat effects on occupancy
   vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
   real mu_psi_natural_habitat; // community mean of species specific slopes
   real<lower=0> sigma_psi_natural_habitat; // variance in species slopes
   
-  // random slope for species specific open low development effects on occupancy
+  // random slope for species specific household income effects on occupancy
   vector[n_species] psi_income; // vector of species specific slope estimates
   real mu_psi_income; // community mean of species specific slopes
   real<lower=0> sigma_psi_income; // variance in species slopes
@@ -118,30 +108,30 @@ parameters {
   vector[n_sites] p_cs_site; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_cs_site; // variance in site slopes
   // level-3 spatial clusters
-  vector[n_level_three] p_cs_level_three; // site specific intercept for PL outcome
-  real<lower=0> sigma_p_cs_level_three;
+  vector[n_level_three] p_cs_level_three; // level-three specific intercept for cs detection
+  real<lower=0> sigma_p_cs_level_three;  // variance in level-three slopes
   // level-4 spatial clusters
-  vector[n_level_four] p_cs_level_four; // site specific intercept for PL outcome
-  real<lower=0> sigma_p_cs_level_four; 
+  vector[n_level_four] p_cs_level_four; // level-four specific intercept for cs detection
+  real<lower=0> sigma_p_cs_level_four;  // variance in level-four slopes
   
-  real p_cs_interval; // fixed temporal effect on detection probability
-  real p_cs_pop_density; // fixed effect of population on detection probability
+  real p_cs_interval; // fixed temporal effect on cs detection probability
+  real p_cs_pop_density; // fixed effect of population on cs detection probability
   
-  // museum records observation process
-  real mu_p_rc_0; // global detection intercept for citizen science records
+  // research collections records observation process
+  real mu_p_rc_0; // global detection intercept for research collections records
   
   // random slope for site specific temporal effects on occupancy
   // level-2 spatial clusters
   vector[n_sites] p_rc_site; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_rc_site; // variance in site slopes
   // level-3 spatial clusters
-  vector[n_level_three] p_rc_level_three; // site specific intercept for PL outcome
-  real<lower=0> sigma_p_rc_level_three; 
+  vector[n_level_three] p_rc_level_three; // level-three specific intercept for rc detection
+  real<lower=0> sigma_p_rc_level_three; // variance in level-three slopes
   // level-4 spatial clusters
-  vector[n_level_four] p_rc_level_four; // site specific intercept for PL outcome
-  real<lower=0> sigma_p_rc_level_four;
+  vector[n_level_four] p_rc_level_four; // level-four specific intercept for rc detection
+  real<lower=0> sigma_p_rc_level_four; // variance in level-four slopes
   
-  real p_rc_total_records; // fixed effect of total records on detection probability
+  real p_rc_total_records; // fixed effect of total records on rc detection probability
   
 } // end parameters
 
@@ -149,8 +139,8 @@ parameters {
 transformed parameters {
   
   real logit_psi[n_species, n_sites, n_intervals];  // odds of occurrence
-  real logit_p_cs[n_species, n_sites, n_intervals]; // odds of detection by cit science
-  real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by museum
+  real logit_p_cs[n_species, n_sites, n_intervals]; // odds of detection by community science
+  real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by research collections
   
   // spatially nested intercepts
   real psi0_site[n_sites];

@@ -18,10 +18,8 @@ data {
   int<lower=1> n_intervals;  // intervals during which sites are visited
   
   int intervals[n_intervals]; // vector of intervals (used as covariate data for 
-                                // species specific effect of occupancy interval (time) on occupancy)
-                                // needs to begin with intervals[1] = 0, i.e., 
-                                // there is no temporal addition in the first interval
-  
+                                // species specific effect of occupancy interval (time) on detection)
+                                
   int<lower=1> n_visits; // visits within intervals
   
   int<lower=0> V_cs[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
@@ -49,7 +47,7 @@ parameters {
   real<lower=0> sigma_psi_species; // variance in species intercepts// Level-3 spatial random effect
   // Level-3 phylogenetic random effect
   // for hoverflies, I also considered nesting species specific random effects within genus specific re's 
-  //vector[n_genera] psi_genus; // site specific intercept for PL outcome
+  //vector[n_genera] psi_genus; // site specific intercept for occupancy
   //real<lower=0> sigma_psi_genus; // variance in site intercepts
   
   // spatially nested random effect on occupancy rates
@@ -57,20 +55,20 @@ parameters {
   vector[n_sites] psi_site; // site specific intercept for occupancy
   real<lower=0> sigma_psi_site; // variance in site intercepts
   // Level-3 spatial random effect
-  vector[n_level_three] psi_level_three; // level three intercept for PL outcome
-  real<lower=0> sigma_psi_level_three; // variance in site intercepts
+  vector[n_level_three] psi_level_three; // level-three intercept for occupancy
+  real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
   // Level-4 spatial random effect
-  vector[n_level_four] psi_level_four; // level four intercept for PL outcome
-  real<lower=0> sigma_psi_level_four; // variance in site intercepts
+  vector[n_level_four] psi_level_four; // level-four intercept for occupancy
+  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
   
   // random slope for species specific natural habitat effects on occupancy
   vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
   //vector[n_species] mu_psi_natural_habitat; // community mean of species specific slopes
   //real<lower=0> sigma_psi_natural_habitat; // variance in species slopes
   real delta0; // baseline effect (mean)
-  real delta1; // effect of being native on the expected value of the re
+  real delta1; // effect of being native on the expected value of the random effect
   real<lower=0> gamma0; // baseline effect (variance) (negative variance not possible)
-  real gamma1; // effect of being native on the expected value of the re
+  real gamma1; // effect of being native on the expected value of the random effect
   
   // random slope for species-specific income effects on occupancy
   //vector[n_species] psi_income; // vector of species specific slope estimates
@@ -96,11 +94,11 @@ parameters {
   vector[n_sites] p_cs_site; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_cs_site; // variance in site slopes
   // level-3 spatial clusters
-  vector[n_level_three] p_cs_level_three; // level three intercept for PL outcome
-  real<lower=0> sigma_p_cs_level_three; // variance in site slopes
+  vector[n_level_three] p_cs_level_three; // level three intercept for cs detection
+  real<lower=0> sigma_p_cs_level_three; // variance in level three slopes
   // level-4 spatial clusters
-  vector[n_level_four] p_cs_level_four; // level four intercept for PL outcome
-  real<lower=0> sigma_p_cs_level_four; // variance in site slopes
+  vector[n_level_four] p_cs_level_four; // level four intercept for cs detection
+  real<lower=0> sigma_p_cs_level_four; // variance in level four slopes
   
   real p_cs_interval; // fixed temporal effect on detection probability
   real p_cs_pop_density; // fixed effect of population on detection probability
