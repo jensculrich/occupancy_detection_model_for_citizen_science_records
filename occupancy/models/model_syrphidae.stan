@@ -178,7 +178,7 @@ transformed parameters {
   //
   //
   
-  // calculate logit scaled expected values for occurrence and detectio
+  // calculate logit scaled expected values for occurrence and detection
   for (i in 1:n_species){   // loop across all species
     for (j in 1:n_sites){    // loop across all sites
       for(k in 1:n_intervals){ // loop across all intervals  
@@ -186,7 +186,7 @@ transformed parameters {
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
             psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
-            psi_natural_habitat[species[i]]*natural_habitat[j] + // an effect 
+            psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -199,7 +199,7 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals
         
           logit_p_cs[i,j,k] = // the inverse of the log odds of detection is equal to..
-            p_cs_species[species[i]] +
+            p_cs_species[species[i]] + // a species-specific intercept
             p0_cs_site[sites[j]] + // a spatially specific intercept
             p_cs_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_cs_pop_density*pop_densities[j] // an overall effect of pop density on detection
@@ -338,7 +338,15 @@ generated quantities{
   real mu_psi_natural_habitat_all_species;
   mu_psi_natural_habitat_all_species = mean(mu_psi_natural_habitat);
   
-  // Post pred check
+  // posterior predictive check (Freeman-Tukey posterior pred check, binned by species)
+  
+  // estimate expected values (occurrence is a partially latent variable so when we don't observe the species, we don't actually know the expected values)
+  // create replicated data using the paramter estimates and stochastic process defined by the model
+  // gather real detecions
+  
+  // test the rate at which the number of detections in the real data versus the repped data 
+  // are closer to the expected values. The FTP is the rate at which the real data are closer.
+  
   int Z[n_species, n_sites, n_intervals];
   
   int z_rep[n_species, n_sites, n_intervals];
