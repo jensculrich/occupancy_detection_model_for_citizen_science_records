@@ -1,6 +1,6 @@
 ## --------------------------------------------------
 ### Posterior Predictive Check
-# Tukey Freeman (species-binned) discrepancy 
+# Freeman-Tukey (species-binned) discrepancy 
 
 # Read in a model file
 stan_out <- readRDS("./occupancy/model_outputs/bombus_30km_300minpop3minpersp3_5.rds")
@@ -18,7 +18,7 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 
 list_of_draws <- as.data.frame(stan_out)
 
-# Bayesian P-values (P_average should be > 0.10 otherwise the model fit would be highlu questionable)
+# Bayesian P-values (P_average should be > 0.10 otherwise the model fit would be questionable)
 P_average_citsci = vector(length = n_species)
 
 # Note the column number is just the column number of the first species P in the df
@@ -26,7 +26,7 @@ for(i in 1:n_species){
   P_average_citsci[i] = fit_summary$summary[196+i,1]
 }
 
-# Bayesian P-values (P_average should be > 0.10 otherwise the model fit would be highlu questionable)
+# Bayesian P-values (P_average should be > 0.10 otherwise the model fit would be questionable)
 P_average_museum = vector(length = n_species)
 
 # Note the column number is just the column number of the first species P in the df
