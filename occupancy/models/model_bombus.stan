@@ -52,8 +52,7 @@ data {
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] avg_income; // (scaled) household income of each site
   vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
-  real rc_total_records[n_sites, n_intervals]; // (scaled) number of records
-  
+
 } // end data
 
 
@@ -130,8 +129,6 @@ parameters {
   // level-4 spatial clusters
   vector[n_level_four] p_rc_level_four; // level-four specific intercept for rc detection
   real<lower=0> sigma_p_rc_level_four; // variance in level-four slopes
-  
-  real p_rc_total_records; // fixed effect of total records on rc detection probability
   
 } // end parameters
 
@@ -230,8 +227,7 @@ transformed parameters {
            
           logit_p_rc[i,j,k] = // the inverse of the log odds of detection is equal to..
             species_intercepts_detection[species[i],2] + // a species specific intercept // includes global intercept
-            p0_rc_site[sites[j]] + // a spatially specific intercept 
-            p_rc_total_records*rc_total_records[j,k] //records at site in interval
+            p0_rc_site[sites[j]] // a spatially specific intercept 
            ; // end p_rc[i,j,k]
            
       } // end loop across all intervals
@@ -318,9 +314,6 @@ model {
   p_rc_level_four ~ normal(0, sigma_p_rc_level_four);
   sigma_p_rc_level_four ~ normal(0, 0.25); // weakly-informative prior
   
-  // an effect of total records at the site during the interval
-  p_rc_total_records ~ normal(0, 0.5);
-  
   // LIKELIHOOD
   
   // Stan can sample the mean and sd of parameters by summing out the
@@ -333,7 +326,7 @@ model {
         if(sum(ranges[i,j,k]) > 0){ // The sum of the NA vector will be == 0 if site is not in range
         
           // if species is detected at the specific site*interval at least once
-          // by citizen science efforts OR museum records
+          // by community science efforts OR research collection records
           // then the species occurs there. lp_observed calculates
           // the probability density that species occurs given psi, plus the 
           // probability density that we did/did not observe it on each visit l in 1:nvisit
@@ -343,7 +336,7 @@ model {
              target += log_inv_logit(logit_psi[i,j,k]) +
                       binomial_logit_lpmf(sum(V_cs[i,j,k,1:n_visits]) | n_visits, logit_p_cs[i,j,k]) + 
                       // sum(V_rc_NA[i,j,k,1:n_visits]) below tells us how many sampling 
-                      // events actually occurred for museum records (values can range between 0 and the number of years per interval)
+                      // events actually occurred for research collection records (values can range between 0 and the number of years per interval)
                       binomial_logit_lpmf(sum(V_rc[i,j,k,1:n_visits]) | sum(V_rc_NA[i,j,k,1:n_visits]), logit_p_rc[i,j,k]);
                           
           // else the species was never detected at the site*interval

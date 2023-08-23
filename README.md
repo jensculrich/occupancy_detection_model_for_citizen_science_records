@@ -79,7 +79,7 @@ Contains a raster with land cover data (NLCD data) at 30m resolution from 2016.
 add source
 
 ### Occurrence Data (./occurrence_data/): 
-Contains occurrence data for bumble bees (BBNA (private repo due to data rights)) and for hoverflies (from GBIF (private repo due to size))
+Contains occurrence data for bumble bees (BBNA (private folder due to data rights and size)) and for hoverflies (from GBIF (private folder due to size))
 
 <style>
 div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}

@@ -87,6 +87,7 @@ generate_temporal_plots = FALSE # default to FALSE
 # define level 3 spatial clusters by CBSA metro area (by_city == TRUE)
 # or by fine scale ecogeographic region (by_city == FALSE)
 by_city = FALSE
+# filter out urban landscapes with inordinately high population density (i.e. downtown NYC)
 remove_city_outliers_5stddev = TRUE
 
 ## --------------------------------------------------
@@ -168,6 +169,7 @@ gc()
 library(rstan)
 # use non-centered spatial random effects model?
 use_reparameterized_rand_effects_model = FALSE
+bombus_no_rc = FALSE
 
 # data to feed to the model
 # cs = community science / "citizen science"
@@ -302,6 +304,8 @@ gc()
 if(taxon == "bombus"){
   
   if(urban_sites == TRUE){
+    
+    if(bombus_no_rc == FALSE){
    
     stan_data <- c("V_cs", "V_rc", 
                    "ranges", "V_rc_NA",
@@ -335,14 +339,13 @@ if(taxon == "bombus"){
                 "sigma_p_cs_level_three",
                 "sigma_p_cs_level_four",
                 "p_cs_interval",
-                "p_cs_pop_density", 
-                
+                "p_cs_pop_density",
+
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
                 "sigma_p_rc_level_three",
                 "sigma_p_rc_level_four",
-                "p_rc_total_records",
-                
+
                 "psi_species",
                 "psi_income",
                 "psi_natural_habitat",
@@ -361,9 +364,9 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 1000
+    n_iterations <- 4000
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 1000
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -394,15 +397,100 @@ if(taxon == "bombus"){
         sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
         p_cs_interval = runif(1, 0, 1),
         p_cs_pop_density = runif(1, -1, 1),
-        
-        # start musuem values close to zero
+
+        # start rc values close to zero
         mu_p_rc_0 = runif(1, -0.5, 0.5),
         sigma_p_rc_site = runif(1, 0.5, 1),
         sigma_p_rc_level_three = runif(1, 0, 0.25),
         sigma_p_rc_ecoregion_one = runif(1, 0, 0.25),
-        p_rc_total_records = runif(1, -0.5, 0.5)    
       )
     )
+    
+    } else { # do not use fully integrated model
+      
+      stan_data <- c("V_cs", "V_rc", 
+                     "ranges", "V_rc_NA",
+                     "n_species", "n_sites", "n_intervals", "n_visits", 
+                     "intervals", "species", "sites",
+                     "n_level_three", 
+                     "level_three_lookup", 
+                     "n_level_four",
+                     "level_four_lookup",
+                     "pop_densities", "site_areas", "avg_income", 
+                     "natural_habitat", "rc_total_records") 
+      
+      # Parameters monitored
+      params <- c(
+                  
+                  "mu_psi_0",
+                  "sigma_psi_species",
+                  "sigma_psi_site",
+                  "sigma_psi_level_three",
+                  "sigma_psi_level_four",
+                  "mu_psi_income",
+                  "sigma_psi_income",
+                  "mu_psi_natural_habitat",
+                  "sigma_psi_natural_habitat",
+                  "psi_site_area",
+                  
+                  "mu_p_cs_0",
+                  "sigma_p_cs_species",
+                  "sigma_p_cs_site",
+                  "sigma_p_cs_level_three",
+                  "sigma_p_cs_level_four",
+                  "p_cs_interval",
+                  "p_cs_pop_density",
+                  
+                  "psi_species",
+                  "psi_income",
+                  "psi_natural_habitat",
+                  
+                  "psi_site",
+                  "psi_level_four",
+                  "psi_level_three", # track city or eco3 effects
+                  
+                  "T_rep_cs",
+                  "T_obs_cs",
+                  "P_species_cs"
+      )
+      
+      # MCMC settings
+      n_iterations <- 400
+      n_thin <- 1
+      n_burnin <- 200
+      n_chains <- 4
+      #n_cores <- parallel::detectCores()
+      n_cores <- 4
+      delta = 0.95
+      
+      ## Initial values
+      # given the number of parameters, the chains need some decent initial values
+      # otherwise sometimes they have a hard time starting to sample
+      inits <- lapply(1:n_chains, function(i)
+        
+        list(
+          
+          mu_psi_0 = runif(1, -1, 1),
+          sigma_psi_species = runif(1, 0, 1),
+          sigma_psi_site = runif(1, 1, 2),
+          sigma_psi_level_three = runif(1, 0, 1),
+          sigma_psi_level_four = runif(1, 0, 1),
+          mu_psi_income = runif(1, -1, 1),
+          sigma_psi_income = runif(1, 0, 1),
+          mu_psi_natural_habitat = runif(1, -1, 1),
+          sigma_psi_natural_habitat = runif(1, 0, 1),
+          psi_site_area = runif(1, -1, 1),
+          
+          mu_p_cs_0 = runif(1, -1, 0),
+          sigma_p_cs_site = runif(1, 0.5, 1),
+          sigma_p_cs_level_three = runif(1, 0, 0.5),
+          sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
+          p_cs_interval = runif(1, 0, 1),
+          p_cs_pop_density = runif(1, -1, 1)
+
+        )
+      )
+    }
       
   } else { # bombus non-urban
     
@@ -557,9 +645,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 1000
+    n_iterations <- 4000
     n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 1000
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -689,6 +777,9 @@ if(use_reparameterized_rand_effects_model == TRUE){
   stan_model <- paste0("./occupancy/models/model_", taxon, "_reparameterized_rand_effects.stan")
 }
 
+# or manually enter a model name
+stan_model <- paste0("./occupancy/models/model_", taxon, "_no_rc.stan")
+
 ## Call Stan from R
 set.seed(1)
 stan_out <- stan(stan_model,
@@ -709,7 +800,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
-  ".rds"
+  "_no_rc.rds"
 )
 )
 
@@ -814,13 +905,14 @@ if(taxon == "syrphidae"){
     "sigma_p_cs_level_three",
     "sigma_p_cs_level_four",
     "p_cs_interval",
-    "p_cs_pop_density", 
+    "p_cs_pop_density",
+    "p_cs_natural_habitat",
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
     #"sigma_p_rc_level_three",
     #"sigma_p_rc_level_four",
-    "p_rc_total_records"
+    "p_rc_natural_habitat"
   ))
 }
 
@@ -884,11 +976,13 @@ if(taxon == "syrphidae"){
     "sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density",
+    #"p_cs_natural_habitat",
     "mu_p_rc_0",
     "sigma_p_rc_site",
     "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four",
-    "p_rc_total_records"
+    "sigma_p_rc_level_four"
+    #"p_rc_natural_habitat"
+    #"p_rc_total_records"
   ))
   traceplot(stan_out, pars = c( # species detection
     "rho",
