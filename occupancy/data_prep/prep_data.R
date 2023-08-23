@@ -143,6 +143,30 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     slice(1) %>%
     nrow()
   
+  cs_coordinateuncertainty_not_NA <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "community_science") %>%
+    filter(year >= era_start) %>%
+    filter(coordinateUncertaintyInMeters != 0) %>%
+    nrow()
+  
+  cs_coordinateuncertainty_NA <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "community_science") %>%
+    filter(year >= era_start) %>%
+    filter(coordinateUncertaintyInMeters == 0) %>%
+    nrow()
+  
+  rc_coordinateuncertainty_not_NA <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "research_collection") %>%
+    filter(year >= era_start) %>%
+    filter(coordinateUncertaintyInMeters != 0) %>%
+    nrow()
+  
+  rc_coordinateuncertainty_NA <- df_id_urban_filtered %>%
+    filter(basisOfRecord == "research_collection") %>%
+    filter(year >= era_start) %>%
+    filter(coordinateUncertaintyInMeters == 0) %>%
+    nrow() 
+  
   # species counts
   species_counts <- df_id_urban_filtered %>%
     filter(year >= era_start) %>%
@@ -167,6 +191,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   species_counts <- species_counts %>%
     left_join(., species_counts_citsci) %>%
     left_join(., species_counts_museum)
+  
+  # for the full 
   
   rm(species_counts_citsci, species_counts_museum)
   
@@ -210,7 +236,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # occurrence data FROM ANYWHERE IN CONTINENTAL US
   
   # read either the syrphidae data or the bombus data
-  # read either the syrphidae data or the bombus data
   if(taxon == "syrphidae"){
     df_full <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
   } else {
@@ -250,6 +275,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   if(taxon == "bombus"){
     df_full <- df_full %>% 
       filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+      filter(!(species == "perplexus" & decimalLongitude < -100)) %>%
       filter(!(species == "affinis" & (!(state.prov %in% 
                                            c("Minnesota", "Iowa", "Wisconsin", "Illinois",
                                              "Indiana", "Ohio", "West Virginia", "Virginia")))))

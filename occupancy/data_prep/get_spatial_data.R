@@ -583,6 +583,7 @@ get_spatial_data <- function(
     if(taxon == "bombus"){
       df_id_dens <- df_id_dens %>% 
         filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
+        filter(!(species == "perplexus" & decimalLongitude < -100)) %>%
         filter(!(species == "affinis" & (!(state.prov %in% 
                                              c("Minnesota", "Iowa", "Wisconsin", "Illinois",
                                                "Indiana", "Ohio", "West Virginia", "Virginia")))))
