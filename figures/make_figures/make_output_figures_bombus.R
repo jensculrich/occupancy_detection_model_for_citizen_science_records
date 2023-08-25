@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
@@ -79,8 +79,8 @@ for(i in 1:n_species){
   #species_estimates[1,i] <- NA # psi species
   #species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[1,i] <- NA # site area
-  species_estimates[2,i] <- fit_summary$summary[153+i,1] # herb shrub forest
-  species_estimates[3,i] <- fit_summary$summary[120+i,1] # income
+  species_estimates[2,i] <- fit_summary$summary[152+i,1] # herb shrub forest
+  species_estimates[3,i] <- fit_summary$summary[119+i,1] # income
   
 }
 
@@ -140,8 +140,8 @@ s
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_3ints_3visits_.RDS")
-species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban_min5detections.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
+species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
 
@@ -167,43 +167,43 @@ n_species <- length(species_names)
 X_eco <- c(1, 2, 3, 4) # 3 ecological params of interest
 # mean of eco params
 Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
-  fit_summary$summary[495,1], # mu psi natural habitat non native
-  fit_summary$summary[494,1], # mu psi natural habitat native
-  fit_summary$summary[496,1], # mu psi natural habitat all
+  fit_summary$summary[1149,1], # mu psi natural habitat non native
+  fit_summary$summary[1148,1], # mu psi natural habitat native
+  fit_summary$summary[1150,1], # mu psi natural habitat all
   fit_summary$summary[10,1]#, # psi site area
   #fit_summary$summary[1,1] # mu psi 0
 )
 
 # confidence intervals
 lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
-  fit_summary$summary[495,4], # mu psi natural habitat non native
-  fit_summary$summary[494,4], # mu psi natural habitat native
-  fit_summary$summary[496,4], # mu psi natural habitat all
+  fit_summary$summary[1149,4], # mu psi natural habitat non native
+  fit_summary$summary[1148,4], # mu psi natural habitat native
+  fit_summary$summary[1150,4], # mu psi natural habitat all
   fit_summary$summary[10,4]#,
   #fit_summary$summary[1,4] # mu psi 0
 )
 
 upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
-  fit_summary$summary[495,8], # mu psi natural habitat non native
-  fit_summary$summary[494,8], # mu psi natural habitat native
-  fit_summary$summary[496,8], # mu psi natural habitat all
+  fit_summary$summary[1149,8], # mu psi natural habitat non native
+  fit_summary$summary[1148,8], # mu psi natural habitat native
+  fit_summary$summary[1150,8], # mu psi natural habitat all
   fit_summary$summary[10,8]#,
   #fit_summary$summary[1,8] # mu psi 0
 )
 
 # confidence intervals
 lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
-  fit_summary$summary[495,5], # mu psi natural habitat non native
-  fit_summary$summary[494,5], # mu psi natural habitat native
-  fit_summary$summary[496,5], # mu psi natural habitat all
+  fit_summary$summary[1149,5], # mu psi natural habitat non native
+  fit_summary$summary[1148,5], # mu psi natural habitat native
+  fit_summary$summary[1150,5], # mu psi natural habitat all
   fit_summary$summary[10,5]#,
   #fit_summary$summary[1,5] # mu psi 0
 )
 
 upper_50_eco <- c(#fit_summary$summary[6,7], # mu psi income
-  fit_summary$summary[495,7], # mu psi natural habitat non native
-  fit_summary$summary[494,7], # mu psi natural habitat native
-  fit_summary$summary[496,7], # mu psi natural habitat all
+  fit_summary$summary[1149,7], # mu psi natural habitat non native
+  fit_summary$summary[1148,7], # mu psi natural habitat native
+  fit_summary$summary[1150,7], # mu psi natural habitat all
   fit_summary$summary[10,7]#,
   #fit_summary$summary[1,7] # mu psi 0
 )
@@ -218,12 +218,12 @@ df_estimates_eco$X_eco <- as.factor(df_estimates_eco$X_eco)
 ## --------------------------------------------------
 ## Get species specific estimates
 
-subset_nonnative <- fit_summary$summary[159:299,] %>%
+subset_nonnative <- fit_summary$summary[170:321,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "0")
 
-subset_native <- fit_summary$summary[159:299,] %>%
+subset_native <- fit_summary$summary[170:321,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "1")
@@ -238,7 +238,7 @@ for(i in 1:n_species){
   species_estimates[1,i] <- NA # site area
   #species_estimates[2,i] <- fit_summary$summary[136+i,1] # herb shrub forest
   #species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
-  species_estimates[2,i] <- fit_summary$summary[158+i,1] # all
+  species_estimates[2,i] <- fit_summary$summary[169+i,1] # all
   species_estimates[3,i] <- subset_native[i,1]
   species_estimates[4,i] <- subset_nonnative[i,1]
 }
@@ -307,7 +307,7 @@ plot_grid(s, s2, labels = c('a)', 'b)'),
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_5minpersp_4ints_3visits_.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
@@ -324,17 +324,13 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 
 n_species <- length(species_names)
 
-
-View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
-
 # parameter means
-X_detection <- c(1, 2, 3, 4) # 4 detection params of interest
+X_detection <- c(1, 2, 3) # 4 detection params of interest
 
 # mean of cit sci params and museum params
 Y_detection <- c(
            fit_summary$summary[67,1],# rho
            # rc 
-           fit_summary$summary[88,1], # p total records
            #fit_summary$summary[18,1], # mu p 0
            # cs
            fit_summary$summary[83,1], # p pop dens
@@ -346,7 +342,6 @@ Y_detection <- c(
 lower_95_detection <- c(
   fit_summary$summary[67,4], # rho
   # rc 
-  fit_summary$summary[88,4], # p total records
   #fit_summary$summary[18,4], # mu p 0
   # cs
   fit_summary$summary[83,4], # p pop dens
@@ -357,7 +352,6 @@ lower_95_detection <- c(
 upper_95_detection <- c(
   fit_summary$summary[67,8], # rho
   # rc 
-  fit_summary$summary[88,8], # p total records
   #fit_summary$summary[18,8], # mu p 0
   # cs
   fit_summary$summary[83,8], # p pop dens
@@ -369,7 +363,6 @@ upper_95_detection <- c(
 lower_50_detection <- c(
   fit_summary$summary[67,5], # rho
   # rc 
-  fit_summary$summary[88,5], # p total records
   #fit_summary$summary[18,5], # mu p 0
   # cs
   fit_summary$summary[83,5], # p pop dens
@@ -380,7 +373,6 @@ lower_50_detection <- c(
 upper_50_detection <- c(
   fit_summary$summary[67,7], # rho
   # rc 
-  fit_summary$summary[88,7], # p total records
   #fit_summary$summary[18,7], # mu p 0
   # cs
   fit_summary$summary[83,7], # p pop dens
@@ -422,18 +414,17 @@ for(i in 1:n_species){
                  color="black",width=0,size=3,alpha=0.8) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
-   scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
+   scale_x_discrete(name="", breaks = c(1, 2, 3),
                     labels=c(
-                      #mu[psi["natural habitat [nonnative]"]]
                       bquote(rho),
-                      bquote("p.rc"["total records"]),
+                      #bquote("p.rc"["total records"]),
                       #bquote(rc[0]),      
                       bquote(p.cs["pop. density"]),
                       bquote(p.cs["time interval"^2]) 
                       #bquote(p.cs[0]))
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-1.25, 1.25), breaks = seq(-1, 1, by = 1)) +
+                      limits = c(-0.5, 1.25), breaks = seq(-1, 1, by = 1)) +
    guides(color = guide_legend(title = "")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
@@ -471,10 +462,8 @@ df_estimates_eco_species <- cbind(df_estimates_citsci, species_estimates_det)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_5minpersp_3ints_3visits_.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
-
-list_of_draws <- as.data.frame(stan_out)
 
 fit_summary <- rstan::summary(stan_out)
 
@@ -490,8 +479,6 @@ n_species <- length(species_names)
 
 ## --------------------------------------------------
 ## Plot detection paramter means and variation (citizen science)
-
-View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 
 # parameter means
 X_detection <- c(1, 2) # 2 detection params of interest
@@ -575,7 +562,7 @@ for(i in 1:n_species){
                       bquote(p.cs["time interval"^2]) 
                       )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                      limits = c(-1.25, 1.25), breaks = seq(-1, 1, by = 1)) +
+                      limits = c(-0.5, 1.25), breaks = seq(-1, 1, by = 1)) +
    guides(color = guide_legend(title = "")) +
    geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
@@ -628,9 +615,11 @@ plot_grid(q, q2, labels = c('c)', 'd)'),
 # "psi_species[12]",
 # "psi_species[23]"
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.RDS")
-fit_summary <- rstan::summary(stan_out)
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
+n_species <- length(species_names)
+
+fit_summary <- rstan::summary(stan_out)
 
 #stan_out2 <- readRDS("./occupancy/model_outputs/bombus/non_urban/bombus_40km_1000minpop_5minpersp_4ints_3visits_.RDS")
 #fit_summary2 <- rstan::summary(stan_out2)
@@ -657,33 +646,33 @@ estimate <-  c(
   # param 1 (psi_species_rangewide)
   #fit_summary2$summary[87:103,1], fit_summary2$summary[105:119,1],
   # param 1 (psi_species_urban)
-  fit_summary$summary[89:120,1],
+  rev(fit_summary$summary[88:119,1]),
   # param 2 (psi income)
-  fit_summary$summary[121:152,1],
+  rev(fit_summary$summary[120:151,1]),
   # param 3 (psi natural)
-  fit_summary$summary[153:184,1]
+  rev(fit_summary$summary[152:183,1])
 )
 
 lower <- c(
   # param 1 (psi_species_rangewide)
   #fit_summary2$summary[87:103,4], fit_summary2$summary[105:119,4],
   # param 1 (psi_species_urban)
-  fit_summary$summary[89:120,4],
+  rev(fit_summary$summary[88:119,4]),
   # param 2 (psi income)
-  fit_summary$summary[121:152,4],
+  rev(fit_summary$summary[120:151,4]),
   # param 3 (psi natural)
-  fit_summary$summary[153:184,4]
+  rev(fit_summary$summary[152:183,4])
 )
 
 upper <- c(
   # param 1 (psi_species_rangewide)
   #fit_summary2$summary[87:103,8], fit_summary2$summary[105:119,8],
   # param 1 (psi_species_urban)
-  fit_summary$summary[89:120,8],
+  rev(fit_summary$summary[88:119,8]),
   # param 2 (psi income)
-  fit_summary$summary[121:152,8],
+  rev(fit_summary$summary[120:151,8]),
   # param 3 (psi natural)
-  fit_summary$summary[153:184,8]
+  rev(fit_summary$summary[152:183,8])
 ) 
 
 # species_names_label <- str_replace_all(species_names,'Bombus','B.')
@@ -694,10 +683,13 @@ df <- as.data.frame(cbind(x, y, estimate, lower, upper
   mutate(x = as.factor(x),
          y = as.factor(y))
 
-
-
 # converting the result to dataframe
-#df <- as.data.frame(rev_data_frame)
+#df <- map_df(df, rev)
+
+species_names_label <- species_names_label %>%
+  as.data.frame(.) %>%
+  map_df(., rev) %>%
+  pull(.)
 
 p1 <- ggplot(df, aes(x, y, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
@@ -734,6 +726,107 @@ p1 <- ggplot(df, aes(x, y, width=1, height=1)) +
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_blank())
 
+# plot on separate colour scales
+temp <- df %>% filter(x == 1)
+p1.1 <- ggplot(temp, aes(x, y, width=1, height=1)) +
+  geom_tile(aes(fill = estimate, width = 0.5)) +
+  theme_bw() +
+  scale_x_discrete(name="", breaks = c(1),
+                   labels=c(#bquote(psi[species - range]),
+                     bquote(psi[species])
+                   )) +
+  scale_y_discrete(name="", breaks = rep(1:n_species),
+                   labels=species_names_label) +
+  scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+  #geom_text(data = df, 
+  #     aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+  
+  geom_text(data = temp, 
+            aes(x = x, y = y, label = paste0(
+              #signif(estimate, 2),"\n(", 
+              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+            size = 3.5) +
+  theme(legend.position = "none",
+        #legend.text=element_text(size=14),
+        #legend.title=element_text(size=16),
+        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+        axis.text.y = element_text(size = 11),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        panel.border = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_blank())
+
+temp <- df %>% filter(x == 2)
+p1.2 <- ggplot(temp, aes(x, y, width=1, height=1)) +
+  geom_tile(aes(fill = estimate, width = 0.5)) +
+  theme_bw() +
+  scale_x_discrete(name="", breaks = c(2),
+                   labels=c(#bquote(psi[species - range]),
+                     bquote(psi[species])
+                     #bquote(psi[species[income]])
+                   )) +
+  scale_y_discrete(name="", breaks = rep(1:n_species),
+                   labels=species_names_label) +
+  scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+  #geom_text(data = df, 
+  #     aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+  
+  geom_text(data = temp, 
+            aes(x = x, y = y, label = paste0(
+              #signif(estimate, 2),"\n(", 
+              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+            size = 3.5) +
+  theme(legend.position = "none",
+        #legend.text=element_text(size=14),
+        #legend.title=element_text(size=16),
+        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+        axis.text.y = element_text(size = 11),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        panel.border = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_blank())
+
+temp <- df %>% filter(x == 3)
+p1.3 <- ggplot(temp, aes(x, y, width=1, height=1)) +
+  geom_tile(aes(fill = estimate, width = 0.5)) +
+  theme_bw() +
+  scale_x_discrete(name="", breaks = c(3),
+                   labels=c(#bquote(psi[species - range]),
+                     bquote(psi[species])
+                     
+                     #bquote(psi[species["nat. habitat"]])
+                   )) +
+  scale_y_discrete(name="", breaks = rep(1:n_species),
+                   labels=species_names_label) +
+  scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+  #geom_text(data = df, 
+  #     aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+  
+  geom_text(data = temp, 
+            aes(x = x, y = y, label = paste0(
+              #signif(estimate, 2),"\n(", 
+              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+            size = 3.5) +
+  theme(legend.position = "none",
+        #legend.text=element_text(size=14),
+        #legend.title=element_text(size=16),
+        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+        axis.text.y = element_text(size = 11),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        panel.border = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_blank())
+
+
 
 # parameter means
 params = 2
@@ -744,9 +837,9 @@ y2 = (rep(1:n_species, times=params)) # species reference
 
 estimate2 <-  c(
   # param 4 (Freeman Tukey P cit sci)
-  fit_summary$summary[761:792,1], 
+  fit_summary$summary[760:791,1], 
   # param 5 (Freeman Tukey P rc)
-  fit_summary$summary[857:888,1]
+  fit_summary$summary[856:887,1]
 )
 
 df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%
@@ -761,8 +854,11 @@ p2 <- ggplot(df2, aes(x2, y2, width=1, height=1)) +
                             bquote(FTP[cs]),
                             bquote(FTP[rc])
                    )) +
-  scale_y_discrete(name="", breaks = "",
-                   labels="") +
+  scale_y_discrete(name="", breaks = rep(1:n_species),
+                   labels=species_names_label) +
+  # or no species labels
+  #scale_y_discrete(name="", breaks = "",
+    #               labels="") +
   scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
   geom_text(data = df2, colour = "white",
        aes(x = x2, y = y2, label = signif(estimate2, 2)), size = 3.5) +

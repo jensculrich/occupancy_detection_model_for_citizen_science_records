@@ -53,13 +53,13 @@ get_species_ranges <- function(
     df <- df %>% 
       filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
       filter(!(species == "perplexus" & decimalLongitude < -100)) %>%
+      filter(!(species == "pensylvanicus" & decimalLongitude < -120)) %>%
+      filter(!(species == "pensylvanicus" & ((state.prov %in% c("Idaho", "Montana", "North Dakota")))))  %>%
       filter(!(species == "affinis" & (!(state.prov %in% 
                                            c("Minnesota", "Iowa", "Wisconsin", "Illinois",
-                                             "Indiana", "Ohio", "West Virginia", "Virginia"))))) 
-    # %>%
-    #filter(!(species == "vosnesenskii" & (!(state.prov %in% 
-                    #                     c("California", "Oregon", "Washington", "Idaho",
-                    #                       "Nevada")))))
+                                             "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
+      filter(!(species == "vosnesenskii" & (!(state.prov %in% c("California", "Oregon", 
+                                            "Washington", "Idaho", "Nevada")))))
   }
   
   # make the df into a spatial file
@@ -279,13 +279,65 @@ get_species_ranges <- function(
         #                         crs = 4326) %>% 
         #st_transform(., crs = crs)
       
+      ## B pensylvanicus
+      
+      # to make plot must grab ch from species using code above^
+      
+      # get 'out of core range' points
+      #df <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
+      
+      # filtered points for perplexus
+      #temp <- df %>%
+      
+      # filter out records with high location uncertainty (threshold at 10km)
+      # assuming na uncertainty (large portion of records) is under threshold
+      #  mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
+      # filter(coordinateUncertaintyInMeters < 10000) %>%
+      
+        #filter(!(species == "pensylvanicus" & decimalLongitude > -120)) 
+        
+     # temp2 <- df %>%
+        
+        # filter out records with high location uncertainty (threshold at 10km)
+        # assuming na uncertainty (large portion of records) is under threshold
+      #  mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
+      #  filter(coordinateUncertaintyInMeters < 10000) %>%
+      #  filter(!(species == "pensylvanicus" & (!(state.prov %in% c("Idaho", "Montana", "North Dakota"))))) 
+      
+     # temp <- rbind(temp, temp2)
+      
+      # make the df into a spatial file
+      #temp$decimalLongitude <- na_if(temp$decimalLongitude, '')
+      #temp$decimalLatitude <- na_if(temp$decimalLatitude, '')
+      
+      #temp <- temp %>% 
+      #  filter(!is.na(decimalLongitude)) %>%
+      #  filter(!is.na(decimalLatitude))
+      
+      #species_name <- species_vector[23]
+      
+     # # filter to records for species from decided time frame
+      #filtered_2 <- temp %>%
+       # filter(species == species_name,
+       #        year > min_year_for_species_ranges) %>%
+        #dplyr::select(decimalLatitude, decimalLongitude)
+      
+      # project the filtered data
+     # filtered_prj_2 <- st_as_sf(filtered_2,
+        #                        coords = c("decimalLongitude", "decimalLatitude"), 
+      #                         crs = 4326) %>% 
+      #st_transform(., crs = crs)
+      
+      
+      
+        
       # range map plot
       ggplot() +
         geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
         geom_sf(data = urban_grid, fill = "transparent", lwd = 0.3) +
         geom_sf(data = ch, fill = 'skyblue', alpha = 0.5) +
         geom_sf(data = filtered_prj, alpha = 0.5) +
-        #geom_sf(data = filtered_prj_2, shape = 4, size = 5, color = "red") +
+        geom_sf(data = filtered_prj_2, shape = 4, size = 5, color = "red") +
         ggtitle(paste0("Inferred range for B.", species_name)) +
         labs(x = "Longitude") +
         labs(y = "Latitude") 

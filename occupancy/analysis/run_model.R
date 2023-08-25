@@ -168,8 +168,8 @@ gc()
 
 library(rstan)
 # use non-centered spatial random effects model?
-use_reparameterized_rand_effects_model = FALSE
-bombus_no_rc = FALSE
+use_reparameterized_rand_effects_model = FALSE # use non-centored spatial random effects? default = FALSE
+bombus_no_rc = FALSE # do not fit integrated model?  default = FALSE
 
 # data to feed to the model
 # cs = community science / "citizen science"
@@ -273,7 +273,9 @@ if(taxon == "syrphidae"){
   species_df <- species_df %>% dplyr::mutate(nativity = replace_na(nativity, 1))
   
   nativity <- pull(species_df, nativity)
-
+  
+  #saveRDS(nativity, "./figures/species_names/syrphidae_nativity_10km_urban.RDS")
+  
   detach("package:tidyverse", unload = TRUE)
 
 }
@@ -402,7 +404,7 @@ if(taxon == "bombus"){
         mu_p_rc_0 = runif(1, -0.5, 0.5),
         sigma_p_rc_site = runif(1, 0.5, 1),
         sigma_p_rc_level_three = runif(1, 0, 0.25),
-        sigma_p_rc_ecoregion_one = runif(1, 0, 0.25),
+        sigma_p_rc_ecoregion_one = runif(1, 0, 0.25)
       )
     )
     
@@ -778,7 +780,7 @@ if(use_reparameterized_rand_effects_model == TRUE){
 }
 
 # or manually enter a model name
-stan_model <- paste0("./occupancy/models/model_", taxon, "_no_rc.stan")
+# stan_model <- paste0("./occupancy/models/model_", taxon, "_no_rc.stan")
 
 ## Call Stan from R
 set.seed(1)
@@ -800,7 +802,8 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
-  "_no_rc.rds"
+  #"_long.rds"
+  ".rds"
 )
 )
 
@@ -866,8 +869,7 @@ if(taxon == "syrphidae"){
     "mu_p_rc_0",
     "sigma_p_rc_site",
     "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four",
-    "p_rc_total_records"
+    "sigma_p_rc_level_four"
   ))
 }
 
@@ -906,13 +908,13 @@ if(taxon == "syrphidae"){
     "sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density",
-    "p_cs_natural_habitat",
+    #"p_cs_natural_habitat",
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    #"sigma_p_rc_level_three",
-    #"sigma_p_rc_level_four",
-    "p_rc_natural_habitat"
+    "sigma_p_rc_level_three",
+    "sigma_p_rc_level_four"
+    #"p_rc_natural_habitat"
   ))
 }
 
@@ -1025,10 +1027,10 @@ if(taxon == "syrphidae"){
     "p_cs_interval",
     "p_cs_pop_density",
     "mu_p_rc_0",
-    "sigma_p_rc_site",
+    "sigma_p_rc_site"
     #"sigma_p_rc_level_three",
     #"sigma_p_rc_level_four",
-    "p_rc_total_records"
+    #"p_rc_total_records"
   ))
   traceplot(stan_out, pars = c( # species detection
     "rho",
@@ -1084,6 +1086,6 @@ View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see whic
 # hoverflies
 mean_FTP <- mean(fit_summary$summary[353:493,1])
 # bumble bees cs
-mean_FTP <- mean(fit_summary$summary[761:792,1])
+mean_FTP <- mean(fit_summary$summary[760:791,1])
 # bumble bees rc
-mean_FTP <- mean(fit_summary$summary[857:888,1])
+mean_FTP <- mean(fit_summary$summary[856:887,1])

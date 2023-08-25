@@ -584,9 +584,13 @@ get_spatial_data <- function(
       df_id_dens <- df_id_dens %>% 
         filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
         filter(!(species == "perplexus" & decimalLongitude < -100)) %>%
+        filter(!(species == "pensylvanicus" & decimalLongitude < -120)) %>%
+        filter(!(species == "pensylvanicus" & ((state.prov %in% c("Idaho", "Montana", "North Dakota")))))  %>%
         filter(!(species == "affinis" & (!(state.prov %in% 
                                              c("Minnesota", "Iowa", "Wisconsin", "Illinois",
-                                               "Indiana", "Ohio", "West Virginia", "Virginia")))))
+                                               "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
+        filter(!(species == "vosnesenskii" & (!(state.prov %in% c("California", "Oregon", 
+                                                                  "Washington", "Idaho", "Nevada")))))
     }
     
     # free unused space

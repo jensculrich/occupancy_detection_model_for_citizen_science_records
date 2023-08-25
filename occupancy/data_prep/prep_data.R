@@ -276,9 +276,13 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     df_full <- df_full %>% 
       filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
       filter(!(species == "perplexus" & decimalLongitude < -100)) %>%
+      filter(!(species == "pensylvanicus" & decimalLongitude < -120)) %>%
+      filter(!(species == "pensylvanicus" & ((state.prov %in% c("Idaho", "Montana", "North Dakota")))))  %>%
       filter(!(species == "affinis" & (!(state.prov %in% 
                                            c("Minnesota", "Iowa", "Wisconsin", "Illinois",
-                                             "Indiana", "Ohio", "West Virginia", "Virginia")))))
+                                             "Indiana", "Ohio", "West Virginia", "Virginia"))))) %>%
+      filter(!(species == "vosnesenskii" & (!(state.prov %in% c("California", "Oregon", 
+                                                                "Washington", "Idaho", "Nevada")))))
   }
   
   # total records from time period
