@@ -820,7 +820,7 @@ stan_out <- readRDS(paste0(
 )
 
 # read in a model ouput manually
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
+#stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
 
 # print main effects
 # print results
@@ -1049,7 +1049,6 @@ if(taxon == "syrphidae"){
 pairs(stan_out, pars = c(
   "mu_psi_0",
   "sigma_psi_species",
-  #"mu_psi_interval",
   "sigma_psi_site",
   #"mu_psi_herb_shrub_forest",
   #"psi_site_area",

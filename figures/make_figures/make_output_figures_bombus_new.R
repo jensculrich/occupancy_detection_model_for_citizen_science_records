@@ -6,10 +6,10 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
-list_of_draws <- as.data.frame(stan_out)
+#list_of_draws <- as.data.frame(stan_out)
 
 fit_summary <- rstan::summary(stan_out)
 
@@ -92,7 +92,7 @@ for(i in 1:n_species){
     # scale_color_viridis(discrete=TRUE) +
     scale_x_discrete(name="", breaks = c(1, 2, 3),
                        labels=c(bquote(mu[psi["income"]]),
-                                bquote(mu[psi["natural habitat"]]),
+                                bquote(mu[psi["nat. habitat"]]),
                                 bquote(psi["site area"])#, 
                                 #bquote(mu[psi[0]])
                                 )) +
@@ -140,12 +140,10 @@ s
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
-
-list_of_draws <- as.data.frame(stan_out)
 
 fit_summary <- rstan::summary(stan_out)
 
@@ -164,48 +162,49 @@ n_species <- length(species_names)
 ## Plot ecological paramter means and variation
 
 # parameter means
-X_eco <- c(1, 2, 3, 4) # 3 ecological params of interest
+X_eco <- c(1, 2, 3, 4, 5) # 3 ecological params of interest
 # mean of eco params
 Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
-  fit_summary$summary[1149,1], # mu psi natural habitat non native
-  fit_summary$summary[1148,1], # mu psi natural habitat native
-  fit_summary$summary[1150,1], # mu psi natural habitat all
-  fit_summary$summary[10,1]#, # psi site area
-  #fit_summary$summary[1,1] # mu psi 0
+  fit_summary$summary[10,1], # mu psi income
+  fit_summary$summary[1141,1], # mu psi natural habitat non native
+  fit_summary$summary[1140,1], # mu psi natural habitat native
+  fit_summary$summary[1142,1], # mu psi natural habitat all
+  fit_summary$summary[9,1]#, # psi site area
+  
 )
 
 # confidence intervals
 lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
-  fit_summary$summary[1149,4], # mu psi natural habitat non native
-  fit_summary$summary[1148,4], # mu psi natural habitat native
-  fit_summary$summary[1150,4], # mu psi natural habitat all
-  fit_summary$summary[10,4]#,
-  #fit_summary$summary[1,4] # mu psi 0
+  fit_summary$summary[10,4], # mu psi income
+  fit_summary$summary[1141,4], # mu psi natural habitat non native
+  fit_summary$summary[1140,4], # mu psi natural habitat native
+  fit_summary$summary[1142,4], # mu psi natural habitat all
+  fit_summary$summary[9,4]#, # psi site area
 )
 
 upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
-  fit_summary$summary[1149,8], # mu psi natural habitat non native
-  fit_summary$summary[1148,8], # mu psi natural habitat native
-  fit_summary$summary[1150,8], # mu psi natural habitat all
-  fit_summary$summary[10,8]#,
-  #fit_summary$summary[1,8] # mu psi 0
+  fit_summary$summary[10,8], # mu psi income
+  fit_summary$summary[1141,8], # mu psi natural habitat non native
+  fit_summary$summary[1140,8], # mu psi natural habitat native
+  fit_summary$summary[1142,8], # mu psi natural habitat all
+  fit_summary$summary[9,8]#, # psi site area
 )
 
 # confidence intervals
 lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
-  fit_summary$summary[1149,5], # mu psi natural habitat non native
-  fit_summary$summary[1148,5], # mu psi natural habitat native
-  fit_summary$summary[1150,5], # mu psi natural habitat all
-  fit_summary$summary[10,5]#,
-  #fit_summary$summary[1,5] # mu psi 0
+  fit_summary$summary[10,5], # mu psi income
+  fit_summary$summary[1141,5], # mu psi natural habitat non native
+  fit_summary$summary[1140,5], # mu psi natural habitat native
+  fit_summary$summary[1142,5], # mu psi natural habitat all
+  fit_summary$summary[9,5]#, # psi site area
 )
 
 upper_50_eco <- c(#fit_summary$summary[6,7], # mu psi income
-  fit_summary$summary[1149,7], # mu psi natural habitat non native
-  fit_summary$summary[1148,7], # mu psi natural habitat native
-  fit_summary$summary[1150,7], # mu psi natural habitat all
-  fit_summary$summary[10,7]#,
-  #fit_summary$summary[1,7] # mu psi 0
+  fit_summary$summary[10,7], # mu psi income
+  fit_summary$summary[1141,7], # mu psi natural habitat non native
+  fit_summary$summary[1140,7], # mu psi natural habitat native
+  fit_summary$summary[1142,7], # mu psi natural habitat all
+  fit_summary$summary[9,7]#, # psi site area
 )
 
 
@@ -218,12 +217,12 @@ df_estimates_eco$X_eco <- as.factor(df_estimates_eco$X_eco)
 ## --------------------------------------------------
 ## Get species specific estimates
 
-subset_nonnative <- fit_summary$summary[170:321,] %>%
+subset_nonnative <- fit_summary$summary[169:320,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "0")
 
-subset_native <- fit_summary$summary[170:321,] %>%
+subset_native <- fit_summary$summary[169:320,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "1")
@@ -233,14 +232,11 @@ species_estimates <- data.frame()
 for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
-  #species_estimates[1,i] <- NA # psi species
-  #species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[1,i] <- NA # site area
-  #species_estimates[2,i] <- fit_summary$summary[136+i,1] # herb shrub forest
-  #species_estimates[4,i] <- fit_summary$summary[56+i,1] # income
-  species_estimates[2,i] <- fit_summary$summary[169+i,1] # all
+  species_estimates[2,i] <- fit_summary$summary[168+i,1] # all
   species_estimates[3,i] <- subset_native[i,1]
   species_estimates[4,i] <- subset_nonnative[i,1]
+  species_estimates[5,i] <- NA # income
 }
 
 ## --------------------------------------------------
@@ -249,8 +245,8 @@ for(i in 1:n_species){
 (s2 <- ggplot(df_estimates_eco) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
-   scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
-                    labels=c(#bquote(psi[income]),
+   scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5),
+                    labels=c(bquote(mu[psi["income"]]),
                       bquote(mu[psi["nat. habitat"]~"[nonnative]"]),
                       bquote(mu[psi["nat. habitat"]~"[native]"]),
                       bquote(mu[psi["nat. habitat"]~"[all]"]),
@@ -309,8 +305,6 @@ plot_grid(s, s2, labels = c('a)', 'b)'),
 
 stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
-
-list_of_draws <- as.data.frame(stan_out)
 
 fit_summary <- rstan::summary(stan_out)
 
@@ -420,7 +414,7 @@ for(i in 1:n_species){
                       #bquote("p.rc"["total records"]),
                       #bquote(rc[0]),      
                       bquote(p.cs["pop. density"]),
-                      bquote(p.cs["time interval"^2]) 
+                      bquote(p.cs["interval"^2]) 
                       #bquote(p.cs[0]))
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
@@ -462,7 +456,7 @@ df_estimates_eco_species <- cbind(df_estimates_citsci, species_estimates_det)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 
 fit_summary <- rstan::summary(stan_out)
@@ -486,39 +480,39 @@ X_detection <- c(1, 2) # 2 detection params of interest
 # mean of cit sci params and museum params
 Y_detection <- c(
   # cs
-  fit_summary$summary[17,1], # p pop dens
-  fit_summary$summary[16,1]#, # p interval
+  fit_summary$summary[16,1], # p pop dens
+  fit_summary$summary[15,1]#, # p interval
   #fit_summary$summary[78,1] # mu p cs 0
 )
 
 # confidence intervals
 lower_95_detection <- c(
   # cs
-  fit_summary$summary[17,4], # p pop dens
-  fit_summary$summary[16,4] # p interval
+  fit_summary$summary[16,4], # p pop dens
+  fit_summary$summary[15,4] # p interval
   #fit_summary$summary[11,4] # mu p 0 
 ) 
 
 upper_95_detection <- c(
   # cs
-  fit_summary$summary[17,8], # p pop dens
-  fit_summary$summary[16,8] # p interval
+  fit_summary$summary[16,8], # p pop dens
+  fit_summary$summary[15,8] # p interval
   #fit_summary$summary[11,8] # mu p 0 
 ) 
 
 # confidence intervals
 lower_50_detection <- c(
   # cs
-  fit_summary$summary[17,5], # p pop dens
-  fit_summary$summary[16,5] # p interval
+  fit_summary$summary[16,5], # p pop dens
+  fit_summary$summary[15,5] # p interval
   #fit_summary$summary[11,5] # mu p 0 
 ) 
 
 upper_50_detection <- c(
   #fit_summary$summary[18,7], # mu p 0
   # cs
-  fit_summary$summary[17,7], # p pop dens
-  fit_summary$summary[16,7] # p interval
+  fit_summary$summary[16,7], # p pop dens
+  fit_summary$summary[15,7] # p interval
   #fit_summary$summary[11,7] # mu p 0 
 ) 
 
@@ -559,7 +553,7 @@ for(i in 1:n_species){
    scale_x_discrete(name="", breaks = c(1, 2),
                     labels=c(
                       bquote(p.cs["pop. density"]),
-                      bquote(p.cs["time interval"^2]) 
+                      bquote(p.cs["interval"^2]) 
                       )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
                       limits = c(-0.5, 1.25), breaks = seq(-1, 1, by = 1)) +
@@ -615,7 +609,7 @@ plot_grid(q, q2, labels = c('c)', 'd)'),
 # "psi_species[12]",
 # "psi_species[23]"
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 n_species <- length(species_names)
 
@@ -685,6 +679,11 @@ df <- as.data.frame(cbind(x, y, estimate, lower, upper
 
 # converting the result to dataframe
 #df <- map_df(df, rev)
+ordered_df <- filter(df, x == 3)
+ordered_df <- ordered_df[order(ordered_df$estimate,decreasing=TRUE),]
+
+df_intercepts <- filter(df, x == 1)
+ordered_df <- rbind(ordered_df, df_intercepts)
 
 species_names_label <- species_names_label %>%
   as.data.frame(.) %>%
@@ -877,6 +876,123 @@ p2 <- ggplot(df2, aes(x2, y2, width=1, height=1)) +
 
 library(cowplot)
 plot_grid(p1, p2, align = "h", axis = "bt", rel_widths = c(1, .5))
+
+
+## --------------------------------------------------
+# Make an ordered plot to match the hoverflies
+# species_names_label <- str_replace_all(species_names,'Bombus','B.')
+species_names_label <- paste0("B. ", species_names) 
+
+df <- as.data.frame(cbind(x, y, estimate, lower, upper 
+)) %>%
+  mutate(x = as.factor(x),
+         y = as.factor(y))
+
+# converting the result to dataframe
+#df <- map_df(df, rev)
+ordered_df <- filter(df, x == 3)
+ordered_df <- ordered_df[order(ordered_df$estimate,decreasing=FALSE),]
+
+df_intercepts <- filter(df, x == 1)
+ordered_df <- rbind(ordered_df, df_intercepts)
+
+species_names_label <- species_names_label %>%
+  as.data.frame(.) %>%
+  #map_df(., rev) %>%
+  pull(.)
+
+species_names_df <- species_names_label %>%
+  #rev(.) %>%
+  as.data.frame(.) %>%
+  mutate(row_id=row_number()) %>%
+  mutate(row_id = as.factor(row_id)) %>%
+  rename("y" = "row_id",
+         "species_name" = ".")
+
+ordered_df <- left_join(ordered_df, species_names_df, by = "y")
+
+# make a column for the slopes
+temp <- ordered_df %>% filter(x == 3) %>%
+  mutate(row_id=row_number()) %>%
+  mutate(row_id = as.factor(row_id))
+
+# grab row id's for later to match rows
+rows <- temp %>%
+  select(species_name, row_id)
+
+p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
+  geom_tile(aes(fill = estimate)) +
+  theme_bw() +
+  scale_x_discrete(name="", breaks = c(2),
+                   labels=c(#bquote(psi[species - range]),
+                     bquote(psi[species])
+                     #bquote(psi[species["nat. habitat"]])
+                     #bquote(FTP[citsci]),
+                     #bquote(FTP[museum])
+                   )) +
+  scale_y_discrete(name="", breaks = rep(1:nrow(temp)),
+                   labels=temp$species_name) +
+  scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+  #geom_text(data = df_filtered, 
+  #        aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+  
+  geom_text(data = temp, 
+            aes(x = x, y = row_id, label = paste0(
+              #signif(estimate, 2),"\n(", 
+              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+            size = 3.5) +
+  theme(legend.position = "none",
+        #legend.text=element_text(size=14),
+        #legend.title=element_text(size=16),
+        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        panel.border = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_blank())
+
+
+# make a column for the intercepts
+temp2 <- ordered_df %>% filter(x == 1)
+temp2 <- left_join(temp2, rows)
+
+p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
+  geom_tile(aes(fill = estimate)) +
+  theme_bw() +
+  scale_x_discrete(name="", breaks = c(2),
+                   labels=c(#bquote(psi[species - range]),
+                     bquote(psi[species])
+                     #bquote(psi[species["nat. habitat"]])
+                     #bquote(FTP[citsci]),
+                     #bquote(FTP[museum])
+                   )) +
+  scale_y_discrete(name="", breaks = rep(1:nrow(temp)),
+                   labels=temp$species_name) +
+  scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
+  #geom_text(data = df_filtered, 
+  #        aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
+  
+  geom_text(data = temp2, 
+            aes(x = x, y = row_id, label = paste0(
+              #signif(estimate, 2),"\n(", 
+              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+            size = 3.5) +
+  theme(legend.position = "none",
+        #legend.text=element_text(size=14),
+        #legend.title=element_text(size=16),
+        axis.text.x = element_text(size = 16, angle = 45, hjust=1),
+        axis.text.y = element_text(size = 12),
+        axis.title.x = element_text(size = 12),
+        axis.title.y = element_text(size = 12),
+        plot.title = element_text(size = 12),
+        panel.border = element_blank(),
+        plot.margin = unit(c(0,0,0,0), "cm"),
+        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+        panel.background = element_blank(), axis.line = element_blank())
+
 
 ## --------------------------------------------------
 ## Prediction versus covariate

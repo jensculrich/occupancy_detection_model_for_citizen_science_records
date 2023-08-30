@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
@@ -70,9 +70,9 @@ estimate <- c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,1], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[18:169,1]),
+  rev(fit_summary$summary[17:168,1]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[170:321,1])#,
+  rev(fit_summary$summary[169:320,1])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -83,9 +83,9 @@ lower <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,4], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[18:169,4]),
+  rev(fit_summary$summary[17:168,4]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[170:321,4])#,
+  rev(fit_summary$summary[169:320,4])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -96,9 +96,9 @@ upper <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,8], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[18:169,8]),
+  rev(fit_summary$summary[17:168,8]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[170:321,8])#,
+  rev(fit_summary$summary[169:320,8])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -125,7 +125,7 @@ y2 = (rep(1:n_species, times=params)) # species reference
 
 estimate2 <-  c(
   # param 3 (Freeman Tukey P cit sci)
-  rev(fit_summary$summary[996:1147,1])
+  rev(fit_summary$summary[988:1139,1])
 )
 
 df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%
@@ -152,8 +152,8 @@ for(i in 1:5){
     theme_bw() +
     scale_x_discrete(name="", breaks = c(1, 2),
                      labels=c(#bquote(psi[species - range]),
-                              bquote(psi[species]),
-                              bquote(psi[species["nat. habitat"]])
+                              bquote(psi["species"]~"[species]"),
+                              bquote(psi["nat. habitat"]~"[species]")
                               #bquote(FTP[citsci]),
                               #bquote(FTP[museum])
                      )) +
@@ -187,7 +187,7 @@ for(i in 1:5){
     theme_bw() +
     scale_x_discrete(name="", breaks = c(1),
                      labels=c(#bquote(psi[species - range]),
-                       bquote(psi[species])
+                       bquote(psi["species"]~"[species]")
                        #bquote(psi[species["nat. habitat"]])
                        #bquote(FTP[citsci]),
                        #bquote(FTP[museum])
@@ -222,7 +222,7 @@ for(i in 1:5){
     theme_bw() +
     scale_x_discrete(name="", breaks = c(2),
                      labels=c(#bquote(psi[species - range]),
-                       bquote(psi[species])
+                       bquote(psi["nat. habitat"]~"[species]")
                        #bquote(psi[species["nat. habitat"]])
                        #bquote(FTP[citsci]),
                        #bquote(FTP[museum])
@@ -257,7 +257,7 @@ for(i in 1:5){
     theme_bw() +
     scale_x_discrete(name="", breaks = c(2),
                      labels=c(#bquote(psi[species - range]),
-                       bquote(psi[species])
+                       bquote(psi["nat. habitat"]~"[species]")
                        #bquote(psi[species["nat. habitat"]])
                        #bquote(FTP[citsci]),
                        #bquote(FTP[museum])
@@ -301,7 +301,7 @@ for(i in 1:5){
     scale_y_discrete(name="", breaks = "",
                      labels="") +
     scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
-    geom_text(data = df_filtered2, colour = "black",
+    geom_text(data = df_filtered2, colour = "white",
               aes(x = x2, y = y2, label = signif(estimate2, 2)), size = 3.5) +
     theme(legend.position = "none",
           #legend.text=element_text(size=14),
@@ -393,7 +393,7 @@ top <- distinct(top) %>% select(-V2)
 bottom <- left_join(bottom, nativity_by_speciesID, by = "y") 
 bottom <- distinct(bottom) %>% select(-V2)
 
-top_and_bottom <- rbind(top, bottom)
+top_and_bottom <- rbind(top, bottom) %>% map_df(., rev)
 
 # join species names
 species_names_df <- species_names %>%
@@ -415,7 +415,7 @@ top_and_bottom <- left_join(top_and_bottom, species_names_df, by = "y")
 p1 <- ggplot(top_and_bottom, aes(x, y, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(1, 2),
+  scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
                      bquote(psi[species]),
                      bquote(psi[species["nat. habitat"]])
@@ -460,8 +460,8 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   theme_bw() +
   scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
-                     bquote(psi[species])
-                     #bquote(psi[species["nat. habitat"]])
+                     #bquote(psi[species])
+                     bquote(psi["nat. habitat"]~"[species]")
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])
                    )) +
@@ -499,7 +499,7 @@ p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
   theme_bw() +
   scale_x_discrete(name="", breaks = c(1),
                    labels=c(#bquote(psi[species - range]),
-                     bquote(psi[species])
+                     bquote(psi["species"]~"[species]")
                      #bquote(psi[species["nat. habitat"]])
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])
