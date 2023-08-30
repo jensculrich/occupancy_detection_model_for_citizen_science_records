@@ -1,6 +1,4 @@
 // multi-species occupancy model for GBIF occurrence data
-// will include income as a predictor, but will also include a simplified random effects
-// structure to see if this helps with non-convergence that occurred when using the original model
 // jcu, started nov 21, 2022.
 
 data {
@@ -32,7 +30,6 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
-  vector[n_sites] avg_income; // (scaled) household income of each site
   vector[n_species] nativity; // nativity vector, 0 == non-native, 1 == native
   
 } // end data
@@ -60,6 +57,9 @@ parameters {
   // Level-3 spatial random effect
   vector[n_level_three] psi_level_three; // level-three intercept for occupancy
   real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
+  // Level-4 spatial random effect
+  vector[n_level_four] psi_level_four; // level-four intercept for occupancy
+  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
   
   // random slope for species specific natural habitat effects on occupancy
   vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
@@ -72,7 +72,7 @@ parameters {
   
   // random slope for species-specific income effects on occupancy
   //vector[n_species] psi_income; // vector of species specific slope estimates
-  real mu_psi_income; // community mean of species specific slopes
+  //real mu_psi_income; // community mean of species specific slopes
   //real<lower=0> sigma_psi_income; // variance in species slopes
     
   // fixed effect of site area on occupancy
@@ -96,6 +96,9 @@ parameters {
   // level-3 spatial clusters
   vector[n_level_three] p_cs_level_three; // level three intercept for cs detection
   real<lower=0> sigma_p_cs_level_three; // variance in level three slopes
+  // level-4 spatial clusters
+  vector[n_level_four] p_cs_level_four; // level four intercept for cs detection
+  real<lower=0> sigma_p_cs_level_four; // variance in level four slopes
   
   real p_cs_interval; // fixed temporal effect on detection probability
   real p_cs_pop_density; // fixed effect of population on detection probability
@@ -113,8 +116,10 @@ transformed parameters {
   
   // spatially nested intercepts
   real psi0_site[n_sites];
+  real psi0_level_three[n_level_three];
 
   real p0_cs_site[n_sites];
+  real p0_cs_level_three[n_level_three];
 
   // phylogenetically nested intercepts
   //real psi0_species[n_species];
@@ -122,18 +127,34 @@ transformed parameters {
   // hard prior to disallow intercept plus nativity adjustment from being negative
   real<lower=0> gamma0_plus_gamma1;
   gamma0_plus_gamma1 = gamma0 + gamma1;
+  
+  // nested occupancy intercepts
+  // compute the varying community science detection intercept at the ecoregion3 level
+  // Level-3 (n_level_three level-3 random intercepts)
+  for(i in 1:n_level_three){
+    psi0_level_three[i] = psi_level_four[level_four_lookup[i]] + 
+      psi_level_three[i];
+  } 
 
   // compute varying intercept at the site level
   // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
   for(i in 1:n_sites){
-    psi0_site[i] = psi_level_three[level_three_lookup[i]] + 
+    psi0_site[i] = psi0_level_three[level_three_lookup[i]] + 
       psi_site[i];
   }
+  
+  // nested detection intercepts
+  // compute the varying community science detection intercept at the ecoregion3 level
+  // Level-3 (n_level_three level-3 random intercepts)
+  for(i in 1:n_level_three){
+    p0_cs_level_three[i] = p_cs_level_four[level_four_lookup[i]] + 
+      p_cs_level_three[i];
+  } 
 
   // compute varying intercept at the site level
   // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
   for(i in 1:n_sites){
-    p0_cs_site[i] = p_cs_level_three[level_three_lookup[i]] + 
+    p0_cs_site[i] = p0_cs_level_three[level_three_lookup[i]] + 
       p_cs_site[i];
   } 
   
@@ -166,7 +187,6 @@ transformed parameters {
             psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
-            mu_psi_income*avg_income[j] + // a species-specific effect of income
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -206,6 +226,9 @@ model {
   // level-3 spatial grouping
   psi_level_three ~ normal(0, sigma_psi_level_three);
   sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
+  // level-4 spatial grouping
+  psi_level_four ~ normal(0, sigma_psi_level_four);
+  sigma_psi_level_four ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 phylogenetic grouping
   psi_species ~ normal(mu_psi_0, sigma_psi_species); 
@@ -224,7 +247,6 @@ model {
   gamma0 ~ normal(0, 1); // community mean
   gamma1 ~ normal(0, 0.25); // effect of nativity
   
-  mu_psi_income ~ normal(0, 2); // effect of income on occupancy
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
   // Detection (Observation Process)
@@ -242,6 +264,9 @@ model {
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
   sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
+  // level-4 spatial grouping
+  p_cs_level_four ~ normal(0, sigma_p_cs_level_four);
+  sigma_p_cs_level_four ~ normal(0, 0.25); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 

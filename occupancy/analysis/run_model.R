@@ -604,7 +604,8 @@ if(taxon == "bombus"){
                    "level_four_lookup",
                    "pop_densities", "site_areas", 
                    "nativity",
-                   "natural_habitat" 
+                   "natural_habitat",
+                   "avg_income"
                    ) 
     
     # Parameters monitored
@@ -614,18 +615,19 @@ if(taxon == "bombus"){
                 #"sigma_psi_genus",
                 "sigma_psi_site",
                 "sigma_psi_level_three",
-                "sigma_psi_level_four",
+                #"sigma_psi_level_four",
                 "delta0",
                 "delta1",
                 "gamma0",
                 "gamma1",
                 "psi_site_area",
+                "mu_psi_income",
                 
                 "mu_p_cs_0",
                 "sigma_p_cs_species",
                 "sigma_p_cs_site",
                 "sigma_p_cs_level_three",
-                "sigma_p_cs_level_four",
+                #"sigma_p_cs_level_four",
                 "p_cs_interval",
                 "p_cs_pop_density", 
                 
@@ -634,7 +636,7 @@ if(taxon == "bombus"){
                 
                 "psi_site",
                 "psi_level_three", # track city/fine-ecoregion effects
-                "psi_level_four", # track broad eco effects
+                #"psi_level_four", # track broad eco effects
                 
                 #"T_rep_cs",
                 #"T_obs_cs",
@@ -647,11 +649,11 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 4000
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 1000
-    n_chains <- 4
-    n_cores <- 4
+    n_burnin <- 500
+    n_chains <- 6
+    n_cores <- 6
     #n_cores <- parallel::detectCores()
     delta = 0.97
     
@@ -672,6 +674,7 @@ if(taxon == "bombus"){
             gamma0 = runif(1, 0.75, 1), # must be a positive value!
             gamma1 = runif(1, 0, 0.1), # gamma0+gamma1 inits must be >0!
             psi_site_area = runif(1, -0.5, 0.5),
+            mu_psi_income = runif(1, -0.25, 0.25),
             
             mu_p_cs_0 = runif(1, -3, -2.5),
             sigma_p_cs_species = runif(1, 0, 1),
@@ -780,7 +783,7 @@ if(use_reparameterized_rand_effects_model == TRUE){
 }
 
 # or manually enter a model name
-# stan_model <- paste0("./occupancy/models/model_", taxon, "_no_rc.stan")
+#stan_model <- paste0("./occupancy/models/model_", taxon, "_with_income.stan")
 
 ## Call Stan from R
 set.seed(1)
@@ -802,7 +805,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
-  #"_long.rds"
+  #"_with_income.rds"
   ".rds"
 )
 )
@@ -816,6 +819,8 @@ stan_out <- readRDS(paste0(
 )
 )
 
+# read in a model ouput manually
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits_long.rds")
 
 # print main effects
 # print results
@@ -826,12 +831,13 @@ if(taxon == "syrphidae"){
     "sigma_psi_species",
     "sigma_psi_site",
     "sigma_psi_level_three",
-    "sigma_psi_level_four",
+    #"sigma_psi_level_four",
     "delta0",
     "delta1",
     "gamma0",
     "gamma1",
     "psi_site_area",
+    "mu_psi_income",
     "mu_psi_natural_habitat_native",
     "mu_psi_natural_habitat_nonnative",
     "mu_psi_natural_habitat_all_species",
@@ -840,7 +846,7 @@ if(taxon == "syrphidae"){
     "sigma_p_cs_species",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four",
+    #"sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density"
   ))
@@ -937,12 +943,13 @@ if(taxon == "syrphidae"){
     "sigma_psi_species",
     "sigma_psi_site",
     "sigma_psi_level_three",
-    "sigma_psi_level_four",
+    #"sigma_psi_level_four",
     "delta0",
     "delta1",
     "gamma0",
     "gamma1",
-    "psi_site_area"
+    "psi_site_area",
+    "mu_psi_income"
   ))
   traceplot(stan_out, pars = c(
     "mu_p_cs_0",
@@ -950,8 +957,8 @@ if(taxon == "syrphidae"){
     "p_cs_pop_density",
     "sigma_p_cs_species",
     "sigma_p_cs_site",
-    "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four"
+    "sigma_p_cs_level_three"#,
+    #"sigma_p_cs_level_four"
   ))
   traceplot(stan_out, pars=
               c("mu_psi_natural_habitat_native",
@@ -1049,18 +1056,18 @@ pairs(stan_out, pars = c(
   
   "mu_p_cs_0",
   #"sigma_p_citsci_species",
-  "sigma_p_cs_site",
+  "sigma_p_cs_site"#,
   #"p_cs_interval",
   #"p_citsci_pop_density", 
   
-  "mu_p_rc_0",
-  "sigma_p_rc_site",
-  "sigma_p_rc_level_three"
+  #"mu_p_rc_0",
+  #"sigma_p_rc_site",
+  #"sigma_p_rc_level_three"
   #"sigma_p_museum_species",
   #"sigma_p_museum_site"
 ))
 
-x=seq(0,3,1)
+sx=seq(0,3,1)
 y=-4.5+0.4*x^2
 plot(x,y, col='violet',type='o',lwd=2,lty=1)
 
@@ -1084,7 +1091,7 @@ fit_summary$summary[1,8] # 97.5 % CI
 
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 # hoverflies
-mean_FTP <- mean(fit_summary$summary[353:493,1])
+mean_FTP <- mean(fit_summary$summary[988:1139,1])
 # bumble bees cs
 mean_FTP <- mean(fit_summary$summary[760:791,1])
 # bumble bees rc
