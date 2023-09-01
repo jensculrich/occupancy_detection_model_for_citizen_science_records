@@ -18,7 +18,7 @@ min_records_per_species = 5 # filters species with less than this many records (
 min_unique_detections = 2
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+min_population_size = 1400 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -649,11 +649,11 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 400
     n_thin <- 1
-    n_burnin <- 500
-    n_chains <- 6
-    n_cores <- 6
+    n_burnin <- 200
+    n_chains <- 4
+    n_cores <- 4
     #n_cores <- parallel::detectCores()
     delta = 0.97
     
@@ -805,7 +805,6 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
-  #"_with_income.rds"
   ".rds"
 )
 )

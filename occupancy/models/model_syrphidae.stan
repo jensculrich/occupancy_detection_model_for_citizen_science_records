@@ -241,7 +241,7 @@ model {
   sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
   p_cs_level_three ~ normal(0, sigma_p_cs_level_three);
-  sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_cs_level_three ~ normal(0, 0.25); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 
