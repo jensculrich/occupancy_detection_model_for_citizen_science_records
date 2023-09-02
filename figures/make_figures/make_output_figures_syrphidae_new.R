@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
@@ -70,9 +70,9 @@ estimate <- c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,1], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[17:168,1]),
+  rev(fit_summary$summary[17:157,1]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[169:320,1])#,
+  rev(fit_summary$summary[158:298,1])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -83,9 +83,9 @@ lower <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,4], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[17:168,4]),
+  rev(fit_summary$summary[17:157,4]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[169:320,4])#,
+  rev(fit_summary$summary[158:298,4])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -96,9 +96,9 @@ upper <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,8], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[17:168,8]),
+  rev(fit_summary$summary[17:157,8]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[169:320,8])#,
+  rev(fit_summary$summary[158:298,8])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -125,7 +125,7 @@ y2 = (rep(1:n_species, times=params)) # species reference
 
 estimate2 <-  c(
   # param 3 (Freeman Tukey P cit sci)
-  rev(fit_summary$summary[988:1139,1])
+  rev(fit_summary$summary[804:944,1])
 )
 
 df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%
@@ -140,12 +140,14 @@ species_names_label <- species_names %>%
   map_df(., rev) %>%
   pull(.)
 
+num_per_page = 30 
+
 for(i in 1:5){
   
   df_filtered <- df %>%
     mutate(y_num = as.integer(y)) %>%
-    filter(y_num > 31*i - 31) %>%
-    filter(y_num < 31*i)
+    filter(y_num > num_per_page*i - num_per_page) %>%
+    filter(y_num < num_per_page*i)
   
   p1 <- ggplot(df_filtered, aes(x, y, width=1, height=1)) +
     geom_tile(aes(fill = estimate)) +
@@ -288,8 +290,8 @@ for(i in 1:5){
   
   df_filtered2 <- df2 %>%
     mutate(y_num = as.integer(y2)) %>%
-    filter(y_num > 31*i - 31) %>%
-    filter(y_num < 31*i)
+    filter(y_num > num_per_page*i - num_per_page) %>%
+    filter(y_num < num_per_page*i)
   
   p2 <- ggplot(df_filtered2, aes(x2, y2, width=.8, height=1)) +
     geom_tile(aes(fill = estimate2)) +
@@ -322,8 +324,8 @@ for(i in 1:5){
   
   df_filtered3 <- df3 %>%
     mutate(y_num = as.integer(V2)) %>%
-    filter(y_num > 31*i - 31) %>%
-    filter(y_num < 31*i)
+    filter(y_num > 30*i - 30) %>%
+    filter(y_num < 30*i)
   
   df_filtered4 <- cbind(df_filtered2, df_filtered3$nativity_temp, df_filtered3$new) %>% 
     rename("nativity_temp" = "df_filtered3$nativity_temp",
@@ -415,15 +417,15 @@ top_and_bottom <- left_join(top_and_bottom, species_names_df, by = "y")
 p1 <- ggplot(top_and_bottom, aes(x, y, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(2),
+  scale_x_discrete(name="", breaks = c(1, 2),
                    labels=c(#bquote(psi[species - range]),
-                     bquote(psi[species]),
-                     bquote(psi[species["nat. habitat"]])
+                     bquote(psi["species"]~"[species]"),
+                     bquote(psi["nat. habitat"]~"[species]")
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])
                    )) +
-  scale_y_discrete(name="", breaks = rep(1:nrow(species_name)),
-                   labels=species_name) +
+  scale_y_discrete(name="", breaks = rep(1:nrow(species_names_df)),
+                   labels=species_names_df$species_name) +
   scale_fill_gradient2(low = ("firebrick3"), high = ("dodgerblue3")) +
   #geom_text(data = df_filtered, 
   #        aes(x = x, y = y, label = signif(estimate, 2)), size = 3.5) +
@@ -458,7 +460,7 @@ rows <- temp %>%
 p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(2),
+  scale_x_discrete(name="", breaks = c(1),
                    labels=c(#bquote(psi[species - range]),
                      #bquote(psi[species])
                      bquote(psi["nat. habitat"]~"[species]")
@@ -497,7 +499,7 @@ temp2 <- left_join(temp2, rows)
 p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(1),
+  scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
                      bquote(psi["species"]~"[species]")
                      #bquote(psi[species["nat. habitat"]])
@@ -542,9 +544,9 @@ list_of_draws <- as.data.frame(stan_out)
 
 # 95% conf int
 plot(NA, xlim=c(-3,3), ylim=c(0,1))
-curve(ilogit(fit_summary$summary[7,1]*x), add=TRUE, col = "blue", lwd = 3)
-curve(ilogit(fit_summary$summary[7,4]*x), add=TRUE)
-curve(ilogit(fit_summary$summary[7,8]*x), add=TRUE)
+curve(ilogit(fit_summary$summary[945,1]*x), add=TRUE, col = "blue", lwd = 3)
+curve(ilogit(fit_summary$summary[945,4]*x), add=TRUE)
+curve(ilogit(fit_summary$summary[945,8]*x), add=TRUE)
 
 ## --------------------------------------------------
 ## Natural habitat
@@ -555,7 +557,7 @@ params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
   row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,953]
+  params[i,1] <- list_of_draws[row,945]
 }
 
 plot(NA, xlim=c(-3,3), ylim=c(0,1),
@@ -565,7 +567,8 @@ plot(NA, xlim=c(-3,3), ylim=c(0,1),
 for(i in 1:n_lines){
   curve(ilogit(
     fit_summary$summary[1,1] + # intercept
-      fit_summary$summary[10,1] + # site area 
+      fit_summary$summary[9,1] + # site area 
+      fit_summary$summary[10,1] + # mean income effect  
       params[i,1]*x), 
     add=TRUE, col = "lightgrey", lwd = 1)
 }
@@ -574,6 +577,56 @@ for(i in 1:n_lines){
 curve(ilogit(
   fit_summary$summary[1,1] + # intercept
     # should add non-centered random effects
-    fit_summary$summary[10,1] + # site area 
-    fit_summary$summary[953,1]*x), 
+    fit_summary$summary[9,1] + # site area 
+    fit_summary$summary[10,1] + # mean income effect 
+    fit_summary$summary[945,1]*x), 
   add=TRUE, col = "blue", lwd = 3)
+
+low <- ilogit(
+    fit_summary$summary[1,1] + # intercept
+    # should add non-centered random effects
+    fit_summary$summary[9,1] + # site area 
+    fit_summary$summary[10,1] + # mean income effect 
+    (fit_summary$summary[945,1]*-2))
+
+high <- ilogit(
+  fit_summary$summary[1,1] + # intercept
+    # should add non-centered random effects
+    fit_summary$summary[9,1] + # site area 
+    fit_summary$summary[10,1] + # mean income effect 
+    (fit_summary$summary[945,1]*2))
+
+## --------------------------------------------------
+## income
+
+# effect and all others held at mean
+n_lines <- 100
+params <- matrix(nrow = n_lines, ncol = 1)
+
+for(i in 1:n_lines){
+  row <- sample(1:nrow(list_of_draws), 1)
+  params[i,1] <- list_of_draws[row,10]
+}
+
+plot(NA, xlim=c(-2,2), ylim=c(0,1),
+     xlab = "Household income (scaled)",
+     ylab = "Pr(Occurrence(all hoverfly species))")
+
+for(i in 1:n_lines){
+  curve(ilogit(
+    fit_summary$summary[1,1] + # intercept
+      fit_summary$summary[9,1] + # site area 
+      fit_summary$summary[947,1] + # mean natural habitat effect (all species)
+      params[i,1]*x), 
+    add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+
+curve(ilogit(
+  fit_summary$summary[1,1] + # intercept
+    # should add non-centered random effects
+    fit_summary$summary[9,1] + # site area 
+    fit_summary$summary[947,1] + # mean income effect 
+    fit_summary$summary[10,1]*x), 
+  add=TRUE, col = "blue", lwd = 3)
+

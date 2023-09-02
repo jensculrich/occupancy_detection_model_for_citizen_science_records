@@ -140,7 +140,7 @@ s
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
@@ -166,9 +166,9 @@ X_eco <- c(1, 2, 3, 4, 5) # 3 ecological params of interest
 # mean of eco params
 Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
   fit_summary$summary[10,1], # mu psi income
-  fit_summary$summary[1141,1], # mu psi natural habitat non native
-  fit_summary$summary[1140,1], # mu psi natural habitat native
-  fit_summary$summary[1142,1], # mu psi natural habitat all
+  fit_summary$summary[946,1], # mu psi natural habitat non native
+  fit_summary$summary[945,1], # mu psi natural habitat native
+  fit_summary$summary[947,1], # mu psi natural habitat all
   fit_summary$summary[9,1]#, # psi site area
   
 )
@@ -176,34 +176,34 @@ Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
 # confidence intervals
 lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
   fit_summary$summary[10,4], # mu psi income
-  fit_summary$summary[1141,4], # mu psi natural habitat non native
-  fit_summary$summary[1140,4], # mu psi natural habitat native
-  fit_summary$summary[1142,4], # mu psi natural habitat all
+  fit_summary$summary[946,4], # mu psi natural habitat non native
+  fit_summary$summary[945,4], # mu psi natural habitat native
+  fit_summary$summary[947,4], # mu psi natural habitat all
   fit_summary$summary[9,4]#, # psi site area
 )
 
 upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
   fit_summary$summary[10,8], # mu psi income
-  fit_summary$summary[1141,8], # mu psi natural habitat non native
-  fit_summary$summary[1140,8], # mu psi natural habitat native
-  fit_summary$summary[1142,8], # mu psi natural habitat all
+  fit_summary$summary[946,8], # mu psi natural habitat non native
+  fit_summary$summary[945,8], # mu psi natural habitat native
+  fit_summary$summary[947,8], # mu psi natural habitat all
   fit_summary$summary[9,8]#, # psi site area
 )
 
 # confidence intervals
 lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
   fit_summary$summary[10,5], # mu psi income
-  fit_summary$summary[1141,5], # mu psi natural habitat non native
-  fit_summary$summary[1140,5], # mu psi natural habitat native
-  fit_summary$summary[1142,5], # mu psi natural habitat all
+  fit_summary$summary[946,5], # mu psi natural habitat non native
+  fit_summary$summary[945,5], # mu psi natural habitat native
+  fit_summary$summary[947,5], # mu psi natural habitat all
   fit_summary$summary[9,5]#, # psi site area
 )
 
 upper_50_eco <- c(#fit_summary$summary[6,7], # mu psi income
   fit_summary$summary[10,7], # mu psi income
-  fit_summary$summary[1141,7], # mu psi natural habitat non native
-  fit_summary$summary[1140,7], # mu psi natural habitat native
-  fit_summary$summary[1142,7], # mu psi natural habitat all
+  fit_summary$summary[946,7], # mu psi natural habitat non native
+  fit_summary$summary[945,7], # mu psi natural habitat native
+  fit_summary$summary[947,7], # mu psi natural habitat all
   fit_summary$summary[9,7]#, # psi site area
 )
 
@@ -217,12 +217,12 @@ df_estimates_eco$X_eco <- as.factor(df_estimates_eco$X_eco)
 ## --------------------------------------------------
 ## Get species specific estimates
 
-subset_nonnative <- fit_summary$summary[169:320,] %>%
+subset_nonnative <- fit_summary$summary[158:298,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "0")
 
-subset_native <- fit_summary$summary[169:320,] %>%
+subset_native <- fit_summary$summary[158:298,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "1")
@@ -233,7 +233,7 @@ for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
   species_estimates[1,i] <- NA # site area
-  species_estimates[2,i] <- fit_summary$summary[168+i,1] # all
+  species_estimates[2,i] <- fit_summary$summary[157+i,1] # all
   species_estimates[3,i] <- subset_native[i,1]
   species_estimates[4,i] <- subset_nonnative[i,1]
   species_estimates[5,i] <- NA # income
@@ -246,7 +246,7 @@ for(i in 1:n_species){
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
    scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5),
-                    labels=c(bquote(mu[psi["income"]]),
+                    labels=c(bquote(psi["income"]),
                       bquote(mu[psi["nat. habitat"]~"[nonnative]"]),
                       bquote(mu[psi["nat. habitat"]~"[native]"]),
                       bquote(mu[psi["nat. habitat"]~"[all]"]),
@@ -303,7 +303,7 @@ plot_grid(s, s2, labels = c('a)', 'b)'),
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_long.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
 fit_summary <- rstan::summary(stan_out)
@@ -456,7 +456,7 @@ df_estimates_eco_species <- cbind(df_estimates_citsci, species_estimates_det)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 
 fit_summary <- rstan::summary(stan_out)

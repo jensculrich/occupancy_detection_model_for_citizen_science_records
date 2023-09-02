@@ -18,7 +18,7 @@ min_records_per_species = 5 # filters species with less than this many records (
 min_unique_detections = 2
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1400 # min pop density in the grid cell (per km^2)
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -819,7 +819,7 @@ stan_out <- readRDS(paste0(
 )
 
 # read in a model ouput manually
-#stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1000minpop_2minUniqueDetections_3ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
 
 # print main effects
 # print results
