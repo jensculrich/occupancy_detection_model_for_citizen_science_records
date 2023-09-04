@@ -363,15 +363,11 @@ taxonomic group, spatial grain and temporal divisions of occupancy
 intervals.</p>
 <p>This repository holds three public subdirectories: ./data/,
 ./occupancy/, and ./figures.</p>
-<style>
-div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
-</style>
-<div id="occupancy" class="section level2 blue">
+<div id="occupancy" class="section level2">
 <h2>./occupancy/</h2>
-</div>
-<p><br> Contains simulation files (./simulation/), data
-prep(./data_prep/), models (./models/), model implementation
-(./analysis/) and model outputs (./model_outputs/).</p>
+<p>Contains simulation files (./simulation/), data prep(./data_prep/),
+models (./models/), model implementation (./analysis/) and model outputs
+(./model_outputs/).</p>
 <p>The models used for the main analyses (held in the models
 subdirectory) are labelled “model_syrphidae.stan” and
 “model_bombus.stan”. I also used a simplified model to estimate range
@@ -384,15 +380,11 @@ effects; “model_taxon_reparameterized_rand_effects.stan”). I explored
 whether this parameterization resulted in more stable scale estimates
 for site-specific random effects but since it did not, I do not use this
 reparametrization for the final analyses.</p>
-<style>
-div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
-</style>
-<div id="how-to-run-a-model" class="section level4 blue">
+<div id="how-to-run-a-model" class="section level4">
 <h4>How to run a model:</h4>
-</div>
-<p><br> Run a model (./analysis/run_model.R) by specifying the data
-level constraints (taxonomic group, spatial grain and temporal divisions
-of occupancy intervals) and by tweaking the HMC settings if desired.</p>
+<p>Run a model (./analysis/run_model.R) by specifying the data level
+constraints (taxonomic group, spatial grain and temporal divisions of
+occupancy intervals) and by tweaking the HMC settings if desired.</p>
 <p>After specifiying the data level constraints at the top of the file,
 you will be offered to prepare data for an analysis (prep_data()
 function). This preparation ~10 minutes to run, so if it’s already been
@@ -403,6 +395,7 @@ the model. Prepared data .rds files are held in the
 <p>There are a few quick model diagnostic check functions listed after
 the model run call so that you can conveniently check the model run
 properties in this same file.</p>
+</div>
 <div id="data-prep-.data_prep" class="section level4">
 <h4>Data prep (./data_prep/)</h4>
 <p>The function prep_data() (called by run_model.R) is held in
@@ -416,6 +409,9 @@ as NA’s) based on each species’s distribution.</p>
 <div id="model-outputs-.model_outputs" class="section level4">
 <h4>Model outputs (./model_outputs/)</h4>
 <p>These are the saved HMC runs.</p>
+<p>The model outputs used for the main results in manuscript are in the
+subfolder ./large_files/. These 4,000 iteration runs are too large to
+upload without purchasing credits.</p>
 </div>
 <div id="simulation-.simulation" class="section level4">
 <h4>Simulation (./simulation/)</h4>
@@ -426,15 +422,12 @@ parameters. For example, our model ignores the possibility of research
 collections community surveys recovering zero species. We can see how
 consequential this is for the results by simulating some “hidden”
 community surveys that are overlooked.</p>
-<style>
-div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
-</style>
 </div>
-<div id="data" class="section level2 blue">
+</div>
+<div id="data" class="section level2">
 <h2>./data/</h2>
-</div>
-<p><br> Includes both spatial data and occurrence records data (need to
-go through and see what is private v public)</p>
+<p>Includes both spatial data and occurrence records data (need to go
+through and see what is private v public)</p>
 <div id="spatial-data-.spatial_data" class="section level3">
 <h3>Spatial Data (./spatial_data/):</h3>
 <div id="ecoregion-1-.na_cec_eco_l1" class="section level4">
@@ -468,14 +461,12 @@ from 2016. add source</p>
 <p>Contains occurrence data for bumble bees (BBNA (private folder due to
 data rights and size)) and for hoverflies (from GBIF (private folder due
 to size))</p>
-<style>
-div.blue { background-color:#e6f0ff; border-radius: 5px; padding: 20px;}
-</style>
 </div>
-<div id="figures" class="section level2 blue">
+</div>
+<div id="figures" class="section level2">
 <h2>./figures/</h2>
+<p>make figures for the manuscript and/or for presentations</p>
 </div>
-<p><br> make figures for the manuscript and/or for presentations</p>
 </div>
 
 
