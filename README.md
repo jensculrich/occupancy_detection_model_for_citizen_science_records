@@ -40,7 +40,7 @@ Simulate a community of pollinators inferring the same ecological process and ob
 
 ## ./data/
 
-Includes both spatial data and occurrence records data. Do to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
+Includes both spatial data and occurrence records data. Due to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
 
 ### Spatial Data (./spatial_data/): 
 
