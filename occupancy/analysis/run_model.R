@@ -15,7 +15,7 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
-min_unique_detections = 2
+min_unique_detections = 2 # species must have more detections at more site/years than this (so 2 == 3 or more unique detections)
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
 min_population_size = 1200 # min pop density in the grid cell (per km^2)
@@ -158,6 +158,8 @@ my_data <- readRDS(paste0("./occupancy/analysis/prepped_data/",
                           n_visits, "visits",
                           ".rds"))
 
+# or read in some data manually
+#my_data <- readRDS("./occupancy/analysis/prepped_data/bombus/non_urban/40km_1000minpop_1minUniqueDetections_4ints_3visits.rds")
 
 ## --------------------------------------------------
 # Once you have the data you want, you will need to format it
@@ -223,7 +225,7 @@ CBSA_names <- my_data$CBSA_names
 #View(as.data.frame(CBSA_names))
 
 #saveRDS(species_names, "./figures/species_names/syrphidae_names_10km_urban.RDS")
-#saveRDS(species_names, "./figures/species_names/syrphidae_names_40km_nonurban.RDS")
+#saveRDS(species_names, "./figures/species_names/bombus_names_40km_nonurban.RDS")
 #write.csv(as.data.frame(species_names), "./data/syrphidae_names.csv")
 
 #saveRDS(as.data.frame(cbind(CBSA_names, CBSA_lookup)), "./figures/species_names/CBSA_names_10km_urban.RDS")
@@ -1089,7 +1091,7 @@ fit_summary$summary[1,8] # 97.5 % CI
 
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
 # hoverflies
-mean_FTP <- mean(fit_summary$summary[988:1139,1])
+(mean_FTP <- mean(fit_summary$summary[804:944,1]))
 # bumble bees cs
 mean_FTP <- mean(fit_summary$summary[760:791,1])
 # bumble bees rc

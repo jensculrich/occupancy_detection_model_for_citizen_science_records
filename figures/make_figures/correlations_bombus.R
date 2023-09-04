@@ -6,27 +6,30 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/bombus/bombus_15km_1000minpop_10minpersp_4ints_3visits_.RDS")
-stan_out2 <- readRDS("./occupancy/model_outputs/bombus/bombus_30km_1000minpop_10minpersp_4ints_3visits_nonurban.RDS")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+stan_out2 <- readRDS("./occupancy/model_outputs/bombus/non_urban/bombus_40km_1000minpop_1minUniqueDetections_4ints_3visits_.RDS")
 
-species_names <- readRDS("./figures/species_names/bombus_names_15km_urban.RDS")
-#species_names2 <- readRDS("./figures/species_names/bombus_names_30km_nonurban.RDS")
+species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
+species_names2 <- readRDS("./figures/species_names/bombus_names_40km_nonurban.RDS")
 
 list_of_draws <- as.data.frame(stan_out)
 list_of_draws2 <- as.data.frame(stan_out2)
 
 n_species <- length(species_names)
-#n_species2 <- length(species_names)
+n_species2 <- length(species_names)
 
 # remove species that didn't occur in the urban data set
 # these occur in species_names2 but not in species_names
-# 17 is the number of columns before psi species starts
-#check <- which(is.na(charmatch(species_names2, species_names)))
-#check_plus <- which(is.na(charmatch(species_names2, species_names))) + 19
 
-#species_names2 <- species_names2[-(c(check))]
-# which(is.na(charmatch(species_names2, species_names)))
-#list_of_draws2 <- list_of_draws2[,-(c(check_plus))] 
+check <- which(is.na(charmatch(species_names2, species_names))) 
+# looks like it's species 18 (insularis) occurs in non-urban sample but not in urban
+# we will need to remove it for purposes of this post hoc analysis
+# 84 is the number of columns before psi species starts
+check_plus <- which(is.na(charmatch(species_names2, species_names))) + 84
+
+species_names2 <- species_names2[-(c(check))]
+which(is.na(charmatch(species_names2, species_names))) # should now be 0
+list_of_draws2 <- list_of_draws2[,-(c(check_plus))] 
 
 n_draws <- 1000
 posterior_length <- nrow(list_of_draws)
@@ -40,13 +43,13 @@ for(draw in 1:n_draws){
   for(species in 1:n_species){
     
     # for each species, draw a random sample from the posterior for:
-    # psi0 non-urban habitat (starts at column 18) from list_of_draws2
+    # psi0 non-urban habitat (starts at column 85) from list_of_draws2
     samples[species,1] <- list_of_draws2[sample.int(posterior_length2, 1),
-                                        19+species] 
-    # and psi species natural habitat (starts at column 104) 
+                                        84+species] 
+    # and psi species natural habitat (starts at column 152) 
     # from list_of_draws
     samples[species,2] <- list_of_draws[sample.int(posterior_length, 1),
-                                        89+species]
+                                        151+species]
     
     # calculate the correlation between the two terms across all species
     # and add to a vector of correlations, then
@@ -76,9 +79,9 @@ lower50 <- mean - qnorm(0.75)*sd
 
 hist(correlation, breaks = 20, 
      main="Correlation between species-specific range-wide occupancy rate and \n 
-     species-specific effect of natural habitat on urban occupancy",
+     species-specific effect of natural habitat on urban occupancy (bumble bees)",
      xlim = c(-1, 1),
-     xlab = "",
+     xlab = "Pearson's correlation coefficient",
      ylab = paste0("Frequency in ", n_draws, " draws from posterior distributions"))
 abline(v = mean, col="black", lwd=3, lty=1)
 abline(v = cbind(lower95, upper95), col="blue", lwd=3, lty=2)
