@@ -348,15 +348,15 @@ display: none;
 
 
 
-<h1 class="title toc-ignore">README</h1>
 
 </div>
 
 
-<div id="use-nhc-records-to-test-whether-urban-landscape-habitat-quantity-and-quality-predict-urban-pollinator-occurrence." class="section level1">
-<h1>Use NHC records to test whether urban landscape habitat quantity and
-quality predict urban pollinator occurrence.</h1>
-<p>(under construction)</p>
+<p>title: “README”</p>
+<div id="data-and-code-for-the-manuscript-urban-landscapes-with-more-natural-habitat-support-higher-pollinator-diversity" class="section level1">
+<h1>Data and code for the manuscript “Urban landscapes with more natural
+habitat support higher pollinator diversity”</h1>
+<p>Last updated September 4, 2023, by Jens Ulrich.</p>
 <p>To run an analysis, open ./occupancy/analysis/run_model.R. you will
 be prompted to enter details that will specify the model run, including:
 taxonomic group, spatial grain and temporal divisions of occupancy
@@ -433,34 +433,53 @@ through and see what is private v public)</p>
 <div id="ecoregion-1-.na_cec_eco_l1" class="section level4">
 <h4>Ecoregion 1 (./na_cec_eco_l1/)</h4>
 <p>Contains shapefile for ecoregion 1 in the north america (broadest
-spatial clustering unit for analysis). add source</p>
+spatial clustering unit for analysis). <a href="https://www.epa.gov/eco-research/ecoregions">source</a></p>
 </div>
 <div id="ecoregion-3-.na_cec_eco_level3" class="section level4">
 <h4>Ecoregion 3 (./NA_CEC_Eco_Level3/)</h4>
 <p>Contains shapefile for ecoregion 3 in the north america (intermediate
-spatial clustering unit for analysis). add source</p>
+spatial clustering unit for analysis). <a href="https://www.epa.gov/eco-research/ecoregions">source</a></p>
 </div>
 <div id="metropolitan-areas-.tl_2019_us_cbsa" class="section level4">
 <h4>Metropolitan areas (./tl_2019_us_cbsa/)</h4>
-<p>Contains shapefile for metroplitan areas in the United States. add
-source</p>
+<p>Contains shapefile for metropolitan areas in the United States,
+defined in 2018 using 2010 census data. <a href="https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist">source</a></p>
 </div>
 <div id="population-density-.population_density" class="section level4">
 <h4>Population Density (./population_density/)</h4>
-<p>Contains a raster with population density at _ resolution from _
-year. add source</p>
+<p>Contains a raster with population density at 1 km resolution from the
+year 2015. <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">source</a></p>
 </div>
 <div id="land-cover-.land_cover" class="section level4">
 <h4>Land cover (./land_cover/)</h4>
-<p>Contains a raster with land cover data (NLCD data) at 30m resolution
-from 2016. add source</p>
+<p>Contains a raster with land cover data (NLCD data) at 30 m resolution
+from 2016. <a href="https://www.mrlc.gov/data/nlcd-2016-land-cover-conus">source</a>.
+See land cover classification descriptions <a href="https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description">here</a></p>
+</div>
+<div id="household_income-.socioeconomic_data" class="section level4">
+<h4>Household_income (./socioeconomic_data/)</h4>
+<p>Contains a shapefile and table data for: 2020 income data, B19013.
+Median Household Income in the Past 12 Months (in 2020
+Inflation-Adjusted Dollars) <a href="https://data2.nhgis.org/main">source</a></p>
 </div>
 </div>
 <div id="occurrence-data-.occurrence_data" class="section level3">
 <h3>Occurrence Data (./occurrence_data/):</h3>
 <p>Contains occurrence data for bumble bees (BBNA (private folder due to
 data rights and size)) and for hoverflies (from GBIF (private folder due
-to size))</p>
+to size)) Go <a href="https://www.leifrichardson.org/bbna.html">here</a>
+for bumble bee data, and <a href="https://doi.org/10.15468/dl.nga26z">here part 1</a> and <a href="https://doi.org/10.15468/dl.n5cmwv">here part 2</a> for hoverfly
+data.</p>
+<p>(see ./data/get_occurence_data.R) We further processed the above data
+by combining Bombus bifarius and Bombus vancouverensis into a single
+species concept cluster (Bombus bifarius). We also further processed the
+hoverfly data by the following:</p>
+<pre class="{r}"><code>  # replace all Eumerus with Eumerus sp.
+  mutate(species = ifelse(genus == &quot;Eumerus&quot;, &quot;Eumerus sp.&quot;, species)) %&gt;%
+  # replace all Chrysogaster with Chrysogaster sp.
+  mutate(species = ifelse(genus == &quot;Chrysogaster&quot;, &quot;Chrysogaster sp.&quot;, species)) %&gt;%
+  # replace Eoseristalis (genus name) with Eristalis (genus name)
+  mutate(species = gsub(&quot;Eoseristalis&quot;, &quot;Eristalis&quot;, species))</code></pre>
 </div>
 </div>
 <div id="figures" class="section level2">

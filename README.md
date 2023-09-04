@@ -1,10 +1,8 @@
----
 title: "README"
----
 
-# Use NHC records to test whether urban landscape habitat quantity and quality predict urban pollinator occurrence.
+# Data and code for the manuscript "Urban landscapes with more natural habitat support higher pollinator diversity"
 
-(under construction)
+Last updated September 4, 2023, by Jens Ulrich.
 
 To run an analysis, open ./occupancy/analysis/run_model.R.
 you will be prompted to enter details that will specify the model run, including:
@@ -42,33 +40,50 @@ Simulate a community of pollinators inferring the same ecological process and ob
 
 ## ./data/
 
-Includes both spatial data and occurrence records data (need to go through and see what is private v public)
+Includes both spatial data and occurrence records data. Do to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
 
 ### Spatial Data (./spatial_data/): 
 
 #### Ecoregion 1 (./na_cec_eco_l1/)
 Contains shapefile for ecoregion 1 in the north america (broadest spatial clustering unit for analysis).
-add source
+[source](https://www.epa.gov/eco-research/ecoregions)
 
 #### Ecoregion 3 (./NA_CEC_Eco_Level3/)
 Contains shapefile for ecoregion 3 in the north america (intermediate spatial clustering unit for analysis).
-add source
+[source](https://www.epa.gov/eco-research/ecoregions)
 
 #### Metropolitan areas (./tl_2019_us_cbsa/)
-Contains shapefile for metroplitan areas in the United States.
-add source
+Contains shapefile for metropolitan areas in the United States, defined in 2018 using 2010 census data.
+[source](https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist)
 
 #### Population Density (./population_density/)
-Contains a raster with population density at _ resolution from _ year.
-add source
+Contains a raster with population density at 1 km resolution from the year 2015.
+[source](https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download)
 
-#### Land cover (./land_cover/)
-Contains a raster with land cover data (NLCD data) at 30m resolution from 2016. 
-add source
+#### Land cover (./land_cover/) 
+Contains a raster with land cover data (NLCD data) at 30 m resolution from 2016. 
+[source](https://www.mrlc.gov/data/nlcd-2016-land-cover-conus).
+See land cover classification descriptions [here](https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description)
+
+#### Household_income (./socioeconomic_data/)
+Contains a shapefile and table data for:
+2020 income data, B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
+[source](https://data2.nhgis.org/main)
 
 ### Occurrence Data (./occurrence_data/): 
 Contains occurrence data for bumble bees (BBNA (private folder due to data rights and size)) and for hoverflies (from GBIF (private folder due to size))
+Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data.
 
+(see ./data/get_occurence_data.R) We further processed the above data by combining Bombus bifarius and Bombus vancouverensis into a single species concept cluster (Bombus bifarius). We also further processed the hoverfly data by the following:
+
+```{r}
+  # replace all Eumerus with Eumerus sp.
+  mutate(species = ifelse(genus == "Eumerus", "Eumerus sp.", species)) %>%
+  # replace all Chrysogaster with Chrysogaster sp.
+  mutate(species = ifelse(genus == "Chrysogaster", "Chrysogaster sp.", species)) %>%
+  # replace Eoseristalis (genus name) with Eristalis (genus name)
+  mutate(species = gsub("Eoseristalis", "Eristalis", species))
+```
 
 ## ./figures/
 
