@@ -7,6 +7,8 @@ data {
   
   int<lower=1> n_species;  // observed species
   int<lower=1> species[n_species]; // vector of species identities
+  
+  // ended up not including genus clustering (too many rand effects to estimate)
   //int<lower=1> n_genera;  // (number of) genera (level-3 clusters)
   //int<lower=1> genus_lookup[n_species]; // level-3 cluster look up vector for level-2 cluster
 
@@ -32,7 +34,7 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
-  vector[n_sites] avg_income; // (scaled) household income of each site
+  vector[n_sites] avg_income; // (scaled) household income of each site (with income relativized to state average income)
   vector[n_species] nativity; // nativity vector, 0 == non-native, 1 == native
   
 } // end data
@@ -303,7 +305,9 @@ generated quantities{
   
   // Effect of nat habitat area for all, native and non-native species is a derived parameter
   // we estimate the expected value for all species, native, or non-native species using our linear predictor.
-  // By doing this in each step of the MCMC we can get a distribution of outcomes (capturing our uncertainty)
+  // By doing this in each step of the MCMC we can get a distribution of outcomes 
+  // (propagating our uncertainty in delta0 and delta1 to an uncertainty in the group level effects)
+  
   real mu_psi_natural_habitat_native;
   mu_psi_natural_habitat_native = delta0 + delta1*1;
   

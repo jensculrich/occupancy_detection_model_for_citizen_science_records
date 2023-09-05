@@ -2,30 +2,26 @@
 # jcu; started oct 27, 2022
 
 # Collect spatial data to describe where the observations occur i.e.
-# We will construct a grid of cells across the spatial extent (California)
+# We will construct a grid of cells across the spatial extent (Continental U.S.)
 # Each cell will be a site, where observations of any species can
 # be said to have occurred in any of the years of our timeline.
 # Choosing the spatial size of the grid cells will be important,
 # and also importantly we will plan to limit the grid cells to those 
 # that contain 'urban areas'.
 
-# THEN intersect the filtered pollinator occurrence data against the urban grid
+# Then intersect the filtered pollinator occurrence data against the urban grid
 # to retain only occurrence data from our sites. This is the data that we will 
-# format and then feed to the model (data_urban_occurrences.csv)
+# format and then feed to the model
 
 # Finally, extract spatial covariate data including:
 # population density
-# impervious surface cover
+# natural habitat area
+# household income
 # site area
 
-# This file contains a function 'get_spatial_data' which
-# can be called from a 'run_model_X_.R' file with specific data collection
+# The function 'get_spatial_data' which is contained in this file
+# can be called from a 'run_model.R' file with specific data collection
 # choices of grid size and minimum pop in the cell to be chosen or varied
-
-# The file 'explore_spatial_data.R' walks through this process, with plots to visualize
-# how the spatial data is gathered and how data 'collection' choices 
-# like grid size and minimum urbanization intensity to include a site
-# shape the data that we will analyze with our model
 
 library(tidyverse) # data carpentry
 library(tigris) # get state shapefile
@@ -38,20 +34,21 @@ get_spatial_data <- function(
   min_population_size, # minimum pop density of a site to be considered "urban"
   taxon, # prepare data for syrphidae or bombus
   min_site_area, # min land area (in the state admin areas) of a site to be included
-  urban_sites,
-  non_urban_subsample_n,
-  min_records_per_species,
-  min_unique_detections,
-  era_start,
-  by_city,
-  remove_city_outliers_5stddev
+  urban_sites, # are we going to look at only urban areas or any areas
+  non_urban_subsample_n, # if not restricting to urban, how many sites to choose (grid of whole country is REALLY computationally unfeasible)
+  min_records_per_species, # only include species with total detections greater than this (for purposes of defining range)
+  min_unique_detections, # only include species detected at urban sites more times than this (so we can figure out if the species is rare v hard to detect)
+  era_start, # starting year for when to start counting number of detections in urban landscapes (to filter by minUniqueDetections)
+  by_city, # organize random effects clusters by metropolitan statistical area rather than ecoregion 3
+  remove_city_outliers_5stddev # remove REALLY dense urban landscapes (i.e., downtown NYC)
 ){
   
   ## --------------------------------------------------
   ## Operation Functions
   ## predictor center scaling function
+  
   center_scale <- function(x) {
-    (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
+    (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE) # z-score scale
   }
     
     ## --------------------------------------------------
@@ -66,16 +63,13 @@ get_spatial_data <- function(
       filter(REGION != 9) %>%
       filter(!NAME %in% c("Alaska", "Hawaii"))
     
-    #str(states)
-    #st_crs(states)
-    
     states_trans <- states  %>% 
       st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
     
     ## --------------------------------------------------
     # Overlay the shapefile with a grid of sites of size == 'grid_size' 
     
-    # create _km grid - here you can substitute by specifying grid_size above
+    # create "grid_size" km grid over the area
     grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>% 
       st_sf(grid_id = 1:length(.))
     
@@ -87,6 +81,7 @@ get_spatial_data <- function(
     # 2015 pop density at 1km resolution
     pop_raster=raster("./data/spatial_data/population_density/gpw_v4_population_density_rev11_2015_30_sec.tif")
     
+    # crop and mask pop density to the area of the study
     pop_raster <- crop(pop_raster, states)
     pop_raster <- mask(pop_raster, states)
     
@@ -100,6 +95,7 @@ get_spatial_data <- function(
     ## --------------------------------------------------
     # filter sites to urban areas using the r.vals for pop density
     
+    # join population density values to the grid table
     grid_pop_dens <- cbind(grid, r.vals) %>% 
       rename("pop_density_per_km2" = "r.vals")
     
@@ -118,7 +114,6 @@ get_spatial_data <- function(
         filter(pop_density_per_km2 > min_population_size) 
     }
     
-    
     # free unused space
     rm(pop_raster, prj1, r.vals, crs_raster)
     gc()
@@ -131,13 +126,15 @@ get_spatial_data <- function(
     # B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
     #https://data2.nhgis.org/main
     # Typically, Block Groups have a population of 600 to 3,000 people.
+    # spatial format identifying where block groups are located
     income=st_read("./data/spatial_data/socioeconomic_data/US_blck_grp_2020.shp")
     gc()
+    # table format data indicating the income in block groups
     income_data <- read.csv("./data/spatial_data/socioeconomic_data/nhgis0001_ds249_20205_blck_grp.csv")
     
     # calculate median household income RELATIVE to 
     # median household income for the state, 
-    # i.e., $80,000 might be really high for WV but relatively low for CA.
+    # i.e., $80,000 might translate to high purchasing power in Indiana but not necessarily in California
     income_data <- income_data %>%
       group_by(STATE) %>%
       mutate(mean_state_AMR8E001 = mean(AMR8E001, na.rm=TRUE)) %>%
@@ -145,6 +142,7 @@ get_spatial_data <- function(
       mutate(relative_AMR8E001 = AMR8E001 / mean_state_AMR8E001) %>%
       dplyr::select(GISJOIN, relative_AMR8E001)
     
+    # join table data with spatial data
     income <- left_join(income, income_data, by="GISJOIN")
     rm(income_data)
     gc()
@@ -152,14 +150,20 @@ get_spatial_data <- function(
     # transform state shapefile to crs
     income_trans <- st_transform(income, crs) # albers equal area
     
+    # join income data with spatial file holding population density data
     grid_pop_dens <- st_join(grid_pop_dens, income_trans)
+    # we will take the average household income across all block groups 
+    # that intersect each grid cell
     grid_pop_dens <- grid_pop_dens %>%
       group_by(grid_id) %>%
+      # ignore the NA's which indicate block group areas where no one / very few people live
+      # in urban landscapes these are typically airports, military zones, or low density farmland blocks 
       mutate(avg_income = mean(relative_AMR8E001, na.rm = TRUE)) %>%
       slice(1) %>%
       ungroup() %>%
       dplyr::select(grid_id, pop_density_per_km2, avg_income) %>%
       filter(!is.na(avg_income)) %>%
+      # scale the variable
       mutate(scaled_avg_income = center_scale(avg_income))
     
     rm(income, income_trans)
@@ -179,8 +183,8 @@ get_spatial_data <- function(
     prj1 <- st_transform(grid_pop_dens, crs_raster)
     
     # then extract values and cbind with the grid_pop_dens
-    # extract raster values to list object
     
+    # extract raster values to list object
     r.vals_land <- exactextractr::exact_extract(land, prj1)
     gc(verbose = FALSE)
     
@@ -246,6 +250,7 @@ get_spatial_data <- function(
                             } 
     )
     
+    # this is what we use as "natural habitat area" covariate
     r.mean_herb_shrub_forest <- lapply(r.vals_land_NA, 
                                        function(x) { 
                                          (length(which(x %in% c(52,71,41,42,43,90,95))) / length(x))
@@ -334,7 +339,7 @@ get_spatial_data <- function(
         )
     }                               
     
-    
+    # clear the work space
     rm(crs_raster, grid, land, prj1, 
        r.mean_dev_open, r.mean_forest, r.mean_herb_shrub, r.mean_high_dev, r.mean_herb_shrub_forest,
        r.site_area, r.vals_land, r.vals_land_NA, r.mean_low_med_high_dev, r.mean_low_dev,
@@ -348,7 +353,7 @@ get_spatial_data <- function(
     ## --------------------------------------------------
     # Join with Metro areas or Ecoregion 3
     
-    if(by_city == TRUE){
+    if(by_city == TRUE){ # if TRUE, cluster by metro area
       
       # Metropolitan statistical areas (CBSA's)
       # https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist
@@ -371,7 +376,7 @@ get_spatial_data <- function(
       n_level_three <- unique(level_three_lookup) %>%
         length()
       
-    } else{
+    } else{ # else cluster by ecoregion 3 
       
       level_three_cluster <- sf::read_sf("./data/spatial_data/NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
       
@@ -392,27 +397,33 @@ get_spatial_data <- function(
       length()
     }
     
+    # join the level three cluster info to the site data
     grid_pop_dens <- cbind(grid_pop_dens, level_three_vector)
     
     ## --------------------------------------------------
     # Ecoregion data for site clustering
     
+    # read in ecoregion 1 data
     ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
     
     ## level 4 cluster (ecoregion1)
     crs_ecoregion1 <- sf::st_crs(raster::crs(ecoregion1))
     prj1 <- st_transform(grid_pop_dens, crs_ecoregion1)
     
+    # names of the ecoregions in case interested in which ones have higher occurrence/detection
     ecoregion_one_names <- st_join(prj1, ecoregion1) %>%
       group_by(grid_id) %>%
       slice(which.max(Shape_Area)) %>% 
       pull(NA_L1CODE)
     
+    # as a simple vector
     ecoregion_one_vector <- as.numeric(as.factor(ecoregion_one_names))
     
+    # number of ecoregions
     n_ecoregion_one <- unique(ecoregion_one_vector) %>%
       length()
     
+    # join ecoregion one info with the sites
     grid_pop_dens <- cbind(grid_pop_dens, 
                            ecoregion_one_vector)
     
@@ -436,6 +447,7 @@ get_spatial_data <- function(
       #pull(ecoregion_one_vector)
     
     # just do level 3 clustered directly in eco1 as level 4
+    # which ecoregion 1 is each ecoregion 3 located within?
     ecoregion_one_lookup <- grid_pop_dens %>%
       group_by(level_three_vector, ecoregion_one_vector) %>%
       slice(1) %>%
@@ -445,7 +457,8 @@ get_spatial_data <- function(
       ungroup() %>%
       pull(ecoregion_one_vector)
     
-    # just do level 3 clustered directly in eco1 as level 4
+    # also get info on which eco 1, every grid cell is in (the default model does not use this info)
+    # which ecoregion 1 is each grid cell located within?
     ecoregion_one_lookup_by_grid_cell <- grid_pop_dens %>%
       group_by(grid_id, ecoregion_one_vector) %>%
       slice(1) %>%
@@ -464,6 +477,7 @@ get_spatial_data <- function(
     crs_CBSA <- sf::st_crs(raster::crs(CBSA))
     prj1 <- st_transform(grid_pop_dens, crs_CBSA)
     
+    # which CBSA (metro area) is each grid cell located within?
     CBSA_names <- st_join(prj1, CBSA) %>%
       group_by(grid_id) %>%
       slice(which.max(ALAND)) %>% 
@@ -506,6 +520,7 @@ get_spatial_data <- function(
     df$decimalLatitude <- na_if(df$decimalLatitude, '')
     
     df <- df %>% 
+      # filter out any records with no spatial data
       filter(!is.na(decimalLongitude)) %>%
       filter(!is.na(decimalLatitude)) %>%
       
@@ -516,7 +531,7 @@ get_spatial_data <- function(
       filter(records_per_species > min_records_per_species) %>%
       ungroup()
       
-    
+    # convert to a shapefile
     (df_sf <- st_as_sf(df,
                        coords = c("decimalLongitude", "decimalLatitude"), 
                        crs = 4326))
@@ -546,6 +561,8 @@ get_spatial_data <- function(
       mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
       filter(coordinateUncertaintyInMeters < 10000) 
     
+    # figure out how many unique site/year detections for each species
+    # we will filter out species that don't meet a minimum threshold of unique occurrence detections
     species_with_enough_detections <- df_id_dens %>%
       filter(year >= era_start) %>%
       group_by(species, grid_id, year) %>%
@@ -578,7 +595,7 @@ get_spatial_data <- function(
       
     }
     
-    # manually crop bombus occurrences from outside of core range
+    # manually crop species occurrences from outside of core range
     # later, share references for "core range" and show plots for excluded and included record points
     if(taxon == "bombus"){
       df_id_dens <- df_id_dens %>% 
@@ -601,6 +618,7 @@ get_spatial_data <- function(
     ## --------------------------------------------------
     # Generate a matrix that will later be used to 
     # calculate correlations between predictor variables
+    # this will be looked at later in a separate file to consider colinearity among variables
     
     correlation_matrix <- as.matrix(as.data.frame(cbind(grid_pop_dens$scaled_pop_den_km2,
                                                   grid_pop_dens$scaled_site_area,

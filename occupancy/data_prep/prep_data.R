@@ -1,16 +1,16 @@
-### Prepeare data to feed to model_integrated.stan
+### Prepeare data to feed to stan model
 # jcu; started oct 27, 2022
 
 # will need to assign occupancy intervals and visit numbers
-# for occupancy (as opposed to abundance), will need to 
+# for occupancy (as opposed to abundance), we will need to 
 # filter down to one unique occurrence per species*site*interval*year
 
 ## The data we will need to prepare to feed to the model:
-# V_citsci # an array of presence/absence citizen science detection data
+# V_citsci # an array of presence/absence community science detection data
 # V_citsci_NA # indicator of whether site is in species range 
-# V_museum # an array of presence/absence museum records detection data
+# V_museum # an array of presence/absence research collections detection data
 # V_museum_NA # indicator of whether a) site is in species range and b) ..
-# if a museum community sampling event occurred at the site in the visit time
+#   if a research collections community sampling event occurred at the site in the visit time
 # n_species # number of species
 # n_sites # number of sites
 # n_intervals # number of occupancy intervals 
@@ -38,6 +38,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       remove_city_outliers_5stddev
 ) {
   
+  # throw a warning if the study timespan is not an evenly divisible stretch of years
   if((era_end - era_start + 1) %% n_intervals != 0){
     print("WARNING: duration of years in the era is not evenly divisible by number of intervals. The STAN program is not built to handle intervals of variable length. Please choose a number of intervals that evenly divides the duration of years where: (era_end - era_start + 1) %% n_intervals == 0 ; e.g. (2022 - 2011 + 1) %% 4 == 0")
     stop()
@@ -47,7 +48,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   ## Operation Functions
   ## predictor center scaling function
   center_scale <- function(x) {
-    (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE)
+    (x - mean(x, na.rm = TRUE)) / sd(x, na.rm = TRUE) # z-score scale
   }
   
   source("./occupancy/data_prep/get_spatial_data.R")
@@ -57,13 +58,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     grid_size, min_population_size, taxon, min_site_area,
     urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start, 
     by_city, remove_city_outliers_5stddev)
-  
-  # save the data in case you want to make tweaks to the prep data
-  # without redoing the raster extractions
-  # saveRDS(my_spatial_data, "./occupancy/analysis/prepped_data/spatial_data_list.rds")
-  #my_spatial_data <- readRDS("./occupancy/analysis/prepped_data/spatial_data_list.rds")
   gc()
   
+  # retrieve the urban detections
   df_id_urban_filtered <- as.data.frame(my_spatial_data$df_id_urban_filtered)
   
   # remove specimens with no species level identification
@@ -108,7 +105,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # correlation between variables
   
   ## --------------------------------------------------
-  # occurrence data ONLY FROM SITES
+  # summary of occurrence data ONLY FROM SITES
   
   # total records from time period
   total_records_since_2000 <- nrow(df_id_urban_filtered)
@@ -233,7 +230,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   rm(species_detections_citsci, species_detections_museum)
   
   ## --------------------------------------------------
-  # occurrence data FROM ANYWHERE IN CONTINENTAL US
+  # summary of occurrence data FROM ANYWHERE IN CONTINENTAL US
   
   # read either the syrphidae data or the bombus data
   if(taxon == "syrphidae"){
@@ -272,6 +269,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(coordinateUncertaintyInMeters = replace_na(coordinateUncertaintyInMeters, 0)) %>%
     filter(coordinateUncertaintyInMeters < 10000)
   
+  # manually trim out the data that we weren't using (defined as outside of core range)
   if(taxon == "bombus"){
     df_full <- df_full %>% 
       filter(!(species == "impatiens" & decimalLongitude < -100)) %>%
@@ -344,6 +342,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   ## --------------------------------------------------
   # assign species list based on whether we want occurrences from anywhere in the extent or sites only 
   
+  # for the analysis as performed we DO NOT consider species that occur outside of our sites but not in them
+  # i.e., default is that consider_species_occurring_outside_sites == FALSE
   # anywehere in the extent
   if(consider_species_occurring_outside_sites == TRUE){
     
@@ -435,7 +435,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # end pipe
   
   ## --------------------------------------------------
-  # get genus for phylogenetic clustering
+  # get genus for phylogenetic clustering (we don't use this for the analysis as performed)
   if(taxon == "syrphidae"){
     
     genus_lookup <- species_list %>%
@@ -540,7 +540,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   gc()
   
   ## --------------------------------------------------
-  # filter to citizen science records
+  # filter to community science records
   # assign occupancy visits and intervals and reduce to one
   # sample per species per site per visit
   
@@ -581,7 +581,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # end pipe
   
   ## --------------------------------------------------
-  # filter to museum records
+  # filter to research collections records
   # assign occupancy visits and intervals and reduce to one
   # sample per species per site per visit
   
@@ -610,15 +610,6 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # filter to citizen science data only
     filter(basisOfRecord == "research_collection") %>% 
     
-    # determine whether a community sampling event occurred
-    # using collector name might be overly conservative because for example
-    # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
-    # instead grouping by collections housed in the same institution from the same year
-    # within a site
-    #group_by(institutionCode, year, grid_id) %>%
-    #mutate(n_species_sampled = n_distinct(species)) %>%
-    # filter(n_species_sampled >= min_species_for_community_sampling_event) %>%
-    
     # one unique row per site*species*occ_interval*visit combination
     group_by(grid_id, species, occ_interval, visit) %>% 
     slice(1) %>%
@@ -630,14 +621,14 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # end pipe
   
   ## --------------------------------------------------
-  # museum community samples
+  # research collection community samples
   
   # group by institution for syrphidae, by observers for bumble bees
   
   if(taxon == "syrphidae"){
     
-    # infer detection/nondetection at family level
-    if(infer_detections_at_genus == FALSE){
+    # infer detection/nondetection at family level or genus level
+    if(infer_detections_at_genus == FALSE){ # infer detection/nondetection at family level 
       community_samples <- df_id_urban_filtered %>%
         
         # remove records (if any) missing species level identification
@@ -684,6 +675,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
         mutate(occ_interval = as.character(occ_interval),
                visit = as.character(visit))
       # end pipe
+      
     } else{ # infer detection/nondetection at genus level
       community_samples <- df_id_urban_filtered %>%
         
@@ -735,7 +727,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
       # end pipe
     }
     
-  } else {
+  } else { # taxon == bombus
     
     community_samples <- df_id_urban_filtered %>%
       
@@ -763,10 +755,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
       filter(basisOfRecord == "research_collection") %>% 
       
       # determine whether a community sampling event occurred
-      # using collector name might be overly conservative because for example
-      # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
-      # instead grouping by collections housed in the same institution from the same year
-      # within a site
+      # using collector/observer name
       group_by(observers, year, grid_id) %>%
       mutate(n_species_sampled = n_distinct(species)) %>%
       ungroup() %>%
@@ -788,7 +777,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   
   ## --------------------------------------------------
-  # records per sampling event
+  # determine number of records per year per site
   
   museum_total_records <- df_id_urban_filtered %>%
     
@@ -815,11 +804,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     # filter to citizen science data only
     filter(basisOfRecord == "research_collection") %>% 
     
-    # determine whether a community sampling event occurred
-    # using collector name might be overly conservative because for example
-    # the data includes recordedBy == J. Fulmer *and* recordedBy J. W. Fulmer
-    # instead grouping by collections housed in the same institution from the same year
-    # within a site
+    # determine the number of records per grid cell per year
     group_by(year, grid_id) %>%
     add_tally(name = "records_per_year_per_site") %>%
     slice(1) %>%
@@ -834,9 +819,11 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(occ_interval = as.numeric(occ_interval),
            grid_id = as.integer(grid_id),
            museum_total_records = as.numeric(museum_total_records)) %>%
-    # scale the variable (before comparing to sites with no museum data - 
+    
+    # scale the variable (before comparing to sites with no research collection data - 
     # since they will be passed in the likelihood function)
     mutate(museum_total_records = center_scale(museum_total_records))
+  
   # end pipe
   
   # join with all siteXintervals after generating that table
@@ -872,7 +859,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   ## Now we are ready to create the detection matrices, V_citsci and V_museum
   
   ## --------------------------------------------------
-  ## V_citsci 
+  ## V_citsci (community science detections)
+  
+  # make a 4 dimensional array
   V_citsci <- array(data = NA, dim = c(n_species, n_sites, n_intervals, n_visits))
   
   for(i in 1:n_intervals){
@@ -923,7 +912,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   class(V_citsci) <- "numeric"
   
   ## --------------------------------------------------
-  ## V_museum 
+  ## V_museum (research collections detections)
+  
+  # construct a 4 dimensional array
   V_museum <- array(data = NA, dim = c(n_species, n_sites, n_intervals, n_visits))
   
   for(i in 1:n_intervals){
@@ -990,7 +981,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
            "grid_id" = "V2",
            "occ_interval" = "V3",
            "visit" = "V4") %>%
-    #"occ_year" = "V5") %>%
+
     mutate(grid_id = as.integer(grid_id))
   
   ## --------------------------------------------------
@@ -1013,10 +1004,10 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # sites* visits (museums only) where no community sampling event occurred
   
   ## --------------------------------------------------
-  # Infer citizen science missing data
+  # Infer community science missing data
   # Particularly, whether the species can be sampled or not at a site given its range
   # this is the only condition considered to effect whether a species could potentially
-  # be detected by a citizen science survey effort (compare with museum records)
+  # be detected by a community science survey effort (compare with research collections)
   
   df_citsci_visits <- as.data.frame(cbind(rep(species_vector, each=n_sites),
                                           rep(site_vector, times = n_species),
@@ -1034,11 +1025,11 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     left_join(all_species_site_visits, .) 
   
   V_citsci_NA <- array(data = df_citsci_visits$sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
-  check <- which(V_citsci>V_citsci_NA) # should NEVER have occurrences where the species can't be sampled,
+  # check <- which(V_citsci>V_citsci_NA) # should NEVER have occurrences where the species can't be sampled,
   # thus check should be empty
   
   ## --------------------------------------------------
-  # Infer museum record missing data
+  # Infer research collection record missing data
   # Particularly, whether the species can be sampled or not at a site given its range
   # AND 
   # whether or not a community sampling event has occurred
@@ -1049,14 +1040,17 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   
   # propagate nondetections to any species in the family
   if(infer_detections_at_genus == FALSE){
+    
     all_visits_museum_visits_joined <- left_join(all_species_site_visits, community_samples, 
                                                  by=c("grid_id", "occ_interval", "visit")) %>%
-      # create an indicator if the site visit was a sample or not
+      # create an indicator if the site visit was a sample or not (0 == not sampled, 1 == sampled)
       mutate(community_sampled = replace_na(community_sampled, 0),
              occ_interval = as.integer(occ_interval),
              visit = as.integer(visit)) %>%
       dplyr::select(-occ_year)
+    
   } else{  # propagate nondetections only to any species in the same genus
+    
     all_visits_museum_visits_joined <- left_join(all_species_site_visits, community_samples, 
                                                  by=c("grid_id", "occ_interval", "visit")) %>%
       # pull out genus name from each species
@@ -1068,8 +1062,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
              occ_interval = as.integer(occ_interval),
              visit = as.integer(visit)) %>%
       dplyr::select(-occ_year)
+    
   }
-  
   
   # remove species from community sampling if site is outside of range
   ranges <- as.data.frame(cbind(rep(species_vector, each=n_sites),
@@ -1084,7 +1078,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     mutate(sampled = as.numeric(community_sampled)*
              as.numeric(in_range))
   
-  # if inferring at genus there will be replucated rows for each species if multiple genera sampled from a site
+  # if inferring at genus there will be replicated rows for each species if multiple genera sampled from a site
   if(infer_detections_at_genus == TRUE){
     all_visits_museum_visits_joined <- all_visits_museum_visits_joined %>% 
       # reduce replicates from multiple genera surveyed at a site in a time
@@ -1112,7 +1106,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # now spread into 4 dimensions
   V_museum_NA <- array(data = all_visits_museum_visits_joined$any_sampled, dim = c(n_species, n_sites, n_intervals, n_visits))
   check <- which(V_museum>V_museum_NA) # this will give you numerical value
-  # thus check should be empty
+  # this check should be empty (can never detect a species where sampling has not occurred)
   
   ## --------------------------------------------------
   # Construct records per visit covariate

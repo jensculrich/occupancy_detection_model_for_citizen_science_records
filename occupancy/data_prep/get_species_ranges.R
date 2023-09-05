@@ -3,7 +3,7 @@
 
 # Use data from historical to present day to determine the range of each species
 # Then, identify which grid cells are intersecting the range for each species.
-# We will pass back the range data to prep_data_x.R, and then sub in 0's
+# We will pass back the range data to prep_data.R, and then sub in 0's
 # in the binary indicator array for whether or not a species was sampled at a site
 # in a given time period, so that max obs = 0 for a site outside the species range.
 
@@ -105,6 +105,9 @@ get_species_ranges <- function(
     
     ##--------------------------------------------------------------------------
     # make plots
+    
+    # I went in here manually to make the plots for the subset of species ranges that were trimmed by hand
+    
     if(make_range_plot == TRUE){
       
       library(tigris) # get state shapefile
