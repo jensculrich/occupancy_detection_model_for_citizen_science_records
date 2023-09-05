@@ -15,14 +15,14 @@ This repository holds three public subdirectories: ./data/, ./occupancy/, and ./
 
 Contains simulation files (./simulation/), data prep(./data_prep/), models (./models/), model implementation (./analysis/) and model outputs (./model_outputs/).
 
-The models used for the main analyses (held in the models subdirectory) are labelled "model_syrphidae.stan" and "model_bombus.stan". I also used a simplified model to estimate range wide occurrence rate ("model_taxon_simple.stan") to conduct a post hoc correlation analysis with species-specific effects of range wide occurrence (a proxy for habitat generality) and species-specific association with natural habitat area in urban landscapes. The folder also holds a reparameterized random effects model (non-centered random effects; "model_taxon_reparameterized_rand_effects.stan"). I explored whether this parameterization resulted in more stable scale estimates for site-specific random effects but since it did not, I do not use this reparametrization for the final analyses.
+The models used for the main analyses (held in the models subdirectory) are labelled "model_syrphidae.stan" and "model_bombus.stan". I also used a simplified model to estimate range wide occurrence rate ("model_taxon_simple.stan") to conduct a post hoc correlation analysis with species-specific effects of range wide occurrence (a proxy for habitat generality) and species-specific association with natural habitat area in urban landscapes. The folder also holds a reparameterized random effects model (non-centered random effects; "model_taxon_reparameterized_rand_effects.stan"). I did not not use this reparametrization for the final analyses.
 
 
 #### How to run a model:
 
 Run a model (./analysis/run_model.R) by specifying the data level constraints (taxonomic group, spatial grain and temporal divisions of occupancy intervals) and by tweaking the HMC settings if desired.
 
-After specifiying the data level constraints at the top of the file, you will be offered to prepare data for an analysis (prep_data() function). This preparation ~10 minutes to run, so if it's already been done (and the data has been saved), you can go ahead and skip down to load previously saved data and then enter the HMC setting before running the model. Prepared data .rds files are held in the ./analysis/prepped_data/ folder
+After specifiying the data level constraints at the top of the file, you will be offered to prepare data for an analysis (prep_data() function). This preparation takes while (~10 minutes) to run, so if it's already been done and the prepared data has been previously saved, you can go ahead and skip down to load the previously saved data and then enter the HMC setting before running the model. Prepared data .rds files are held in the ./analysis/prepped_data/ folder
 
 There are a few quick model diagnostic check functions listed after the model run call so that you can conveniently check the model run properties in this same file.  
 
