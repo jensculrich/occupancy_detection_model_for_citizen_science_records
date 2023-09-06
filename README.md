@@ -8,10 +8,10 @@ To run an analysis, open ./occupancy/analysis/run_model.R.
 you will be prompted to enter details that will specify the model run, including:
 taxonomic group, spatial grain and temporal divisions of occupancy intervals.
 
-This repository holds three public subdirectories: ./data/, ./occupancy/, and ./figures. 
+This repository holds three public subdirectories: ./occupancy/, ./data/ and ./figures. 
 
 
-## ./occupancy/
+## Analyses (./occupancy/)
 
 Contains simulation files (./simulation/), data prep(./data_prep/), models (./models/), model implementation (./analysis/) and model outputs (./model_outputs/).
 
@@ -38,9 +38,11 @@ The model outputs used for the main results in manuscript are in the subfolder .
 Simulate a community of pollinators inferring the same ecological process and observation process. Also provides options to "break" some of the assumptions of our model and observe the consequences on the parameters. For example, our model ignores the possibility of research collections community surveys recovering zero species. We can see how consequential this is for the results by simulating some "hidden" community surveys that are overlooked. 
 
 
-## ./data/
+
+## Data (./data/)
 
 Includes both spatial data and occurrence records data. Due to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
+
 
 ### Spatial Data (./spatial_data/): 
 
@@ -70,11 +72,20 @@ Contains a shapefile and table data for:
 2020 income data, B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
 [source](https://data2.nhgis.org/main)
 
+
+
 ### Occurrence Data (./occurrence_data/): 
 Contains occurrence data for bumble bees (BBNA (private folder due to data rights and size)) and for hoverflies (from GBIF (private folder due to size))
 Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data.
 
-(see ./data/get_occurence_data.R) We further processed the above data by combining Bombus bifarius and Bombus vancouverensis into a single species concept cluster (Bombus bifarius). We also further processed the hoverfly data by the following:
+IMPORTANT: 
+
+see ./data/get_occurence_data.R for further processing to the above data
+We further processed the data provided by BBNA and by GBIF by:
+
+(1) combining Bombus bifarius and Bombus vancouverensis into a single species concept cluster (Bombus bifarius). 
+
+(2) Making the following taxonomic clusterings for hoverflies:
 
 ```{r}
   # replace all Eumerus with Eumerus sp.
@@ -84,6 +95,10 @@ Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [he
   # replace Eoseristalis (genus name) with Eristalis (genus name)
   mutate(species = gsub("Eoseristalis", "Eristalis", species))
 ```
+
+and (3) appending a column of "basisOfRecord" where we identified detections as originating from "community science" or "research collections" observation processes
+
+
 
 ## ./figures/
 

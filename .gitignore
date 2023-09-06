@@ -2,7 +2,8 @@
 .Rhistory
 .RData
 .Ruserdata
-data/
+data/occurrence_data/
+data/spatial_data/
 abundance-occupancy/
 figures/occurrence_data/
 figures/environmental_data/
