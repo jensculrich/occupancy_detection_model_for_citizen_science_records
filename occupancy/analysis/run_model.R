@@ -17,8 +17,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 2 # species must have more detections at more site/years than this (so 2 == 3 or more unique detections)
 # within the time span defined above
-grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+grid_size = 15000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -233,6 +233,9 @@ CBSA_names <- my_data$CBSA_names
 species_counts <- my_data$species_counts # number of species detections in time period at urban grid cells
 species_detections <- my_data$species_detections # number of unique species/site/year (in time period at urban grid cells) occasions with detections > 0
 species_counts_full <- my_data$species_counts_full # number of records anywhere in time frame (not just urban grid cells)
+
+#sum(species_counts$total_count)
+#sum(species_detections$total_detections)
 
 genus_lookup <- my_data$genus_lookup
 genus_lookup <- as.numeric(factor(genus_lookup))
@@ -651,9 +654,9 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 400
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 200
+    n_burnin <- 150
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()

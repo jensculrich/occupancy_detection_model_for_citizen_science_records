@@ -494,7 +494,7 @@ get_spatial_data <- function(
     
     # read either the syrphidae data or the bombus data
     if(taxon == "syrphidae"){
-      df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all.csv"))
+      df <- read.csv(paste0("./data/occurrence_data/", taxon, "_data_all2.csv"))
     } else {
       df <- read.csv(paste0("./data/occurrence_data/bbna_private/bbna_trimmed.csv"))
     }
