@@ -78,6 +78,12 @@ Contains a shapefile and table data for:
 Contains occurrence data for bumble bees (BBNA (private folder due to data rights and size)) and for hoverflies (from GBIF (private folder due to size))
 Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data.
 
+bumble bee data: bbna_trimmed.csv. see bbna_metadata_README.txt
+
+hoverfly data: syrphidae_data_all.csv; syrphidae nativity. see syrphidae_data_metadata_README.txt
+
+see
+
 IMPORTANT: 
 
 see ./data/get_occurence_data.R for further processing to the above data
