@@ -8,10 +8,10 @@
 ## --------------------------------------------------
 # input data preparation choices - SYRPHIDAE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
-era_start = 2015 # must define start date of the GBIF dataset
+era_start = 2014 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 2 # must define number of intervals to break up the era into
-n_visits = 4 # must define the number of repeat obs years within each interval
+n_intervals = 3 # must define number of intervals to break up the era into
+n_visits = 3 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
@@ -235,7 +235,7 @@ species_detections <- my_data$species_detections # number of unique species/site
 species_counts_full <- my_data$species_counts_full # number of records anywhere in time frame (not just urban grid cells)
 
 #sum(species_counts$total_count)
-#sum(species_detections$total_detections)
+#sum(species_detections$museum_detections, na.rm = TRUE)
 
 genus_lookup <- my_data$genus_lookup
 genus_lookup <- as.numeric(factor(genus_lookup))
