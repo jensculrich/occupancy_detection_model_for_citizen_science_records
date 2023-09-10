@@ -8,10 +8,10 @@
 ## --------------------------------------------------
 # input data preparation choices - SYRPHIDAE
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
-era_start = 2014 # must define start date of the GBIF dataset
+era_start = 2015 # must define start date of the GBIF dataset
 era_end = 2022 # must define start date of the GBIF dataset
-n_intervals = 3 # must define number of intervals to break up the era into
-n_visits = 3 # must define the number of repeat obs years within each interval
+n_intervals = 2 # must define number of intervals to break up the era into
+n_visits = 4 # must define the number of repeat obs years within each interval
 # note, should introduce throw error if..
 # (era_end - era_start) / n_intervals has a remainder > 0,
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
@@ -654,11 +654,11 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 400
     n_thin <- 1
-    n_burnin <- 500
-    n_chains <- 6
-    n_cores <- 6
+    n_burnin <- 200
+    n_chains <- 4
+    n_cores <- 4
     #n_cores <- parallel::detectCores()
     delta = 0.97
     
@@ -810,7 +810,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
-  "long.rds"
+  ".rds"
 )
 )
 
