@@ -35,6 +35,7 @@ These are the saved HMC runs.
 The model outputs used for the main results in manuscript are in the subfolder ./large_files/. These 4,000 iteration runs are too large to upload without purchasing credits.
 
 #### Simulation (./simulation/)
+
 Simulate a community of pollinators inferring the same ecological process and observation process. Also provides options to "break" some of the assumptions of our model and observe the consequences on the parameters. For example, our model ignores the possibility of research collections community surveys recovering zero species. We can see how consequential this is for the results by simulating some "hidden" community surveys that are overlooked. 
 
 

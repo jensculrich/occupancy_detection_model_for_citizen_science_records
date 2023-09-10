@@ -4,6 +4,12 @@
 .Ruserdata
 data/occurrence_data/
 data/spatial_data/
+data/compressed_data/model_outputs_main_analyses/
+data/compressed_data/model_outputs_main_analyses.zip
+data/compressed_data/bumble_bee_data/
+data/compressed_data/bumble_bee_data.zip
+data/compressed_data/syrphidae_data/
+data/compressed_data/syrphidae_data.zip
 abundance-occupancy/
 figures/occurrence_data/
 figures/environmental_data/
