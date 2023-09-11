@@ -45,7 +45,7 @@ Simulate a community of pollinators inferring the same ecological process and ob
 Includes both spatial data and occurrence records data. Due to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
 
 
-### Spatial Data (./spatial_data/): 
+### Spatial Environmental Data (./spatial_data/): 
 
 #### Ecoregion 1 (./na_cec_eco_l1/)
 Contains shapefile for ecoregion 1 in the north america (broadest spatial clustering unit for analysis).
@@ -77,7 +77,7 @@ Contains a shapefile and table data for:
 
 ### Occurrence Data (./occurrence_data/): 
 Contains occurrence data for bumble bees (BBNA (private folder due to data rights and size)) and for hoverflies (from GBIF (private folder due to size))
-Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data.
+Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data. Go [here](https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders) for the compressed occurrence data. Note I will remove this link once the data are uploaded to Dryad. 
 
 bumble bee data: bbna_trimmed.csv. see bbna_metadata_README.txt
 
