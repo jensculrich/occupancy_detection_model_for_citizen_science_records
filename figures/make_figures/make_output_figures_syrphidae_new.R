@@ -70,9 +70,9 @@ estimate <- c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,1], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[17:157,1]),
+  rev(fit_summary$summary[18:158,1]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[158:298,1])#,
+  rev(fit_summary$summary[159:299,1])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -83,9 +83,9 @@ lower <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,4], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[17:157,4]),
+  rev(fit_summary$summary[18:158,4]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[158:298,4])#,
+  rev(fit_summary$summary[159:299,4])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -96,9 +96,9 @@ upper <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,8], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[17:157,8]),
+  rev(fit_summary$summary[18:158,8]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[158:298,8])#,
+  rev(fit_summary$summary[159:299,8])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -125,7 +125,7 @@ y2 = (rep(1:n_species, times=params)) # species reference
 
 estimate2 <-  c(
   # param 3 (Freeman Tukey P cit sci)
-  rev(fit_summary$summary[804:944,1])
+  rev(fit_summary$summary[805:945,1])
 )
 
 df2 = as.data.frame(cbind(x2,y2,estimate2)) %>%

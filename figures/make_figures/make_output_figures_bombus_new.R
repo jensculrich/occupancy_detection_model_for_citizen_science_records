@@ -27,36 +27,41 @@ n_species <- length(species_names)
 ## Plot ecological paramter means and variation
 
 # parameter means
-X_eco <- c(1, 2, 3) # 4 ecological params of interest
+X_eco <- c(1, 2, 3, 4) # 4 ecological params of interest
 # mean of eco params
 Y_eco <- c(fit_summary$summary[73,1], # mu psi income
-           fit_summary$summary[75,1], # mu psi natural habitat
+           fit_summary$summary[76,1], # mu psi dev green
+           fit_summary$summary[74,1], # mu psi natural habitat
            fit_summary$summary[77,1]#, # psi site area
            #fit_summary$summary[1,1] # mu psi 0
           )
 
 # confidence intervals
 lower_95_eco <- c(fit_summary$summary[73,4], # mu psi income
-                  fit_summary$summary[75,4], # mu psi natural habitat
+                  fit_summary$summary[76,4], # mu psi dev green
+                  fit_summary$summary[74,4], # mu psi natural habitat
                   fit_summary$summary[77,4]#, # psi site area
                   #fit_summary$summary[1,4] # mu psi 0
 )
 
 upper_95_eco <- c(fit_summary$summary[73,8], # mu psi income
-                  fit_summary$summary[75,8], # mu psi natural habitat
+                  fit_summary$summary[76,8], # mu psi dev green
+                  fit_summary$summary[74,8], # mu psi natural habitat
                   fit_summary$summary[77,8]#, # psi site area
                   #fit_summary$summary[1,8] # mu psi 0
 )
 
 # confidence intervals
 lower_50_eco <- c(fit_summary$summary[73,5], # mu psi income
-                  fit_summary$summary[75,5], # mu psi natural habitat
+                  fit_summary$summary[76,5], # mu psi dev green
+                  fit_summary$summary[74,5], # mu psi natural habitat
                   fit_summary$summary[77,5]#, # psi site area
                   #fit_summary$summary[1,5] # mu psi 0
 )
 
 upper_50_eco <- c(fit_summary$summary[73,7], # mu psi income
-                  fit_summary$summary[75,7], # mu psi natural habitat
+                  fit_summary$summary[76,7], # mu psi dev green
+                  fit_summary$summary[74,7], # mu psi natural habitat
                   fit_summary$summary[77,7]#, # psi site area
                   #fit_summary$summary[1,7] # mu psi 0
 )
@@ -79,9 +84,9 @@ for(i in 1:n_species){
   #species_estimates[1,i] <- NA # psi species
   #species_estimates[1,i] <- fit_summary$summary[23+i,1] # psi species
   species_estimates[1,i] <- NA # site area
-  species_estimates[2,i] <- fit_summary$summary[152+i,1] # herb shrub forest
-  species_estimates[3,i] <- fit_summary$summary[119+i,1] # income
-  
+  species_estimates[2,i] <- fit_summary$summary[119+i,1] # herb shrub forest
+  species_estimates[3,i] <- NA # dev green
+  species_estimates[4,i] <- NA # income
 }
 
 ## --------------------------------------------------
@@ -90,8 +95,9 @@ for(i in 1:n_species){
 (s <- ggplot(df_estimates_eco) +
     theme_bw() +
     # scale_color_viridis(discrete=TRUE) +
-    scale_x_discrete(name="", breaks = c(1, 2, 3),
-                       labels=c(bquote(mu[psi["income"]]),
+    scale_x_discrete(name="", breaks = c(1, 2, 3, 4),
+                       labels=c(bquote(psi["income"]),
+                                bquote(psi["dev. green."]),
                                 bquote(mu[psi["nat. habitat"]]),
                                 bquote(psi["site area"])#, 
                                 #bquote(mu[psi[0]])
@@ -162,13 +168,14 @@ n_species <- length(species_names)
 ## Plot ecological paramter means and variation
 
 # parameter means
-X_eco <- c(1, 2, 3, 4, 5) # 3 ecological params of interest
+X_eco <- c(1, 2, 3, 4, 5, 6) # 3 ecological params of interest
 # mean of eco params
 Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
   fit_summary$summary[10,1], # mu psi income
-  fit_summary$summary[946,1], # mu psi natural habitat non native
-  fit_summary$summary[945,1], # mu psi natural habitat native
-  fit_summary$summary[947,1], # mu psi natural habitat all
+  fit_summary$summary[11,1], # mu psi dev greenspace
+  fit_summary$summary[947,1], # mu psi natural habitat non native
+  fit_summary$summary[946,1], # mu psi natural habitat native
+  fit_summary$summary[948,1], # mu psi natural habitat all
   fit_summary$summary[9,1]#, # psi site area
   
 )
@@ -176,34 +183,38 @@ Y_eco <- c(#fit_summary$summary[6,1], # mu psi income
 # confidence intervals
 lower_95_eco <- c(#fit_summary$summary[6,4], # mu psi income
   fit_summary$summary[10,4], # mu psi income
-  fit_summary$summary[946,4], # mu psi natural habitat non native
-  fit_summary$summary[945,4], # mu psi natural habitat native
-  fit_summary$summary[947,4], # mu psi natural habitat all
+  fit_summary$summary[11,4], # mu psi dev greenspace
+  fit_summary$summary[947,4], # mu psi natural habitat non native
+  fit_summary$summary[946,4], # mu psi natural habitat native
+  fit_summary$summary[948,4], # mu psi natural habitat all
   fit_summary$summary[9,4]#, # psi site area
 )
 
 upper_95_eco <- c(#fit_summary$summary[6,8], # mu psi income
   fit_summary$summary[10,8], # mu psi income
-  fit_summary$summary[946,8], # mu psi natural habitat non native
-  fit_summary$summary[945,8], # mu psi natural habitat native
-  fit_summary$summary[947,8], # mu psi natural habitat all
+  fit_summary$summary[11,8], # mu psi dev greenspace
+  fit_summary$summary[947,8], # mu psi natural habitat non native
+  fit_summary$summary[946,8], # mu psi natural habitat native
+  fit_summary$summary[948,8], # mu psi natural habitat all
   fit_summary$summary[9,8]#, # psi site area
 )
 
 # confidence intervals
 lower_50_eco <- c(#fit_summary$summary[6,5], # mu psi income
   fit_summary$summary[10,5], # mu psi income
-  fit_summary$summary[946,5], # mu psi natural habitat non native
-  fit_summary$summary[945,5], # mu psi natural habitat native
-  fit_summary$summary[947,5], # mu psi natural habitat all
+  fit_summary$summary[11,5], # mu psi dev greenspace
+  fit_summary$summary[947,5], # mu psi natural habitat non native
+  fit_summary$summary[946,5], # mu psi natural habitat native
+  fit_summary$summary[948,5], # mu psi natural habitat all
   fit_summary$summary[9,5]#, # psi site area
 )
 
 upper_50_eco <- c(#fit_summary$summary[6,7], # mu psi income
   fit_summary$summary[10,7], # mu psi income
-  fit_summary$summary[946,7], # mu psi natural habitat non native
-  fit_summary$summary[945,7], # mu psi natural habitat native
-  fit_summary$summary[947,7], # mu psi natural habitat all
+  fit_summary$summary[11,7], # mu psi dev greenspace
+  fit_summary$summary[947,7], # mu psi natural habitat non native
+  fit_summary$summary[946,7], # mu psi natural habitat native
+  fit_summary$summary[948,7], # mu psi natural habitat all
   fit_summary$summary[9,7]#, # psi site area
 )
 
@@ -217,12 +228,12 @@ df_estimates_eco$X_eco <- as.factor(df_estimates_eco$X_eco)
 ## --------------------------------------------------
 ## Get species specific estimates
 
-subset_nonnative <- fit_summary$summary[158:298,] %>%
+subset_nonnative <- fit_summary$summary[159:299,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "0")
 
-subset_native <- fit_summary$summary[158:298,] %>%
+subset_native <- fit_summary$summary[159:299,] %>%
   cbind(., nativity) %>%
   as.data.frame(.) %>%
   filter(nativity == "1")
@@ -233,10 +244,11 @@ for(i in 1:n_species){
   
   # row is one before the row of the first species estimate
   species_estimates[1,i] <- NA # site area
-  species_estimates[2,i] <- fit_summary$summary[157+i,1] # all
+  species_estimates[2,i] <- fit_summary$summary[158+i,1] # all
   species_estimates[3,i] <- subset_native[i,1]
   species_estimates[4,i] <- subset_nonnative[i,1]
-  species_estimates[5,i] <- NA # income
+  species_estimates[5,i] <- NA # developed greenspace
+  species_estimates[6,i] <- NA # income
 }
 
 ## --------------------------------------------------
@@ -245,8 +257,9 @@ for(i in 1:n_species){
 (s2 <- ggplot(df_estimates_eco) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
-   scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5),
+   scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5, 6),
                     labels=c(bquote(psi["income"]),
+                             bquote(psi["dev. green."]),
                       bquote(mu[psi["nat. habitat"]~"[nonnative]"]),
                       bquote(mu[psi["nat. habitat"]~"[native]"]),
                       bquote(mu[psi["nat. habitat"]~"[all]"]),
@@ -480,39 +493,39 @@ X_detection <- c(1, 2) # 2 detection params of interest
 # mean of cit sci params and museum params
 Y_detection <- c(
   # cs
-  fit_summary$summary[16,1], # p pop dens
-  fit_summary$summary[15,1]#, # p interval
+  fit_summary$summary[17,1], # p pop dens
+  fit_summary$summary[16,1]#, # p interval
   #fit_summary$summary[78,1] # mu p cs 0
 )
 
 # confidence intervals
 lower_95_detection <- c(
   # cs
-  fit_summary$summary[16,4], # p pop dens
-  fit_summary$summary[15,4] # p interval
+  fit_summary$summary[17,4], # p pop dens
+  fit_summary$summary[16,4] # p interval
   #fit_summary$summary[11,4] # mu p 0 
 ) 
 
 upper_95_detection <- c(
   # cs
-  fit_summary$summary[16,8], # p pop dens
-  fit_summary$summary[15,8] # p interval
+  fit_summary$summary[17,8], # p pop dens
+  fit_summary$summary[16,8] # p interval
   #fit_summary$summary[11,8] # mu p 0 
 ) 
 
 # confidence intervals
 lower_50_detection <- c(
   # cs
-  fit_summary$summary[16,5], # p pop dens
-  fit_summary$summary[15,5] # p interval
+  fit_summary$summary[17,5], # p pop dens
+  fit_summary$summary[16,5] # p interval
   #fit_summary$summary[11,5] # mu p 0 
 ) 
 
 upper_50_detection <- c(
   #fit_summary$summary[18,7], # mu p 0
   # cs
-  fit_summary$summary[16,7], # p pop dens
-  fit_summary$summary[15,7] # p interval
+  fit_summary$summary[17,7], # p pop dens
+  fit_summary$summary[16,7] # p interval
   #fit_summary$summary[11,7] # mu p 0 
 ) 
 
@@ -631,7 +644,7 @@ species_names_df <- species_names %>%
 #mismatch_rows <- which(species_names2_df == "insularis")
 
 # parameter means
-params = 3
+params = 2
 
 x <- (rep(1:params, each=n_species)) # parameter reference
 y <- (rep(1:n_species, times=params)) # species reference
@@ -641,10 +654,10 @@ estimate <-  c(
   #fit_summary2$summary[87:103,1], fit_summary2$summary[105:119,1],
   # param 1 (psi_species_urban)
   rev(fit_summary$summary[88:119,1]),
-  # param 2 (psi income)
-  rev(fit_summary$summary[120:151,1]),
+  # param 2 (psi natural)
+  rev(fit_summary$summary[120:151,1])
   # param 3 (psi natural)
-  rev(fit_summary$summary[152:183,1])
+  #rev(fit_summary$summary[152:183,1])
 )
 
 lower <- c(
@@ -652,10 +665,10 @@ lower <- c(
   #fit_summary2$summary[87:103,4], fit_summary2$summary[105:119,4],
   # param 1 (psi_species_urban)
   rev(fit_summary$summary[88:119,4]),
-  # param 2 (psi income)
-  rev(fit_summary$summary[120:151,4]),
+  # param 2 (psi natural)
+  rev(fit_summary$summary[120:151,4])
   # param 3 (psi natural)
-  rev(fit_summary$summary[152:183,4])
+  #rev(fit_summary$summary[152:183,4])
 )
 
 upper <- c(
@@ -663,10 +676,10 @@ upper <- c(
   #fit_summary2$summary[87:103,8], fit_summary2$summary[105:119,8],
   # param 1 (psi_species_urban)
   rev(fit_summary$summary[88:119,8]),
-  # param 2 (psi income)
-  rev(fit_summary$summary[120:151,8]),
+  # param 2 (psi natural)
+  rev(fit_summary$summary[120:151,8])
   # param 3 (psi natural)
-  rev(fit_summary$summary[152:183,8])
+  #rev(fit_summary$summary[152:183,8])
 ) 
 
 # species_names_label <- str_replace_all(species_names,'Bombus','B.')
@@ -679,7 +692,7 @@ df <- as.data.frame(cbind(x, y, estimate, lower, upper
 
 # converting the result to dataframe
 #df <- map_df(df, rev)
-ordered_df <- filter(df, x == 3)
+ordered_df <- filter(df, x == 2)
 ordered_df <- ordered_df[order(ordered_df$estimate,decreasing=TRUE),]
 
 df_intercepts <- filter(df, x == 1)
@@ -693,10 +706,10 @@ species_names_label <- species_names_label %>%
 p1 <- ggplot(df, aes(x, y, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(1, 2, 3),
+  scale_x_discrete(name="", breaks = c(1, 2),
                    labels=c(#bquote(psi[species - range]),
                             bquote(psi[species]),
-                            bquote(psi[species[income]]),
+                            #bquote(psi[species[income]]),
                             bquote(psi[species["nat. habitat"]])
                             #bquote(FTP[citsci]),
                             #bquote(FTP[museum])
@@ -890,7 +903,7 @@ df <- as.data.frame(cbind(x, y, estimate, lower, upper
 
 # converting the result to dataframe
 #df <- map_df(df, rev)
-ordered_df <- filter(df, x == 3)
+ordered_df <- filter(df, x == 2)
 ordered_df <- ordered_df[order(ordered_df$estimate,decreasing=FALSE),]
 
 df_intercepts <- filter(df, x == 1)
@@ -898,7 +911,7 @@ ordered_df <- rbind(ordered_df, df_intercepts)
 
 species_names_label <- species_names_label %>%
   as.data.frame(.) %>%
-  #map_df(., rev) %>%
+  map_df(., rev) %>%
   pull(.)
 
 species_names_df <- species_names_label %>%
@@ -912,7 +925,7 @@ species_names_df <- species_names_label %>%
 ordered_df <- left_join(ordered_df, species_names_df, by = "y")
 
 # make a column for the slopes
-temp <- ordered_df %>% filter(x == 3) %>%
+temp <- ordered_df %>% filter(x == 2) %>%
   mutate(row_id=row_number()) %>%
   mutate(row_id = as.factor(row_id))
 
@@ -925,7 +938,7 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   theme_bw() +
   scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
-                     bquote(psi[species])
+                     #bquote(psi[species])
                      #bquote(psi[species["nat. habitat"]])
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])
@@ -964,7 +977,7 @@ p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
   theme_bw() +
   scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
-                     bquote(psi[species])
+                     #bquote(psi[species])
                      #bquote(psi[species["nat. habitat"]])
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])

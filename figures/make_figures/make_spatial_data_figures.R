@@ -260,6 +260,12 @@ temp[temp != c( 41, 42, 43, 52, 71, 90, 95)] <- NA
 temp <- as.data.frame(temp, xy=TRUE)
 temp2 <- filter(temp, !is.na(NLCD.Land.Cover.Class_NLCD.Land.Cover.Class))
 
+# open dev
+temp <- land_cropped_inset
+temp[temp != c( 21)] <- NA
+temp <- as.data.frame(temp, xy=TRUE)
+temp2 <- filter(temp, !is.na(NLCD.Land.Cover.Class_NLCD.Land.Cover.Class))
+
 #ggplot(temp) +
  # geom_tile(aes(x=x, y=y, fill=factor(NLCD.Land.Cover.Class_NLCD.Land.Cover.Class),alpha=0.8)) 
 
@@ -828,6 +834,33 @@ inset2 <- main_map +
     size = 1
   )
 
+inset3 <- main_map +
+  geom_sf(data = grid_pop_dens, 
+          aes(fill = scaled_developed_open), 
+          lwd = 0.3,
+          #fill = "grey20",
+          alpha = 0.8
+  ) +
+  geom_sf(data = prj_city_df, size = 8, 
+          shape = 1, fill = "black", alpha = 0.9) +
+  geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
+  scale_fill_gradient2(name = expression("scaled developed greenspace"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(
+    xlim = c(-2150000 , -1350000), 
+    ylim = c(1000000, 1700000),
+    expand = FALSE
+  ) +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
 
 main_map <- main_map +
   geom_rect(aes(
@@ -841,6 +874,12 @@ main_map <- main_map +
   )
 
 plot_grid(inset1, NULL, inset2, 
+          #labels = c('b)', "", 'c)'),
+          #label_size = 20,
+          nrow=1,
+          rel_widths = c(1,0.05,1))
+
+plot_grid(inset1, NULL, inset3, 
           #labels = c('b)', "", 'c)'),
           #label_size = 20,
           nrow=1,
