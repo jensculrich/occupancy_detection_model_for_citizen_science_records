@@ -35,6 +35,7 @@ data {
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
   vector[n_sites] avg_income; // (scaled) household income of each site (with income relativized to state average income)
+  vector[n_sites] open_developed; // (scaled) open developed surface cover of each site
   vector[n_species] nativity; // nativity vector, 0 == non-native, 1 == native
   
 } // end data
@@ -76,6 +77,11 @@ parameters {
   //vector[n_species] psi_income; // vector of species specific slope estimates
   real mu_psi_income; // community mean of species specific slopes
   //real<lower=0> sigma_psi_income; // variance in species slopes
+  
+  // random slope for species-specific open developed area effects on occupancy
+  //vector[n_species] psi_open_developed; // vector of species specific slope estimates
+  real mu_psi_open_developed; // community mean of species specific slopes
+  //real<lower=0> sigma_psi_open_developed; // variance in species slopes
     
   // fixed effect of site area on occupancy
   real psi_site_area;
@@ -169,6 +175,7 @@ transformed parameters {
             psi0_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
             mu_psi_income*avg_income[j] + // a species-specific effect of income
+            mu_psi_open_developed*open_developed[j] + // a species-specific effect of income
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -227,6 +234,7 @@ model {
   gamma1 ~ normal(0, 0.25); // effect of nativity
   
   mu_psi_income ~ normal(0, 2); // effect of income on occupancy
+  mu_psi_open_developed ~ normal(0, 2); // effect of open developed area on occupancy
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
   // Detection (Observation Process)

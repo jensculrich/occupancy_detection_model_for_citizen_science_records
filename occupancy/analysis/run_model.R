@@ -222,7 +222,7 @@ level_four_names_unique <- unique(level_four_names)
 #View(as.data.frame(level_three_names_unique))
 
 CBSA_names <- my_data$CBSA_names
-#View(as.data.frame(CBSA_names))
+#View(as.data.frame(unique(CBSA_names)))
 
 #saveRDS(species_names, "./figures/species_names/syrphidae_names_10km_urban.RDS")
 #saveRDS(species_names, "./figures/species_names/bombus_names_40km_nonurban.RDS")
@@ -322,7 +322,8 @@ if(taxon == "bombus"){
                    "level_three_lookup", 
                    "n_level_four",
                    "level_four_lookup",
-                   "pop_densities", "site_areas", "avg_income", 
+                   "pop_densities", "site_areas", "avg_income",
+                   "open_developed",
                    "natural_habitat", "rc_total_records") 
     
     # Parameters monitored
@@ -336,9 +337,11 @@ if(taxon == "bombus"){
                 "sigma_psi_level_three",
                 "sigma_psi_level_four",
                 "mu_psi_income",
-                "sigma_psi_income",
+                #"sigma_psi_income",
                 "mu_psi_natural_habitat",
                 "sigma_psi_natural_habitat",
+                "mu_psi_open_developed",
+                #"sigma_psi_open_developed",
                 "psi_site_area",
                 
                 "mu_p_cs_0",
@@ -354,7 +357,7 @@ if(taxon == "bombus"){
                 "sigma_p_rc_level_four",
 
                 "psi_species",
-                "psi_income",
+                #"psi_income",
                 "psi_natural_habitat",
                 
                 "psi_site",
@@ -371,7 +374,7 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 4000
+    n_iterations <- 5000
     n_thin <- 1
     n_burnin <- 1000
     n_chains <- 4
@@ -393,11 +396,11 @@ if(taxon == "bombus"){
         sigma_psi_level_three = runif(1, 0, 1),
         sigma_psi_level_four = runif(1, 0, 1),
         mu_psi_income = runif(1, -1, 1),
-        sigma_psi_income = runif(1, 0, 1),
         mu_psi_natural_habitat = runif(1, -1, 1),
         sigma_psi_natural_habitat = runif(1, 0, 1),
         psi_site_area = runif(1, -1, 1),
-        
+        mu_psi_open_developed = runif(1, -1, 1),
+
         mu_p_cs_0 = runif(1, -1, 0),
         sigma_p_cs_site = runif(1, 0.5, 1),
         sigma_p_cs_level_three = runif(1, 0, 0.5),
@@ -610,7 +613,8 @@ if(taxon == "bombus"){
                    "pop_densities", "site_areas", 
                    "nativity",
                    "natural_habitat",
-                   "avg_income"
+                   "avg_income",
+                   "open_developed"
                    ) 
     
     # Parameters monitored
@@ -627,6 +631,7 @@ if(taxon == "bombus"){
                 "gamma1",
                 "psi_site_area",
                 "mu_psi_income",
+                "mu_psi_open_developed",
                 
                 "mu_p_cs_0",
                 "sigma_p_cs_species",
@@ -654,11 +659,11 @@ if(taxon == "bombus"){
     
     
     # MCMC settings
-    n_iterations <- 400
+    n_iterations <- 2000
     n_thin <- 1
-    n_burnin <- 200
-    n_chains <- 4
-    n_cores <- 4
+    n_burnin <- 500
+    n_chains <- 8
+    n_cores <- 8
     #n_cores <- parallel::detectCores()
     delta = 0.97
     
@@ -680,6 +685,7 @@ if(taxon == "bombus"){
             gamma1 = runif(1, 0, 0.1), # gamma0+gamma1 inits must be >0!
             psi_site_area = runif(1, -0.5, 0.5),
             mu_psi_income = runif(1, -0.25, 0.25),
+            mu_psi_open_developed = runif(1, -0.25, 0.25),
             
             mu_p_cs_0 = runif(1, -3, -2.5),
             sigma_p_cs_species = runif(1, 0, 1),
@@ -788,7 +794,7 @@ if(use_reparameterized_rand_effects_model == TRUE){
 }
 
 # or manually enter a model name
-#stan_model <- paste0("./occupancy/models/model_", taxon, "_with_income.stan")
+#stan_model <- paste0("./occupancy/models/model_", taxon, "_no_open_developed.stan")
 
 ## Call Stan from R
 set.seed(1)
@@ -842,6 +848,8 @@ if(taxon == "syrphidae"){
     "gamma1",
     "psi_site_area",
     "mu_psi_income",
+    "mu_psi_open_developed",
+    #"sigma_psi_open_developed",
     "mu_psi_natural_habitat_native",
     "mu_psi_natural_habitat_nonnative",
     "mu_psi_natural_habitat_all_species",
@@ -864,9 +872,11 @@ if(taxon == "syrphidae"){
     "sigma_psi_level_three",
     "sigma_psi_level_four",
     "mu_psi_income",
-    "sigma_psi_income",
+    #"sigma_psi_income",
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
+    "mu_psi_open_developed",
+    #"sigma_psi_open_developed",
     "psi_site_area",
     
     "mu_p_cs_0",
@@ -953,7 +963,8 @@ if(taxon == "syrphidae"){
     "gamma0",
     "gamma1",
     "psi_site_area",
-    "mu_psi_income"
+    "mu_psi_income",
+    "mu_psi_open_developed"
   ))
   traceplot(stan_out, pars = c(
     "mu_p_cs_0",
@@ -979,8 +990,10 @@ if(taxon == "syrphidae"){
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
     "mu_psi_income",
-    "sigma_psi_income",
-    "psi_site_area"
+    #"sigma_psi_income",
+    "psi_site_area",
+    "mu_psi_open_developed"
+    #"sigma_psi_open_developed"
   ))
   traceplot(stan_out, pars = c( # detection
     "mu_p_cs_0",
