@@ -476,7 +476,10 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   geom_text(data = temp, 
             aes(x = x, y = row_id, label = paste0(
               #signif(estimate, 2),"\n(", 
-              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+              "[", sprintf("%.1f",lower), ", ",
+              #"[", signif(lower,2), ", ", 
+              sprintf("%.1f",upper), "]")),
+            #signif(upper,2), "]")),
             size = 3.5) +
   theme(legend.position = "none",
         #legend.text=element_text(size=14),
@@ -491,7 +494,6 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_blank())
 
-# make a column for the intercepts
 # row order needs to match row order of slope column
 temp2 <- top_and_bottom %>% filter(x == 1)
 temp2 <- left_join(temp2, rows)
@@ -515,7 +517,10 @@ p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
   geom_text(data = temp2, 
             aes(x = x, y = row_id, label = paste0(
               #signif(estimate, 2),"\n(", 
-              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+              "[", sprintf("%.1f",lower), ", ",
+              #"[", signif(lower,2), ", ", 
+              sprintf("%.1f",upper), "]")),
+              #signif(upper,2), "]")),
             size = 3.5) +
   theme(legend.position = "none",
         #legend.text=element_text(size=14),

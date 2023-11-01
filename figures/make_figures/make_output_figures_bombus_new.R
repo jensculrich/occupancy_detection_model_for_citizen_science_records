@@ -952,7 +952,10 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   geom_text(data = temp, 
             aes(x = x, y = row_id, label = paste0(
               #signif(estimate, 2),"\n(", 
-              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+              "[", sprintf("%.1f",lower), ", ",
+              #"[", signif(lower,2), ", ", 
+              sprintf("%.1f",upper), "]")),
+            #signif(upper,2), "]")),
             size = 3.5) +
   theme(legend.position = "none",
         #legend.text=element_text(size=14),
@@ -991,7 +994,10 @@ p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
   geom_text(data = temp2, 
             aes(x = x, y = row_id, label = paste0(
               #signif(estimate, 2),"\n(", 
-              "[", signif(lower,2), ", ", signif(upper,2), "]")),
+              "[", sprintf("%.1f",lower), ", ",
+              #"[", signif(lower,2), ", ", 
+              sprintf("%.1f",upper), "]")),
+            #signif(upper,2), "]")),
             size = 3.5) +
   theme(legend.position = "none",
         #legend.text=element_text(size=14),

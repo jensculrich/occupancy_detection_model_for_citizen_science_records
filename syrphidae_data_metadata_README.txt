@@ -23,11 +23,11 @@ We made some changes to the data:
 
 #-------------------------------------------------------------------------------
 
-syrphidae_data_all.csv - detections of hoverflies (syrphidae).
+syrphidae_nativity.csv - detections of hoverflies (syrphidae).
 
 The data is a csv file with 3 variables: 
 
-"species" Geographic accuracy in meters (character)
+"species" species name (for row matching) (character)
 
 "nativity" non-native to north america (== 0), all other species are considered native (numeric)
 Nativity data obtained from https://bugguide.net/node/view/248891

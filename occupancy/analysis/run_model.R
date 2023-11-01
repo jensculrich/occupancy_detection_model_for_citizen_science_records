@@ -832,6 +832,7 @@ stan_out <- readRDS(paste0(
 # read in a model ouput manually
 #stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
 #stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/bombus/by_city/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.RDS")
 
 # print main effects
 # print results
@@ -938,6 +939,11 @@ if(taxon == "syrphidae"){
     #"p_rc_natural_habitat"
   ))
 }
+
+print(stan_out, digits = 3, pars = c(
+  "mu_psi_herb_shrub_forest", 
+  "mu_psi_income"
+))
 
 # print some specific parameter if desired
 print(stan_out, digits = 3, pars=
