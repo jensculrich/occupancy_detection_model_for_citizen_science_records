@@ -45,7 +45,7 @@ Simulate a community of pollinators inferring the same ecological process and ob
 Includes both spatial data and occurrence records data. Due to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
 
 
-### Spatial Environmental Data (./spatial_data/): 
+### Site-level Environmental/Spatial Data (./spatial_data/): 
 
 #### Ecoregion 1 (./na_cec_eco_l1/)
 Contains shapefile for ecoregion 1 in the north america (broadest spatial clustering unit for analysis).
