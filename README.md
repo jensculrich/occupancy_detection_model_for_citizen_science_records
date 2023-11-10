@@ -76,12 +76,18 @@ Contains a shapefile and table data for:
 
 
 ### Occurrence Data (./occurrence_data/): 
+
 Contains occurrence data for bumble bees (BBNA (private folder due to data rights and size)) and for hoverflies (from GBIF (private folder due to size))
-Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data. Go [here](https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders) for the compressed occurrence data. Note I will remove this link once the data are uploaded to Dryad. 
+
+Compressed occurrence data available here:
+https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders
 
 bumble bee data: bbna_trimmed.csv. see bbna_metadata_README.txt
-
 hoverfly data: syrphidae_data_all.csv; syrphidae nativity. see syrphidae_data_metadata_README.txt
+
+These data sets are also publicly available:
+Go [here](https://www.leifrichardson.org/bbna.html) for bumble bee data, and [here part 1](https://doi.org/10.15468/dl.nga26z) and [here part 2](https://doi.org/10.15468/dl.n5cmwv) for hoverfly data. Go [here](https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders) for the compressed occurrence data. Note I will remove this link once the data are uploaded to Dryad. 
+
 
 see
 
