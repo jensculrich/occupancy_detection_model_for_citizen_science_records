@@ -46,6 +46,22 @@ Includes both spatial data and occurrence records data. Due to file sizes the da
 
 
 ### Site-level Environmental/Spatial Data (./spatial_data/): 
+Site-level environmental data are publicly available. These data files are too large to store on a github repository and must be downloaded directly from source. The linked sources may provide data from different years/resolutions or other formats. Please follow the query information for each data element to ensure that the correct data is downloaded. To reprocess the data and refit the models the data will need to be placed in the paths listed in the ./occupancy/data_prep/ files.
+
+#### Land cover (./land_cover/) 
+Contains a raster with land cover data (NLCD data) at 30 m resolution from 2016. 
+[source](https://www.mrlc.gov/data/nlcd-2016-land-cover-conus).
+See land cover classification descriptions [here](https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description)
+
+#### Household_income (./socioeconomic_data/)
+Contains a shapefile and table data for:
+2020 income data, B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
+[source](https://data2.nhgis.org/main)
+
+
+#### Population Density (./population_density/)
+Contains a raster with population density at 1 km resolution from the year 2015.
+[source](https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download)
 
 #### Ecoregion 1 (./na_cec_eco_l1/)
 Contains shapefile for ecoregion 1 in the north america (broadest spatial clustering unit for analysis).
@@ -58,20 +74,6 @@ Contains shapefile for ecoregion 3 in the north america (intermediate spatial cl
 #### Metropolitan areas (./tl_2019_us_cbsa/)
 Contains shapefile for metropolitan areas in the United States, defined in 2018 using 2010 census data.
 [source](https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist)
-
-#### Population Density (./population_density/)
-Contains a raster with population density at 1 km resolution from the year 2015.
-[source](https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download)
-
-#### Land cover (./land_cover/) 
-Contains a raster with land cover data (NLCD data) at 30 m resolution from 2016. 
-[source](https://www.mrlc.gov/data/nlcd-2016-land-cover-conus).
-See land cover classification descriptions [here](https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description)
-
-#### Household_income (./socioeconomic_data/)
-Contains a shapefile and table data for:
-2020 income data, B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
-[source](https://data2.nhgis.org/main)
 
 
 
