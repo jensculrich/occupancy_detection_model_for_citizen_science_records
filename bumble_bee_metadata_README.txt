@@ -1,4 +1,4 @@
-Metadata for the data used in "Ulrich et al. (2023) Urban landscapes with more natural habitat support higher pollinator diversity. (manuscript submitted for consideration by Proceedings B)".
+Metadata for the data used in "Ulrich et al. (2023) Urban landscapes with more natural habitat support higher pollinator diversity. (manuscript submitted for consideration)".
 
 bbna_trimmed.csv - detections of bumblebees.
 

@@ -47,6 +47,8 @@ simulate_data <- function(taxon,
                           sigma_psi_income,
                           mu_psi_natural_habitat,
                           sigma_psi_natural_habitat,
+                          mu_psi_open_developed,
+                          sigma_psi_open_developed,
                           delta0,
                           delta1,
                           psi_site_area,
@@ -102,20 +104,22 @@ simulate_data <- function(taxon,
   site_area <- rnorm(n_sites, mean = 0, sd = 1)
   
   # Realistically natural habitat area is positively correlated with income
-  # and negatively with population density
+  # and negatively with population density, and positively with open developed
   # I will simluate data with these realistic correlations
-  mu <- c(0, 0, 0)
-  stddev <- c(1, 1, 1)
-  corMat <- matrix(c(1, 0, -0.25, 
-                     0, 1, 0.15,
-                     -0.25, 0.15, 1),
-                   ncol = 3)
+  mu <- c(0, 0, 0, 0)
+  stddev <- c(1, 1, 1, 1)
+  corMat <- matrix(c(1, 0, -0.25, 0, 
+                     0, 1, 0.15, 0,
+                     -0.25, 0.15, 1, 0.3,
+                     0, 0, 0.3, 1),
+                   ncol = 4)
   covMat <- stddev %*% t(stddev) * corMat
   correlated_data <- MASS::mvrnorm(n = n_sites, mu = mu, Sigma = covMat, empirical = FALSE)
   
   pop_density <- correlated_data[,1]
   income <- correlated_data[,2]
   natural_habitat <- correlated_data[,3]
+  open_developed <- correlated_data[,4]
   
   plot(correlated_data[,1], correlated_data[,2])
   cor(correlated_data[,1], correlated_data[,2])
@@ -125,6 +129,9 @@ simulate_data <- function(taxon,
   
   plot(correlated_data[,2], correlated_data[,3])
   cor(correlated_data[,2], correlated_data[,3])
+  
+  plot(correlated_data[,3], correlated_data[,4])
+  cor(correlated_data[,3], correlated_data[,4])
   
   # create a matrix of total_records of length = number of sites and row = number of intervals
   # the model takes z-score scaled data (with mean of 0) so it's ok to center at 0 here
@@ -284,6 +291,8 @@ simulate_data <- function(taxon,
     psi_natural_habitat <- rnorm(n=n_species, mean=mu_psi_natural_habitat, sd=sigma_psi_natural_habitat)
   }
   
+  ## open developed effect on occupancy (species-specific random slopes)
+  psi_open_developed <- rnorm(n=n_species, mean=mu_psi_open_developed, sd=sigma_psi_open_developed)
   
   
   ## luxury effect on occupancy (species-specific random slopes)
@@ -390,6 +399,7 @@ simulate_data <- function(taxon,
             psi_species[species] + # a species specific intercept
             psi_site_nested[site] + # a site specific intercept
             psi_natural_habitat[species]*natural_habitat[site] + # a species specific effect
+            psi_open_developed[species]*open_developed[site] + # a species specific effect
             psi_income[species]*income[site] + # a species specific effect
             psi_site_area*site_area[site] # a fixed effect of site area
         
@@ -674,6 +684,7 @@ simulate_data <- function(taxon,
     pop_density = pop_density, # vector of pop densities
     income = income, # vector of income levels
     natural_habitat = natural_habitat, # vector of nat habitat cover
+    open_developed= open_developed, # vector of open developed cover
     site_area = site_area, # vector of site areas
     total_records_rc = total_records_rc, # museum records per interval
     species_intercepts = species_intercepts,
@@ -691,12 +702,12 @@ if(taxon == "syrphidae"){
   
   ## study dimensions
   n_genera = 1 # us 1 unless you want to introduce generic variation
-  n_species_per_genera = 120 ## number of species
+  n_species_per_genera = 50 ## number of species
   n_species = n_genera*n_species_per_genera
-  n_level_four = 10
-  n_level_three_per_one = 7 # ecoregion3 per ecoregion1
+  n_level_four = 7
+  n_level_three_per_one = 5 # ecoregion3 per ecoregion1
   n_level_three = n_level_four*n_level_three_per_one
-  n_sites_per_level_three = 7
+  n_sites_per_level_three = 5
   n_sites = n_sites_per_level_three*n_level_three ## number of sites
   
   ## currently the civariance matrix for total records is set up for 3 intervals
@@ -757,12 +768,12 @@ if(taxon == "syrphidae"){
   
   ## study dimensions
   n_genera = 1 # us 1 unless you want to introduce generic variation
-  n_species_per_genera = 50 ## number of species
+  n_species_per_genera = 30 ## number of species
   n_species = n_genera*n_species_per_genera
-  n_level_four = 10
-  n_level_three_per_one = 7 # ecoregion3 per ecoregion1
+  n_level_four = 7
+  n_level_three_per_one = 5 # ecoregion3 per ecoregion1
   n_level_three = n_level_four*n_level_three_per_one
-  n_sites_per_level_three = 7
+  n_sites_per_level_three = 5
   n_sites = n_sites_per_level_three*n_level_three ## number of sites
   
   ## currently the civariance matrix for total records is set up for 3 intervals
@@ -777,9 +788,11 @@ if(taxon == "syrphidae"){
   sigma_psi_level_three = 1 # variation across level3
   sigma_psi_level_four = 0.5 # variation across level4
   mu_psi_income = 0.25 # make sure to specify as 0 if using a model without income 
-  sigma_psi_income = 0.5 # make sure to specify as 0 if using a model without income 
+  sigma_psi_income = 0 # make sure to specify as 0 if using a model without income 
   mu_psi_natural_habitat = 0.75 
   sigma_psi_natural_habitat = 1
+  mu_psi_open_developed = 0 
+  sigma_psi_open_developed = 0
   delta0 = 0
   delta1 = 0
   gamma0 = 0
@@ -802,7 +815,7 @@ if(taxon == "syrphidae"){
   sigma_p_rc_site = 0.75
   sigma_p_rc_level_three = 0.5 
   sigma_p_rc_level_four = 0.25 
-  p_rc_total_records = 0.25
+  p_rc_total_records = 0
   
   # correlations
   rho = 0.8
@@ -849,6 +862,8 @@ my_simulated_data <- simulate_data(taxon,
                                    sigma_psi_income,
                                    mu_psi_natural_habitat,
                                    sigma_psi_natural_habitat,
+                                   mu_psi_open_developed,
+                                   sigma_psi_open_developed,
                                    delta0,
                                    delta1,
                                    psi_site_area,
@@ -921,6 +936,7 @@ pop_densities <- my_simulated_data$pop_density
 site_areas <- my_simulated_data$site_area
 avg_income <- my_simulated_data$income
 natural_habitat <- my_simulated_data$natural_habitat
+open_developed <- my_simulated_data$open_developed
 rc_total_records <- my_simulated_data$total_records_rc
 nativity = my_simulated_data$nativity
 
@@ -1070,7 +1086,8 @@ if(taxon == "syrphidae"){
                  "n_level_four",
                  "level_four_lookup",
                  "pop_densities", "site_areas", "avg_income", 
-                 "natural_habitat", "rc_total_records") 
+                 "natural_habitat", "open_developed",
+                 "rc_total_records") 
   
   # Parameters monitored
   params <- c("sigma_species_detection",
@@ -1082,9 +1099,11 @@ if(taxon == "syrphidae"){
               "sigma_psi_level_three",
               "sigma_psi_level_four",
               "mu_psi_income",
-              "sigma_psi_income",
+              #"sigma_psi_income",
               "mu_psi_natural_habitat",
               "sigma_psi_natural_habitat",
+              "mu_psi_open_developed",
+              #"sigma_psi_open_developed",
               "psi_site_area",
               
               "mu_p_cs_0",
@@ -1098,10 +1117,10 @@ if(taxon == "syrphidae"){
               "sigma_p_rc_site",
               "sigma_p_rc_level_three",
               "sigma_p_rc_level_four",
-              "p_rc_total_records",
+              #"p_rc_total_records",
               
               "psi_species",
-              "psi_income",
+              #"psi_income",
               "psi_natural_habitat",
               
               "psi_site",
@@ -1127,9 +1146,10 @@ if(taxon == "syrphidae"){
                        sigma_psi_level_three,
                        sigma_psi_level_four,
                        mu_psi_income,
-                       sigma_psi_income,
+                       #sigma_psi_income,
                        mu_psi_natural_habitat,
                        sigma_psi_natural_habitat,
+                       mu_psi_open_developed,
                        psi_site_area,
                        
                        mu_p_cs_0,
@@ -1143,10 +1163,10 @@ if(taxon == "syrphidae"){
                        sigma_p_rc_site,
                        sigma_p_rc_level_three,
                        sigma_p_rc_level_four,
-                       p_rc_total_records,
+                       #p_rc_total_records,
                        
                        NA,
-                       NA,
+                       #NA,
                        NA,
                        
                        NA,
@@ -1163,9 +1183,9 @@ if(taxon == "syrphidae"){
   )
   
   # MCMC settings
-  n_iterations <- 500
+  n_iterations <- 300
   n_thin <- 1
-  n_burnin <- 250
+  n_burnin <- 150
   n_chains <- 4
   n_cores <- parallel::detectCores()
   delta = 0.95
@@ -1223,7 +1243,7 @@ View(targets)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <-  paste0("./occupancy/models/model_", taxon, ".stan")
+stan_model <-  paste0("./occupancy/models/revisions/model_", taxon, ".stan")
 
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_reparameterized_rand_effects.stan")
 
@@ -1240,10 +1260,9 @@ stan_out_sim <- stan(stan_model,
                      control=list(adapt_delta=delta),
                      cores = n_cores)
 
-#saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim.rds"))
-saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim2.rds"))
+saveRDS(stan_out_sim,  paste0("./occupancy/simulation/", taxon, "_stan_out_sim_revision.rds"))
 
-stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "_stan_out_sim2.rds"))
+stan_out_sim <- readRDS(paste0("./occupancy/simulation/", taxon, "_stan_out_sim_revision.rds"))
 
 # print results
 if(taxon == "syrphidae"){
@@ -1277,7 +1296,7 @@ if(taxon == "syrphidae"){
     "sigma_psi_level_three",
     "sigma_psi_level_four",
     "mu_psi_income",
-    "sigma_psi_income",
+    #"sigma_psi_income",
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
     "psi_site_area",
@@ -1292,8 +1311,8 @@ if(taxon == "syrphidae"){
     "mu_p_rc_0",
     "sigma_p_rc_site",
     "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four",
-    "p_rc_total_records"
+    "sigma_p_rc_level_four"
+    #"p_rc_total_records"
   ))
 }
 
@@ -1340,8 +1359,8 @@ if(taxon == "syrphidae"){
     "sigma_psi_level_four",
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
-    "mu_psi_income",
-    "sigma_psi_income"
+    "mu_psi_income"
+    #"sigma_psi_income"
   ))
   traceplot(stan_out_sim, pars = c( # detection
     "mu_p_cs_0",
@@ -1353,8 +1372,7 @@ if(taxon == "syrphidae"){
     "mu_p_rc_0",
     "sigma_p_rc_site",
     "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four",
-    "p_rc_total_records"
+    "sigma_p_rc_level_four"
   ))
   traceplot(stan_out_sim, pars = c( # species detection
     "rho",
@@ -1490,7 +1508,7 @@ p <- p +
 p
 
 # bombus
-targets2 <- targets[1:24,]
+targets2 <- targets[1:23,]
 
 fit_summary <- rstan::summary(stan_out_sim)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
@@ -1507,9 +1525,9 @@ estimates_lower <- c(
   fit_summary$summary[7,4], # sigma psi level three
   fit_summary$summary[8,4], # sigma psi level four
   fit_summary$summary[9,4], # mu psi income
-  fit_summary$summary[10,4], # sigma psi income
-  fit_summary$summary[11,4], # mu psi nat hab
-  fit_summary$summary[12,4], # sigma psi natural habitat
+  fit_summary$summary[10,4], # mu psi nat hab
+  fit_summary$summary[11,4],  # sigma psi natural habitat
+  fit_summary$summary[12,4],  # mu psi open developed
   fit_summary$summary[13,4], # psi site area
   fit_summary$summary[14,4], # mu p cs 0
   fit_summary$summary[15,4], # sigma p cs site
@@ -1520,8 +1538,7 @@ estimates_lower <- c(
   fit_summary$summary[20,4], # mu p rc 0
   fit_summary$summary[21,4], # sigma p rc site
   fit_summary$summary[22,4], # sigma p rc level three
-  fit_summary$summary[23,4], # sigma p rc level four
-  fit_summary$summary[24,4] # p rc total records
+  fit_summary$summary[23,4] # sigma p rc level four
 )
 
 estimates_upper <- c(
@@ -1534,9 +1551,9 @@ estimates_upper <- c(
   fit_summary$summary[7,8], # sigma psi level three
   fit_summary$summary[8,8], # sigma psi level four
   fit_summary$summary[9,8], # mu psi income
-  fit_summary$summary[10,8], # sigma psi income
-  fit_summary$summary[11,8], # mu psi nat hab
-  fit_summary$summary[12,8], # sigma psi natural habitat
+  fit_summary$summary[10,8], # mu psi nat hab
+  fit_summary$summary[11,8],  # sigma psi natural habitat
+  fit_summary$summary[12,8],  # mu psi open developed
   fit_summary$summary[13,8], # psi site area
   fit_summary$summary[14,8], # mu p cs 0
   fit_summary$summary[15,8], # sigma p cs site
@@ -1547,8 +1564,7 @@ estimates_upper <- c(
   fit_summary$summary[20,8], # mu p rc 0
   fit_summary$summary[21,8], # sigma p rc site
   fit_summary$summary[22,8], # sigma p rc level three
-  fit_summary$summary[23,8], # sigma p rc level four
-  fit_summary$summary[24,8] # p rc total records
+  fit_summary$summary[23,8] # sigma p rc level four
 )
 
 df_estimates <- as.data.frame(cbind(X, targets2, estimates_lower, estimates_upper))
@@ -1568,9 +1584,10 @@ df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
                               bquote(sigma[psi["level 3"]]), 
                               bquote(sigma[psi["level 4"]]),
                               bquote(mu[psi["income"]]),
-                              bquote(sigma[psi["income"]]),
+                              #bquote(sigma[psi["income"]]),
                               bquote(mu[psi["nat. habitat"]]),
                               bquote(sigma[psi["nat. habitat"]]),
+                              bquote(mu[psi["open dev."]]),
                               bquote(psi["site area"]),
                               bquote(mu["p.cs"[0]]),
                               bquote(sigma["p.cs"["site"]]),
@@ -1581,12 +1598,11 @@ df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
                               bquote(mu["p.rc"[0]]),
                               bquote(sigma["p.rc"["site"]]),
                               bquote(sigma["p.rc"["level 3"]]), 
-                              bquote(sigma["p.rc"["level 4"]]),
-                              bquote("p.rc"["total records"])
+                              bquote(sigma["p.rc"["level 4"]])
                      )
     ) +
     scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
-                       limits = c(-3, 3)) +
+                       limits = c(-3.5, 3)) +
     guides(color = guide_legend(title = "")) +
     geom_hline(yintercept = 0, lty = "dashed") +
     theme(legend.text=element_text(size=10),
@@ -1600,8 +1616,8 @@ df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
 )
 
 q <- q +
-  #geom_errorbar(aes(x=X, ymin=estimates_lower, ymax=estimates_upper),
-   #             color="black",width=0.1,size=1,alpha=0.5) +
+  geom_errorbar(aes(x=X, ymin=estimates_lower, ymax=estimates_upper),
+                color="black",width=0.1,size=1,alpha=0.5) +
   geom_point(aes(x=X, y=parameter_value),
              size = 5, alpha = 0.8, shape = 10, colour = "firebrick2") 
 

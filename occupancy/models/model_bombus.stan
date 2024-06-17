@@ -76,13 +76,13 @@ parameters {
   
   // Spatially nested random effect on occupancy rates
   // Level-2 spatial random effect
-  vector[n_sites] psi_site; // site specific intercept for occupancy
+  vector[n_sites] psi_site_raw; // site specific intercept for occupancy
   real<lower=0> sigma_psi_site; // variance in site intercepts
   // Level-3 spatial random effect
-  vector[n_level_three] psi_level_three; // level-three specific intercept for PL outcome
+  vector[n_level_three] psi_level_three_raw; // level-three specific intercept for PL outcome
   real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
   // Level-4 spatial random effect
-  vector[n_level_four] psi_level_four; // level-four specific intercept for PL outcome
+  vector[n_level_four] psi_level_four_raw; // level-four specific intercept for PL outcome
   real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
   
   // random slope for species specific natural habitat effects on occupancy
@@ -146,8 +146,11 @@ transformed parameters {
   real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by research collections
   
   // spatially nested intercepts
-  real psi0_site[n_sites];
-  real psi0_level_three[n_level_three];
+  //real psi0_site[n_sites];
+  //real psi0_level_three[n_level_three];
+  vector[n_sites] psi_site;
+  vector[n_level_three] psi_level_three;
+  vector[n_level_four] psi_level_four;
 
   real p0_cs_site[n_sites];
   real p0_cs_level_three[n_level_three];
@@ -155,19 +158,22 @@ transformed parameters {
   real p0_rc_site[n_sites];
   real p0_rc_level_three[n_level_three];
 
-  //
+  // compute the varying community science detection intercept at the ecoregion1 level
+  // Level-4 (n_level_four level-4 random intercepts)
+  psi_level_four = sigma_psi_level_four * psi_level_four_raw;
+  
   // compute the varying community science detection intercept at the ecoregion3 level
   // Level-3 (n_level_three level-3 random intercepts)
   for(i in 1:n_level_three){
-    psi0_level_three[i] = psi_level_four[level_four_lookup[i]] + 
-      psi_level_three[i];
+    psi_level_three[i] = psi_level_four[level_four_lookup[i]] + 
+      sigma_psi_level_three * psi_level_three_raw[i];
   } 
 
   // compute varying intercept at the site level
   // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
   for(i in 1:n_sites){
-    psi0_site[i] = psi0_level_three[level_three_lookup[i]] + 
-      psi_site[i];
+    psi_site[i] = psi_level_three[level_three_lookup[i]] + 
+      sigma_psi_site * psi_site_raw[i];
   }
   
   //
@@ -210,7 +216,7 @@ transformed parameters {
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
             psi_species[species[i]] + // a species specific intercept
-            psi0_site[sites[j]] + // a spatially nested, site-specific intercept
+            psi_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
             mu_psi_income*avg_income[j] + // a species-specific effect of household income
             mu_psi_open_developed*open_developed[j] + // a species-specific effect of open developed land
@@ -263,13 +269,13 @@ model {
   mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
   
   // level-2 spatial grouping
-  psi_site  ~ normal(0, sigma_psi_site);
+  psi_site_raw ~ std_normal();
   sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
   // level-3 spatial grouping
-  psi_level_three ~ normal(0, sigma_psi_level_three);
+  psi_level_three_raw ~ std_normal();
   sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
-  // level-5 spatial grouping
-  psi_level_four ~ normal(0, sigma_psi_level_four);
+  // level-4 spatial grouping
+  psi_level_four_raw ~ std_normal();
   sigma_psi_level_four ~ normal(0, 0.5); // weakly-informative prior
   
   psi_species ~ normal(mu_psi_0, sigma_psi_species); 

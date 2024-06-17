@@ -361,8 +361,8 @@ habitat support higher pollinator diversity”</h1>
 be prompted to enter details that will specify the model run, including:
 taxonomic group, spatial grain and temporal divisions of occupancy
 intervals.</p>
-<p>This repository holds three public subdirectories: ./data/,
-./occupancy/, and ./figures.</p>
+<p>This repository holds three public subdirectories: ./occupancy/,
+./data/ and ./figures.</p>
 <div id="analyses-.occupancy" class="section level2">
 <h2>Analyses (./occupancy/)</h2>
 <p>Contains simulation files (./simulation/), data prep(./data_prep/),
@@ -428,8 +428,33 @@ community surveys that are overlooked.</p>
 sizes the data are not shared publicly in this repository, but one can
 follow any of the source links provided below to access the publicly
 available data.</p>
-<div id="spatial-data-.spatial_data" class="section level3">
-<h3>Spatial Data (./spatial_data/):</h3>
+<div id="site-level-environmentalspatial-data-.spatial_data" class="section level3">
+<h3>Site-level Environmental/Spatial Data (./spatial_data/):</h3>
+<p>Site-level environmental data are publicly available. These data
+files are too large to store on a github repository and must be
+downloaded directly from source. The linked sources may provide data
+from different years/resolutions or other formats. Please follow the
+query information for each data element to ensure that the correct data
+is downloaded. To reprocess the data and refit the models the data will
+need to be placed in the paths listed in the ./occupancy/data_prep/
+files.</p>
+<div id="land-cover-.land_cover" class="section level4">
+<h4>Land cover (./land_cover/)</h4>
+<p>Contains a raster with land cover data (NLCD data) at 30 m resolution
+from 2016. <a href="https://www.mrlc.gov/data/nlcd-2016-land-cover-conus">source</a>.
+See land cover classification descriptions <a href="https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description">here</a></p>
+</div>
+<div id="household_income-.socioeconomic_data" class="section level4">
+<h4>Household_income (./socioeconomic_data/)</h4>
+<p>Contains a shapefile and table data for: 2020 income data, B19013.
+Median Household Income in the Past 12 Months (in 2020
+Inflation-Adjusted Dollars) <a href="https://data2.nhgis.org/main">source</a></p>
+</div>
+<div id="population-density-.population_density" class="section level4">
+<h4>Population Density (./population_density/)</h4>
+<p>Contains a raster with population density at 1 km resolution from the
+year 2015. <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">source</a></p>
+</div>
 <div id="ecoregion-1-.na_cec_eco_l1" class="section level4">
 <h4>Ecoregion 1 (./na_cec_eco_l1/)</h4>
 <p>Contains shapefile for ecoregion 1 in the north america (broadest
@@ -445,31 +470,23 @@ spatial clustering unit for analysis). <a href="https://www.epa.gov/eco-research
 <p>Contains shapefile for metropolitan areas in the United States,
 defined in 2018 using 2010 census data. <a href="https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist">source</a></p>
 </div>
-<div id="population-density-.population_density" class="section level4">
-<h4>Population Density (./population_density/)</h4>
-<p>Contains a raster with population density at 1 km resolution from the
-year 2015. <a href="https://sedac.ciesin.columbia.edu/data/set/gpw-v4-population-density-rev11/data-download">source</a></p>
-</div>
-<div id="land-cover-.land_cover" class="section level4">
-<h4>Land cover (./land_cover/)</h4>
-<p>Contains a raster with land cover data (NLCD data) at 30 m resolution
-from 2016. <a href="https://www.mrlc.gov/data/nlcd-2016-land-cover-conus">source</a>.
-See land cover classification descriptions <a href="https://www.mrlc.gov/data/legends/national-land-cover-database-class-legend-and-description">here</a></p>
-</div>
-<div id="household_income-.socioeconomic_data" class="section level4">
-<h4>Household_income (./socioeconomic_data/)</h4>
-<p>Contains a shapefile and table data for: 2020 income data, B19013.
-Median Household Income in the Past 12 Months (in 2020
-Inflation-Adjusted Dollars) <a href="https://data2.nhgis.org/main">source</a></p>
-</div>
 </div>
 <div id="occurrence-data-.occurrence_data" class="section level3">
 <h3>Occurrence Data (./occurrence_data/):</h3>
 <p>Contains occurrence data for bumble bees (BBNA (private folder due to
 data rights and size)) and for hoverflies (from GBIF (private folder due
-to size)) Go <a href="https://www.leifrichardson.org/bbna.html">here</a>
-for bumble bee data, and <a href="https://doi.org/10.15468/dl.nga26z">here part 1</a> and <a href="https://doi.org/10.15468/dl.n5cmwv">here part 2</a> for hoverfly
-data.</p>
+to size))</p>
+<p>Compressed occurrence data available here: <a href="https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders" class="uri">https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders</a></p>
+<p>bumble bee data: bbna_trimmed.csv. see bbna_metadata_README.txt
+hoverfly data: syrphidae_data_all.csv; syrphidae nativity. see
+syrphidae_data_metadata_README.txt</p>
+<p>These data sets are also publicly available: Go <a href="https://www.leifrichardson.org/bbna.html">here</a> for bumble bee
+data, and <a href="https://doi.org/10.15468/dl.nga26z">here part 1</a>
+and <a href="https://doi.org/10.15468/dl.n5cmwv">here part 2</a> for
+hoverfly data. Go <a href="https://github.com/jensculrich/occupancy_model_for_urban_NHC_records/tree/master/data/compressed_data/zip_folders">here</a>
+for the compressed occurrence data. Note I will remove this link once
+the data are uploaded to Dryad.</p>
+<p>see</p>
 <p>IMPORTANT:</p>
 <p>see ./data/get_occurence_data.R for further processing to the above
 data We further processed the data provided by BBNA and by GBIF by:</p>
