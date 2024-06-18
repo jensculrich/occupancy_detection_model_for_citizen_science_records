@@ -61,6 +61,7 @@ simulate_data <- function(taxon,
                           sigma_p_cs_level_four,
                           p_cs_interval,
                           p_cs_pop_density, 
+                          p_cs_income,
                           
                           # museum record observation process
                           mu_p_rc_0,
@@ -409,8 +410,8 @@ simulate_data <- function(taxon,
               p_cs_species[species] + # a species specific intercept
               p_cs_site_nested[site] + # a spatiotemporally specific intercept # includes global intercept
               p_cs_interval*(intervals[interval]^2) + # an overall effect of time on detection
-              p_cs_pop_density*pop_density[site] # an effect of population density on detection ability
-          
+              p_cs_pop_density*pop_density[site] + # an effect of population density on detection ability
+              p_cs_income*income[site] # an effect of income on detection ability
           logit_p_matrix_rc[species, site, interval, visit] <- # detection is equal to 
               p_rc_species[species] + # a species specific intercept
               p_rc_site_nested[site] + # a spatiotemporally specific intercept # includes global intercept
@@ -740,6 +741,7 @@ if(taxon == "syrphidae"){
   sigma_p_cs_level_four = 0.5 
   p_cs_interval = 0.5
   p_cs_pop_density = 0.5 
+  p_cs_income = 0.4
   
   # museum record observation process
   mu_p_rc_0 = 0
@@ -768,10 +770,10 @@ if(taxon == "syrphidae"){
   
   ## study dimensions
   n_genera = 1 # us 1 unless you want to introduce generic variation
-  n_species_per_genera = 30 ## number of species
+  n_species_per_genera = 40 ## number of species
   n_species = n_genera*n_species_per_genera
-  n_level_four = 7
-  n_level_three_per_one = 5 # ecoregion3 per ecoregion1
+  n_level_four = 8
+  n_level_three_per_one = 7 # ecoregion3 per ecoregion1
   n_level_three = n_level_four*n_level_three_per_one
   n_sites_per_level_three = 5
   n_sites = n_sites_per_level_three*n_level_three ## number of sites
@@ -805,16 +807,17 @@ if(taxon == "syrphidae"){
   sigma_p_cs_species = 1.25
   sigma_p_cs_site = 1.25
   sigma_p_cs_level_three = 0.75 # variation across level3
-  sigma_p_cs_level_four = 0.35 
+  sigma_p_cs_level_four = 0
   p_cs_interval = 0.55
   p_cs_pop_density = 0.5 
+  p_cs_income = 0.4
   
   # museum record observation process
   mu_p_rc_0 = 0
   sigma_p_rc_species = 0.75
   sigma_p_rc_site = 0.75
   sigma_p_rc_level_three = 0.5 
-  sigma_p_rc_level_four = 0.25 
+  sigma_p_rc_level_four = 0 
   p_rc_total_records = 0
   
   # correlations
@@ -876,6 +879,7 @@ my_simulated_data <- simulate_data(taxon,
                                    sigma_p_cs_level_four,
                                    p_cs_interval,
                                    p_cs_pop_density, 
+                                   p_cs_income,
                                    
                                    # museum record observation process
                                    mu_p_rc_0,
@@ -988,9 +992,11 @@ if(taxon == "syrphidae"){
     "psi_level_three", # track city/fine-ecoregion effects
     "psi_level_four", # track broad eco effects
     
-    "T_rep_cs",
-    "T_obs_cs",
-    "P_species_cs",
+    #"T_rep_cs",
+    #"T_obs_cs",
+    #"P_species_cs",
+    "W_species_rep_cs",
+    "W_species_rep_rc",
     
     "mu_psi_natural_habitat_native",
     "mu_psi_natural_habitat_nonnative",
@@ -1109,14 +1115,15 @@ if(taxon == "syrphidae"){
               "mu_p_cs_0",
               "sigma_p_cs_site",
               "sigma_p_cs_level_three",
-              "sigma_p_cs_level_four",
+              #"sigma_p_cs_level_four",
               "p_cs_interval",
               "p_cs_pop_density", 
+              "p_cs_income",
               
               "mu_p_rc_0",
               "sigma_p_rc_site",
               "sigma_p_rc_level_three",
-              "sigma_p_rc_level_four",
+              #"sigma_p_rc_level_four",
               #"p_rc_total_records",
               
               "psi_species",
@@ -1127,13 +1134,16 @@ if(taxon == "syrphidae"){
               "psi_level_four",
               "psi_level_three", # track city or eco3 effects
               
-              "T_rep_cs",
-              "T_obs_cs",
-              "P_species_cs",
+              "W_species_rep_cs",
+              "W_species_rep_rc"
               
-              "T_rep_rc",
-              "T_obs_rc",
-              "P_species_rc"
+              #"T_rep_cs",
+              #"T_obs_cs",
+              #"P_species_cs",
+              
+              #"T_rep_rc",
+              #"T_obs_rc",
+              #"P_species_rc"
   )
   
   parameter_value <- c(sigma_p_cs_species,
@@ -1155,14 +1165,15 @@ if(taxon == "syrphidae"){
                        mu_p_cs_0,
                        sigma_p_cs_site,
                        sigma_p_cs_level_three,
-                       sigma_p_cs_level_four,
+                       #sigma_p_cs_level_four,
                        p_cs_interval,
-                       p_cs_pop_density, 
+                       p_cs_pop_density,
+                       p_cs_income,
                        
                        mu_p_rc_0,
                        sigma_p_rc_site,
                        sigma_p_rc_level_three,
-                       sigma_p_rc_level_four,
+                       #sigma_p_rc_level_four,
                        #p_rc_total_records,
                        
                        NA,
@@ -1173,11 +1184,6 @@ if(taxon == "syrphidae"){
                        NA,
                        NA,
                        
-                       NA,
-                       NA,
-                       NA,
-                       
-                       NA,
                        NA,
                        NA
   )
@@ -1213,15 +1219,16 @@ if(taxon == "syrphidae"){
       mu_p_cs_0 = runif(1, -3, -2.75),
       sigma_p_cs_site = runif(1, 0, 0.5),
       sigma_p_cs_level_three = runif(1, 0, 0.5),
-      sigma_p_cs_level_four = runif(1, 0, 0.5),
+      #sigma_p_cs_level_four = runif(1, 0, 0.5),
       p_cs_interval = runif(1, 0.5, 0.6),
       p_cs_pop_density = runif(1, 0.4, 0.6),
+      p_cs_income = runif(1, 0, 1),
       
       # start musuem values close to zero
       mu_p_rc_0 = runif(1, -0.5, 0.5),
       sigma_p_rc_site = runif(1, 0, 0.25),
       sigma_p_rc_level_three = runif(1, 0, 0.25),
-      sigma_p_rc_level_four = runif(1, 0, 0.25),
+      #sigma_p_rc_level_four = runif(1, 0, 0.25),
       p_rc_total_records = runif(1, -0.5, 0.5)  
       
     )
@@ -1243,7 +1250,7 @@ View(targets)
 ## --------------------------------------------------
 ### Run model
 
-stan_model <-  paste0("./occupancy/models/revisions/model_", taxon, ".stan")
+stan_model <-  paste0("./occupancy/models/model_", taxon, ".stan")
 
 # stan_model <- paste0("./occupancy/models/model_", taxon, "_reparameterized_rand_effects.stan")
 
@@ -1304,14 +1311,14 @@ if(taxon == "syrphidae"){
     "mu_p_cs_0",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four",
+    #"sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density", 
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four"
+    "sigma_p_rc_level_three"#,
+    #"sigma_p_rc_level_four"
     #"p_rc_total_records"
   ))
 }
@@ -1366,13 +1373,13 @@ if(taxon == "syrphidae"){
     "mu_p_cs_0",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four",
+    #"sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density",
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four"
+    "sigma_p_rc_level_three"#,
+    #"sigma_p_rc_level_four"
   ))
   traceplot(stan_out_sim, pars = c( # species detection
     "rho",
@@ -1508,7 +1515,7 @@ p <- p +
 p
 
 # bombus
-targets2 <- targets[1:23,]
+targets2 <- targets[1:22,]
 
 fit_summary <- rstan::summary(stan_out_sim)
 View(cbind(1:nrow(fit_summary$summary), fit_summary$summary)) # View to see which row corresponds to the parameter of interest
@@ -1532,13 +1539,12 @@ estimates_lower <- c(
   fit_summary$summary[14,4], # mu p cs 0
   fit_summary$summary[15,4], # sigma p cs site
   fit_summary$summary[16,4], # sigma p cs level three
-  fit_summary$summary[17,4], # sigma p cs level four
-  fit_summary$summary[18,4], # p cs interval^2
-  fit_summary$summary[19,4], # p cs pop density
-  fit_summary$summary[20,4], # mu p rc 0
+  fit_summary$summary[17,4], # p cs interval^2
+  fit_summary$summary[18,4], # p cs pop density
+  fit_summary$summary[19,4], # p cs income
+  fit_summary$summary[20,4], #  mu p rc 0
   fit_summary$summary[21,4], # sigma p rc site
-  fit_summary$summary[22,4], # sigma p rc level three
-  fit_summary$summary[23,4] # sigma p rc level four
+  fit_summary$summary[22,4] # sigma p rc level three
 )
 
 estimates_upper <- c(
@@ -1558,13 +1564,12 @@ estimates_upper <- c(
   fit_summary$summary[14,8], # mu p cs 0
   fit_summary$summary[15,8], # sigma p cs site
   fit_summary$summary[16,8], # sigma p cs level three
-  fit_summary$summary[17,8], # sigma p cs level four
-  fit_summary$summary[18,8], # p cs interval^2
-  fit_summary$summary[19,8], # p cs pop density
-  fit_summary$summary[20,8], # mu p rc 0
-  fit_summary$summary[21,8], # sigma p rc site
-  fit_summary$summary[22,8], # sigma p rc level three
-  fit_summary$summary[23,8] # sigma p rc level four
+  fit_summary$summary[17,8], # p cs interval^2
+  fit_summary$summary[18,8], # p cs pop density
+  fit_summary$summary[19,8], # mu p rc 0
+  fit_summary$summary[20,8], # sigma p rc site
+  fit_summary$summary[21,8], # sigma p rc level three
+  fit_summary$summary[22,8] # sigma p rc level three
 )
 
 df_estimates <- as.data.frame(cbind(X, targets2, estimates_lower, estimates_upper))
@@ -1574,7 +1579,7 @@ df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
     theme_bw() +
     scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5, 6, 7, 8, 9,
                                          10, 11, 12, 13, 14, 15, 16, 
-                                         17, 18, 19, 20, 21, 22, 23, 24),
+                                         17, 18, 19, 20, 21),
                      labels=c(bquote(sigma["p.cs"["species"]]),
                               bquote(sigma["p.rc"["species"]]),
                               bquote(rho),
@@ -1591,14 +1596,12 @@ df_estimates$parameter_value <- as.numeric(df_estimates$parameter_value)
                               bquote(psi["site area"]),
                               bquote(mu["p.cs"[0]]),
                               bquote(sigma["p.cs"["site"]]),
-                              bquote(sigma["p.cs"["level 3"]]), 
-                              bquote(sigma["p.cs"["level 4"]]),
+                              bquote(sigma["p.cs"["level 3"]]),
                               bquote("p.cs"["interval^2"]),
                               bquote("p.cs"["pop. density"]),
                               bquote(mu["p.rc"[0]]),
                               bquote(sigma["p.rc"["site"]]),
-                              bquote(sigma["p.rc"["level 3"]]), 
-                              bquote(sigma["p.rc"["level 4"]])
+                              bquote(sigma["p.rc"["level 3"]])
                      )
     ) +
     scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
@@ -1690,3 +1693,6 @@ abline(0, 1, lwd = 2, col = "black")
 
 ## --------------------------------------------------
 ### Check how many species FAIL the P-value (above .95 or below 0.05)
+
+## --------------------------------------------------
+### Visual posterior predictive check

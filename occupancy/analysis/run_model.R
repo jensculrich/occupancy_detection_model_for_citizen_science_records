@@ -347,14 +347,15 @@ if(taxon == "bombus"){
                 "mu_p_cs_0",
                 "sigma_p_cs_site",
                 "sigma_p_cs_level_three",
-                "sigma_p_cs_level_four",
+                #"sigma_p_cs_level_four",
                 "p_cs_interval",
                 "p_cs_pop_density",
+                "p_cs_income",
 
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
                 "sigma_p_rc_level_three",
-                "sigma_p_rc_level_four",
+                #"sigma_p_rc_level_four",
 
                 "psi_species",
                 #"psi_income",
@@ -364,19 +365,14 @@ if(taxon == "bombus"){
                 "psi_level_four",
                 "psi_level_three", # track city or eco3 effects
                 
-                "T_rep_cs",
-                "T_obs_cs",
-                "P_species_cs",
-                
-                "T_rep_rc",
-                "T_obs_rc",
-                "P_species_rc"
+                "W_species_rep_cs",
+                "W_species_rep_rc"
     )
     
     # MCMC settings
-    n_iterations <- 5000
+    n_iterations <- 400
     n_thin <- 1
-    n_burnin <- 1000
+    n_burnin <- 200
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -404,15 +400,15 @@ if(taxon == "bombus"){
         mu_p_cs_0 = runif(1, -1, 0),
         sigma_p_cs_site = runif(1, 0.5, 1),
         sigma_p_cs_level_three = runif(1, 0, 0.5),
-        sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
+        #sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
         p_cs_interval = runif(1, 0, 1),
         p_cs_pop_density = runif(1, -1, 1),
 
         # start rc values close to zero
         mu_p_rc_0 = runif(1, -0.5, 0.5),
         sigma_p_rc_site = runif(1, 0.5, 1),
-        sigma_p_rc_level_three = runif(1, 0, 0.25),
-        sigma_p_rc_ecoregion_one = runif(1, 0, 0.25)
+        sigma_p_rc_level_three = runif(1, 0, 0.25)#,
+        #sigma_p_rc_ecoregion_one = runif(1, 0, 0.25)
       )
     )
     
@@ -884,14 +880,13 @@ if(taxon == "syrphidae"){
     "mu_p_cs_0",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density", 
+    "p_cs_income",
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four"
+    "sigma_p_rc_level_three"
   ))
 }
 
@@ -927,15 +922,15 @@ if(taxon == "syrphidae"){
     "mu_p_cs_0",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four",
+    #"sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density",
-    #"p_cs_natural_habitat",
+    "p_cs_income",
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four"
+    "sigma_p_rc_level_three"
+    #"sigma_p_rc_level_four"
     #"p_rc_natural_habitat"
   ))
 }
