@@ -1,6 +1,28 @@
 // multi-species occupancy model for BBNA occurrence data
 // jcu, started nov 21, 2022.
 
+functions {
+  
+  // covariance matrix for detection rates from different data sources
+  matrix custom_cov_matrix(vector sigma, real rho) {
+    matrix[2,2] Sigma;
+    Sigma[1,1] = square(sigma[1]); // species variation in community science detection rates
+    Sigma[2,2] = square(sigma[2]); // species variation in research collection detection rates
+    Sigma[1,2] = sigma[1] * sigma[2] * rho; // correlation between species-specific detection rates
+    Sigma[2,1] = Sigma[1,2]; // correlation between species-specific detection rates
+    return Sigma;
+  }
+  
+  // mean values for multivariate normal distribution (center species on global intercepts)
+  vector mu(real mu_p_cs_0, real mu_p_rc_0){
+    vector[2] global_intercepts;
+    global_intercepts[1] = mu_p_cs_0;
+    global_intercepts[2] = mu_p_rc_0;
+    return global_intercepts;
+  }
+  
+}
+
 data {
   
   int<lower=1> n_species; // number of observed species
@@ -37,6 +59,13 @@ data {
 
 parameters {
   
+  // Covararying Parameters
+  real<lower=-1,upper=1> rho;  // correlation of (community science and research collections detection)
+  vector<lower=0>[2] sigma_species_detection; // variance in species-specific detection rates 
+    // (sigma_species_detection[1] == community science and sigma_species_detection[2] == research collections detection)
+  vector[2] species_intercepts_detection[n_species];// species-level detection intercepts
+    // (species_intercepts_detection[1] == community science and species_intercepts_detection[2] == research collections detection)
+
   // OCCUPANCY
   real mu_psi_0; // global intercept for occupancy
   
@@ -61,26 +90,19 @@ parameters {
   real mu_psi_natural_habitat; // community mean of species specific slopes
   real<lower=0> sigma_psi_natural_habitat; // variance in species slopes
   
-  // random slope for species specific open developed effects on occupancy
-  //vector[n_species] psi_open_developed; // vector of species specific slope estimates
+  // fixed slope for species specific open developed effects on occupancy
   real mu_psi_open_developed; // community mean of species specific slopes
-  //real<lower=0> sigma_psi_open_developed; // variance in species slopes
-  
-  // random slope for species specific household income effects on occupancy
-  //vector[n_species] psi_income; // vector of species specific slope estimates
+
+  // fixed slope for species specific household income effects on occupancy
   real mu_psi_income; // community mean of species specific slopes
-  //real<lower=0> sigma_psi_income; // variance in species slopes
-  
+
   // fixed effect of site area on occupancy
   real psi_site_area;
   
   // DETECTION
   
-  // citizen science observation process
-  real mu_p_cs_0; // global detection intercept for citizen science records
-  
-  vector[n_species] p_cs_species_raw; // species specific intercept for detection
-  real<lower=0> sigma_p_cs_species; // species variance on the intercept
+  // community science observation process
+  real mu_p_cs_0; // global detection intercept for community science records
   
   // random slope for site specific temporal effects on occupancy
   // level-2 spatial clusters
@@ -96,9 +118,6 @@ parameters {
  
   // research collections records observation process
   real mu_p_rc_0; // global detection intercept for research collections records
-  
-  vector[n_species] p_rc_species_raw; // species specific intercept for detection
-  real<lower=0> sigma_p_rc_species; // species variance on the intercept
   
   // random slope for site specific temporal effects on occupancy
   // level-2 spatial clusters
@@ -117,13 +136,6 @@ transformed parameters {
   real logit_p_cs[n_species, n_sites, n_intervals]; // odds of detection by community science
   real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by research collections
   
-  // non-centered species random effects
-  vector[n_species] p_cs_species;
-  vector[n_species] p_rc_species;
-  // implies: xprocess_species ~ normal(mu_xprocess_species, sigma_xprocess_species)
-  p_cs_species = mu_p_cs_0 + sigma_p_cs_species * p_cs_species_raw;
-  p_rc_species = mu_p_rc_0 + sigma_p_rc_species * p_rc_species_raw;
-
   // spatially nested intercepts
   vector[n_sites] psi_site;
   vector[n_level_three] psi_level_three;
@@ -204,7 +216,7 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals
         
           logit_p_cs[i,j,k] = // the inverse of the log odds of detection is equal to..
-            p_cs_species[species[i]] + // a species specific intercept // includes global intercept
+            species_intercepts_detection[species[i],1] + // a species specific intercept // includes global intercept
             p_cs_site[sites[j]] + // a spatially specific intercept 
             p_cs_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_cs_pop_density*pop_densities[j] + // an overall effect of pop density on detection
@@ -212,7 +224,7 @@ transformed parameters {
            ; // end p_cs[i,j,k]
            
           logit_p_rc[i,j,k] = // the inverse of the log odds of detection is equal to..
-            p_rc_species[species[i]] + // a species specific intercept // includes global intercept
+            species_intercepts_detection[species[i],2] + // a species specific intercept // includes global intercept
             p_rc_site[sites[j]] // a spatially specific intercept 
            ; // end p_rc[i,j,k]
            
@@ -227,6 +239,16 @@ transformed parameters {
 model {
   
   // PRIORS
+  
+  // correlated species effects
+  sigma_species_detection[1] ~ normal(0, 2);
+  sigma_species_detection[2] ~ normal(0, 2);
+  (rho + 1) / 2 ~ beta(2, 2);
+  
+  // correlated species-specific detection rates
+  // will send the mean (mu), variance and correlation to the covariance matrix
+  species_intercepts_detection ~ multi_normal(mu(mu_p_cs_0, mu_p_rc_0), 
+    custom_cov_matrix(sigma_species_detection, rho));
   
   // Occupancy (Ecological Process)
   mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
@@ -259,10 +281,6 @@ model {
   
   mu_p_cs_0 ~ normal(0, 2); // global intercept for detection
   
-  // species random-effects
-  p_cs_species_raw ~ std_normal();
-  sigma_p_cs_species ~ normal(0, 2);
-  
   // level-2 spatial grouping
   p_cs_site_raw ~ std_normal();
   sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
@@ -281,18 +299,14 @@ model {
   
   // museum records
   
-  mu_p_rc_0 ~ normal(0, 1); // global intercept for detection
-  
-  // species random-effects
-  p_rc_species_raw ~ std_normal();
-  sigma_p_rc_species ~ normal(0, 2);
+  mu_p_rc_0 ~ normal(0, 0.5); // global intercept for detection
   
   // level-2 spatial grouping
   p_rc_site_raw ~ std_normal();
-  sigma_p_rc_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_rc_site ~ normal(0, 0.25); // weakly-informative prior
   // level-3 spatial grouping
   p_rc_level_three_raw ~ std_normal();
-  sigma_p_rc_level_three ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_rc_level_three ~ normal(0, 0.25); // weakly-informative prior
   
   // LIKELIHOOD
   
@@ -385,7 +399,7 @@ generated quantities{
             
             // detections in replicated data (us z_simmed from above)
             W_species_rep_rc[i] = W_species_rep_rc[i] + 
-              (z_simmed[i,j,k] *  binomial_rng(sum(V_rc_NA[i,j,k,]), inv_logit(logit_p_cs[i,j,k])));
+              (z_simmed[i,j,k] *  binomial_rng(sum(V_rc_NA[i,j,k,]), inv_logit(logit_p_rc[i,j,k])));
            
           } // end if{}
            

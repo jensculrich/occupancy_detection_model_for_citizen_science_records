@@ -337,17 +337,14 @@ if(taxon == "bombus"){
                 "sigma_psi_level_three",
                 "sigma_psi_level_four",
                 "mu_psi_income",
-                #"sigma_psi_income",
                 "mu_psi_natural_habitat",
                 "sigma_psi_natural_habitat",
                 "mu_psi_open_developed",
-                #"sigma_psi_open_developed",
                 "psi_site_area",
                 
                 "mu_p_cs_0",
                 "sigma_p_cs_site",
                 "sigma_p_cs_level_three",
-                #"sigma_p_cs_level_four",
                 "p_cs_interval",
                 "p_cs_pop_density",
                 "p_cs_income",
@@ -355,24 +352,22 @@ if(taxon == "bombus"){
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
                 "sigma_p_rc_level_three",
-                #"sigma_p_rc_level_four",
 
                 "psi_species",
-                #"psi_income",
                 "psi_natural_habitat",
                 
                 "psi_site",
                 "psi_level_four",
-                "psi_level_three", # track city or eco3 effects
+                "psi_level_three",
                 
                 "W_species_rep_cs",
                 "W_species_rep_rc"
     )
     
     # MCMC settings
-    n_iterations <- 400
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 200
+    n_burnin <- 150
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -384,7 +379,6 @@ if(taxon == "bombus"){
     inits <- lapply(1:n_chains, function(i)
       
       list(
-        rho = runif(1, 0, 1),
         
         mu_psi_0 = runif(1, -1, 1),
         sigma_psi_species = runif(1, 0, 1),
@@ -400,15 +394,12 @@ if(taxon == "bombus"){
         mu_p_cs_0 = runif(1, -1, 0),
         sigma_p_cs_site = runif(1, 0.5, 1),
         sigma_p_cs_level_three = runif(1, 0, 0.5),
-        #sigma_p_cs_ecoregion_one = runif(1, 0, 0.5),
         p_cs_interval = runif(1, 0, 1),
         p_cs_pop_density = runif(1, -1, 1),
 
-        # start rc values close to zero
         mu_p_rc_0 = runif(1, -0.5, 0.5),
-        sigma_p_rc_site = runif(1, 0.5, 1),
-        sigma_p_rc_level_three = runif(1, 0, 0.25)#,
-        #sigma_p_rc_ecoregion_one = runif(1, 0, 0.25)
+        sigma_p_rc_site = runif(1, 0, 0.5),
+        sigma_p_rc_level_three = runif(1, 0, 0.5)
       )
     )
     
@@ -614,159 +605,79 @@ if(taxon == "bombus"){
                    ) 
     
     # Parameters monitored
-    params <- c(
+    params <- c("sigma_species_detection",
+                "species_intercepts_detection",
+                "rho",
+                
                 "mu_psi_0",
                 "sigma_psi_species",
-                #"sigma_psi_genus",
                 "sigma_psi_site",
                 "sigma_psi_level_three",
-                #"sigma_psi_level_four",
-                "delta0",
-                "delta1",
-                "gamma0",
-                "gamma1",
-                "psi_site_area",
+                "sigma_psi_level_four",
                 "mu_psi_income",
+                "mu_psi_natural_habitat",
+                "sigma_psi_natural_habitat",
                 "mu_psi_open_developed",
+                "psi_site_area",
                 
                 "mu_p_cs_0",
-                "sigma_p_cs_species",
                 "sigma_p_cs_site",
                 "sigma_p_cs_level_three",
-                #"sigma_p_cs_level_four",
                 "p_cs_interval",
-                "p_cs_pop_density", 
+                "p_cs_pop_density",
+                "p_cs_income",
+                
+                "mu_p_rc_0",
+                "sigma_p_rc_site",
+                "sigma_p_rc_level_three",
                 
                 "psi_species",
                 "psi_natural_habitat",
                 
                 "psi_site",
-                "psi_level_three", # track city/fine-ecoregion effects
-                #"psi_level_four", # track broad eco effects
+                "psi_level_four",
+                "psi_level_three",
                 
-                #"T_rep_cs",
-                #"T_obs_cs",
-                "P_species_cs",
-                
-                "mu_psi_natural_habitat_native",
-                "mu_psi_natural_habitat_nonnative",
-                "mu_psi_natural_habitat_all_species"
+                "W_species_rep_cs",
+                "W_species_rep_rc"
     )
-    
     
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 500
-    n_chains <- 8
-    n_cores <- 8
-    #n_cores <- parallel::detectCores()
-    delta = 0.97
-    
-    ## Initial values
-    # given the number of parameters, the chains need some decent initial values
-    # otherwise sometimes they have a hard time starting to sample
-    set.seed(1)
-    inits <- lapply(1:n_chains, function(i)
-      
-      list(
-            mu_psi_0 = runif(1, 0, 0.5),
-            sigma_psi_species = runif(1, 1.5, 2.5),
-            sigma_psi_site = runif(1, 1.5, 2.5),
-            sigma_psi_level_three = runif(1, 0.75, 1.25),
-            sigma_psi_level_four = runif(1, 0.5, 1),
-            delta0 = runif(1, -0.5, 0.5),
-            delta1 = runif(1, 0, 0.5),
-            gamma0 = runif(1, 0.75, 1), # must be a positive value!
-            gamma1 = runif(1, 0, 0.1), # gamma0+gamma1 inits must be >0!
-            psi_site_area = runif(1, -0.5, 0.5),
-            mu_psi_income = runif(1, -0.25, 0.25),
-            mu_psi_open_developed = runif(1, -0.25, 0.25),
-            
-            mu_p_cs_0 = runif(1, -3, -2.5),
-            sigma_p_cs_species = runif(1, 0, 1),
-            sigma_p_cs_site = runif(1, 1, 1.25),
-            sigma_p_cs_level_three = runif(1, 0.75, 1),
-            sigma_p_cs_level_four = runif(1, 0.75, 1),
-            p_cs_interval = runif(1, 0.5, 0.6),
-            p_cs_pop_density = runif(1, 0.4, 0.6)
-           
-      )
-    )
-    
-  } else { 
-    
-    stan_data <- c("V_cs", "V_rc", 
-                   "ranges", 
-                   "n_species", "n_sites", "n_intervals", "n_visits", 
-                   "intervals", "species", "sites",
-                   "n_genera", "genus_lookup",
-                   "n_level_three", 
-                   "level_three_lookup", 
-                   "n_level_four",
-                   "level_four_lookup",
-                   "pop_densities", "site_areas"
-                   ) 
-    
-    # Parameters monitored
-    params <- c(
-      "mu_psi_0",
-      "sigma_psi_species",
-      #"sigma_psi_genus",
-      "sigma_psi_site",
-      "sigma_psi_level_three",
-      "sigma_psi_level_four",
-      "psi_site_area",
-      
-      "mu_p_cs_0",
-      "sigma_p_cs_species",
-      "sigma_p_cs_site",
-      "sigma_p_cs_level_three",
-      "sigma_p_cs_level_four",
-      "p_cs_interval",
-      "p_cs_pop_density", 
-      
-      "psi_species",
-
-      #"psi_level_three", # track city/fine-ecoregion effects
-      #"psi_level_four", # track broad eco effects
-      
-      #"T_rep_cs",
-      #"T_obs_cs",
-      "P_species_cs"
-      
-    )
-    
-    
-    # MCMC settings
-    n_iterations <- 2000
-    n_thin <- 1
-    n_burnin <- 500
+    n_burnin <- 150
     n_chains <- 4
-    n_cores <- 4
     #n_cores <- parallel::detectCores()
+    n_cores <- 4
     delta = 0.95
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
     # otherwise sometimes they have a hard time starting to sample
-    set.seed(1)
     inits <- lapply(1:n_chains, function(i)
       
       list(
-        mu_psi_0 = runif(1, 0.25, 0.5),
+        
+        mu_psi_0 = runif(1, -1, 1),
+        sigma_psi_species = runif(1, 0, 1),
         sigma_psi_site = runif(1, 1, 2),
         sigma_psi_level_three = runif(1, 0, 1),
         sigma_psi_level_four = runif(1, 0, 1),
-        psi_site_area = runif(1, -0.5, 0.5),
+        mu_psi_income = runif(1, -1, 1),
+        mu_psi_natural_habitat = runif(1, -1, 1),
+        sigma_psi_natural_habitat = runif(1, 0, 1),
+        psi_site_area = runif(1, -1, 1),
+        mu_psi_open_developed = runif(1, -1, 1),
         
-        mu_p_cs_0 = runif(1, -3.5, -2.5),
-        sigma_p_cs_site = runif(1, 0, 1),
-        sigma_p_cs_level_three = runif(1, 0, 1),
-        sigma_p_cs_level_four = runif(1, 0, 0.5),
-        p_cs_interval = runif(1, 0.5, 0.6),
-        p_cs_pop_density = runif(1, 0.4, 0.6)
+        mu_p_cs_0 = runif(1, -1, 0),
+        sigma_p_cs_site = runif(1, 0.5, 1),
+        sigma_p_cs_level_three = runif(1, 0, 0.5),
+        p_cs_interval = runif(1, 0, 1),
+        p_cs_pop_density = runif(1, -1, 1),
         
+        mu_p_rc_0 = runif(1, -0.5, 0.5),
+        sigma_p_rc_site = runif(1, 0, 0.5),
+        sigma_p_rc_level_three = runif(1, 0, 0.5)
       )
     )
   
@@ -878,6 +789,7 @@ if(taxon == "syrphidae"){
     "psi_site_area",
     
     "mu_p_cs_0",
+    #"sigma_p_cs_species",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
     "p_cs_interval",
@@ -885,6 +797,7 @@ if(taxon == "syrphidae"){
     "p_cs_income",
     
     "mu_p_rc_0",
+    #"sigma_p_rc_species",
     "sigma_p_rc_site",
     "sigma_p_rc_level_three"
   ))
@@ -999,18 +912,15 @@ if(taxon == "syrphidae"){
   ))
   traceplot(stan_out, pars = c( # detection
     "mu_p_cs_0",
+    #"sigma_p_cs_species",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
-    "sigma_p_cs_level_four",
     "p_cs_interval",
     "p_cs_pop_density",
-    #"p_cs_natural_habitat",
     "mu_p_rc_0",
+    #"sigma_p_rc_species",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three",
-    "sigma_p_rc_level_four"
-    #"p_rc_natural_habitat"
-    #"p_rc_total_records"
+    "sigma_p_rc_level_three"
   ))
   traceplot(stan_out, pars = c( # species detection
     "rho",
