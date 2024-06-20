@@ -63,8 +63,8 @@ get_species_ranges <- function(
   }
   
   # make the df into a spatial file
-  #df$decimalLongitude <- na_if(df$decimalLongitude, '')
-  #df$decimalLatitude <- na_if(df$decimalLatitude, '')
+  df$decimalLongitude <- na_if(df$decimalLongitude, '')
+  df$decimalLatitude <- na_if(df$decimalLatitude, '')
   
   df <- df %>% 
     filter(!is.na(decimalLongitude)) %>%
