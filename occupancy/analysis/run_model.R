@@ -48,8 +48,6 @@ generate_temporal_plots = FALSE # default to FALSE
 by_city = FALSE
 remove_city_outliers_5stddev = TRUE
 
-# filter out urban landscapes with inordinately high population density (i.e. downtown NYC)
-remove_city_outliers_5stddev = TRUE
 
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS

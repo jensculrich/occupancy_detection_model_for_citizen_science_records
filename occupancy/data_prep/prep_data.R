@@ -78,6 +78,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   pop_density_vector <- urban_grid$scaled_pop_den_km2
   raw_avg_income <- urban_grid$avg_income
   avg_income_vector <- urban_grid$scaled_avg_income
+  avg_minority_vector <- urban_grid$scaled_avg_minority
+  avg_canopy_cover_vector <- urban_grid$scaled_canopy_cover
+  avg_imp_surface_vector <- urban_grid$scaled_imp_surface
   site_area_vector <- urban_grid$scaled_site_area
   developed_open_vector <- urban_grid$scaled_developed_open
   herb_shrub_vector <- urban_grid$scaled_herb_shrub_cover
@@ -1154,6 +1157,9 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     pop_densities = pop_density_vector,
     raw_avg_income = raw_avg_income,
     avg_income = avg_income_vector,
+    avg_minority = avg_minority_vector,
+    canopy_cover = avg_canopy_cover_vector,
+    impervious_surface = avg_imp_surface_vector,
     site_areas = site_area_vector,
     herb_shrub_cover = herb_shrub_vector,
     developed_open = developed_open_vector,

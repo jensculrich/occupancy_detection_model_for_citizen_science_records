@@ -85,6 +85,9 @@ parameters {
   // Level-3 spatial random effect
   vector[n_level_three] psi_level_three_raw; // level-three intercept for occupancy
   real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
+  // Level-4 spatial random effect
+  vector[n_level_four] psi_level_four_raw; // level-four specific intercept for PL outcome
+  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
   
   // random slope for species specific natural habitat effects on occupancy
   vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
@@ -114,10 +117,7 @@ parameters {
   // level-3 spatial clusters
   vector[n_level_three] p_cs_level_three_raw; // level-three specific intercept for cs detection
   real<lower=0> sigma_p_cs_level_three;  // variance in level-three slopes
-  // Level-4 spatial random effect
-  vector[n_level_four] psi_level_four_raw; // level-four specific intercept for PL outcome
-  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
-  
+
   real p_cs_interval; // fixed temporal effect on cs detection probability
   real p_cs_pop_density; // fixed effect of population on cs detection probability
   real p_cs_income; // fixed effect of income on cs detection probability

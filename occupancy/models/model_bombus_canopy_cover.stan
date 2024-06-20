@@ -31,10 +31,8 @@ data {
   int<lower=1> n_sites;  // number of sites (level-2 clusters)
   int<lower=1, upper=n_sites> sites[n_sites]; // vector of site identities
   int<lower=1> n_level_three;  // (number of) fine-scale ecoregion areas (level-3 clusters)
-  int<lower=1> n_level_four;  // (number of) broad-scale ecoregion areas (level-4 clusters)
 
   int<lower=1> level_three_lookup[n_sites]; // level-3 cluster look up vector for level-3 cluster
-  int<lower=1> level_four_lookup[n_level_three]; // level-4 cluster look up vector for level-4 cluster
 
   int<lower=1> n_intervals;  // intervals during which sites are visited
   
@@ -51,8 +49,9 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] avg_income; // (scaled) household income of each site
-  vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
-  vector[n_sites] open_developed; // (scaled) open developed surface cover of each site
+  vector[n_sites] avg_racial_minority; // (scaled) prop. of racial minority population of each site
+  vector[n_sites] canopy_cover; // (scaled) undeveloped open surface cover of each site
+  vector[n_sites] impervious_surface; // (scaled) open developed surface cover of each site
 
 } // end data
 
@@ -71,31 +70,28 @@ parameters {
   
   // species specific intercept allows some species to occur at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
-  vector[n_species] psi_species; // species specific intercept for occupancy
+  vector[n_species] psi_species_raw; // species specific intercept for occupancy
   real<lower=0> sigma_psi_species; // variance in species intercepts
   
   // Spatially nested random effect on occupancy rates
   // Level-2 spatial random effect
   vector[n_sites] psi_site_raw; // site specific intercept for occupancy
   real<lower=0> sigma_psi_site; // variance in site intercepts
-  // Level-3 spatial random effect
-  vector[n_level_three] psi_level_three_raw; // level-three specific intercept for PL outcome
-  real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
-  // Level-4 spatial random effect
-  vector[n_level_four] psi_level_four_raw; // level-four specific intercept for PL outcome
-  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
   
   // random slope for species specific natural habitat effects on occupancy
-  vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
-  real mu_psi_natural_habitat; // community mean of species specific slopes
-  real<lower=0> sigma_psi_natural_habitat; // variance in species slopes
+  vector[n_species] psi_canopy_cover; // vector of species specific slope estimates
+  real mu_psi_canopy_cover; // community mean of species specific slopes
+  real<lower=0> sigma_psi_canopy_cover; // variance in species slopes
   
   // fixed slope for species specific open developed effects on occupancy
-  real mu_psi_open_developed; // community mean of species specific slopes
+  real mu_psi_impervious_surface; // community mean of species specific slopes
 
   // fixed slope for species specific household income effects on occupancy
   real mu_psi_income; // community mean of species specific slopes
-
+  
+  // fixed slope for species specific household income effects on occupancy
+  real mu_psi_race; // community mean of species specific slopes
+  
   // fixed effect of site area on occupancy
   real psi_site_area;
   
@@ -108,9 +104,6 @@ parameters {
   // level-2 spatial clusters
   vector[n_sites] p_cs_site_raw; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_cs_site; // variance in site slopes
-  // level-3 spatial clusters
-  vector[n_level_three] p_cs_level_three_raw; // level-three specific intercept for cs detection
-  real<lower=0> sigma_p_cs_level_three;  // variance in level-three slopes
   
   real p_cs_interval; // fixed temporal effect on cs detection probability
   real p_cs_pop_density; // fixed effect of population on cs detection probability
@@ -123,9 +116,6 @@ parameters {
   // level-2 spatial clusters
   vector[n_sites] p_rc_site_raw; // vector of spatially specific slope estimates
   real<lower=0> sigma_p_rc_site; // variance in site slopes
-  // level-3 spatial clusters
-  vector[n_level_three] p_rc_level_three_raw; // level-three specific intercept for rc detection
-  real<lower=0> sigma_p_rc_level_three; // variance in level-three slopes
   
 } // end parameters
 
@@ -136,59 +126,27 @@ transformed parameters {
   real logit_p_cs[n_species, n_sites, n_intervals]; // odds of detection by community science
   real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by research collections
   
+  // species intercepts
+  vector[n_species] psi_species;
+  
+  //
+  psi_species = sigma_psi_species * psi_species_raw;
+  
   // spatially nested intercepts
   vector[n_sites] psi_site;
-  vector[n_level_three] psi_level_three;
-  vector[n_level_four] psi_level_four;
 
   vector[n_sites] p_cs_site;
-  vector[n_level_three] p_cs_level_three;
 
   vector[n_sites] p_rc_site;
-  vector[n_level_three] p_rc_level_three;
 
   //
-  // compute the varying community science detection intercept at the ecoregion1 level
-  // Level-4 (n_level_four level-4 random intercepts)
-  psi_level_four = sigma_psi_level_four * psi_level_four_raw;
-  // compute the varying community science detection intercept at the ecoregion3 level
-  // Level-3 (n_level_three level-3 random intercepts)
-  for(i in 1:n_level_three){
-    psi_level_three[i] = psi_level_four[level_four_lookup[i]] + 
-      sigma_psi_level_three * psi_level_three_raw[i];
-  }
-  // compute varying intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
-  for(i in 1:n_sites){
-    psi_site[i] = psi_level_three[level_three_lookup[i]] + 
-      sigma_psi_site * psi_site_raw[i];
-  }
+  psi_site = sigma_psi_site * psi_site_raw;
   
   //
-  // compute the varying community science detection intercept at the ecoregion3 level
-  // Level-3 (n_level_three level-3 random intercepts)
-  for(i in 1:n_level_three){
-    p_cs_level_three[i] = sigma_p_cs_level_three * p_cs_level_three_raw[i];
-  }
-  // compute varying intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
-  for(i in 1:n_sites){
-    p_cs_site[i] = p_cs_level_three[level_three_lookup[i]] + 
-      sigma_p_cs_site * p_cs_site_raw[i];
-  }
+  p_cs_site = sigma_p_cs_site * p_cs_site_raw;
   
   //
-  // compute the varying community science detection intercept at the ecoregion3 level
-  // Level-3 (n_level_three level-3 random intercepts)
-  for(i in 1:n_level_three){
-    p_rc_level_three[i] = sigma_p_rc_level_three * p_rc_level_three_raw[i];
-  }
-  // compute varying intercept at the site level
-  // Level-2 (n_sites level-2 random intercepts, nested in ecoregion3)
-  for(i in 1:n_sites){
-    p_rc_site[i] = p_rc_level_three[level_three_lookup[i]] + 
-      sigma_p_rc_site * p_rc_site_raw[i];
-  }
+  p_rc_site = sigma_p_rc_site * p_rc_site_raw;
   
   //
   //
@@ -201,9 +159,10 @@ transformed parameters {
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
             psi_species[species[i]] + // a species specific intercept
             psi_site[sites[j]] + // a spatially nested, site-specific intercept
-            psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
+            psi_canopy_cover[species[i]]*canopy_cover[j] + // a species-specific effect of natural habitat area
+            mu_psi_impervious_surface*impervious_surface[j] + // a species-specific effect of open developed land
             mu_psi_income*avg_income[j] + // a species-specific effect of household income
-            mu_psi_open_developed*open_developed[j] + // a species-specific effect of open developed land
+            mu_psi_race*avg_racial_minority[j] +
             psi_site_area*site_areas[j] // an effect of spatial area of the site 
             ; // end psi[i,j,k]
             
@@ -241,8 +200,8 @@ model {
   // PRIORS
   
   // correlated species effects
-  sigma_species_detection[1] ~ normal(0, 2);
-  sigma_species_detection[2] ~ normal(0, 2);
+  sigma_species_detection[1] ~ normal(0, 1);
+  sigma_species_detection[2] ~ normal(0, 1);
   (rho + 1) / 2 ~ beta(2, 2);
   
   // correlated species-specific detection rates
@@ -256,22 +215,17 @@ model {
   // level-2 spatial grouping
   psi_site_raw ~ std_normal();
   sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
-  // level-3 spatial grouping
-  psi_level_three_raw ~ std_normal();
-  sigma_psi_level_three ~ normal(0, 0.5); // weakly-informative prior
-  // level-4 spatial grouping
-  psi_level_four_raw ~ std_normal();
-  sigma_psi_level_four ~ normal(0, 0.5); // weakly-informative prior
   
-  psi_species ~ normal(mu_psi_0, sigma_psi_species); 
+  psi_species_raw ~ std_normal(); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   
-  psi_natural_habitat ~ normal(mu_psi_natural_habitat, sigma_psi_natural_habitat);
-  mu_psi_natural_habitat ~ normal(0, 2); // community mean
-  sigma_psi_natural_habitat ~ normal(0, 1); // community variance
+  psi_canopy_cover ~ normal(mu_psi_canopy_cover, sigma_psi_canopy_cover);
+  mu_psi_canopy_cover ~ normal(0, 2); // community mean
+  sigma_psi_canopy_cover ~ normal(0, 1); // community variance
   
+  mu_psi_impervious_surface ~ normal(0, 2); // community mean
   mu_psi_income ~ normal(0, 2); // community mean
-  mu_psi_open_developed ~ normal(0, 2); // community mean
+  mu_psi_race ~ normal(0, 2); // community mean
   
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
@@ -284,9 +238,6 @@ model {
   // level-2 spatial grouping
   p_cs_site_raw ~ std_normal();
   sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
-  // level-3 spatial grouping
-  p_cs_level_three_raw ~ std_normal();
-  sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 
@@ -304,9 +255,6 @@ model {
   // level-2 spatial grouping
   p_rc_site_raw ~ std_normal();
   sigma_p_rc_site ~ normal(0, 0.25); // weakly-informative prior
-  // level-3 spatial grouping
-  p_rc_level_three_raw ~ std_normal();
-  sigma_p_rc_level_three ~ normal(0, 0.25); // weakly-informative prior
   
   // LIKELIHOOD
   

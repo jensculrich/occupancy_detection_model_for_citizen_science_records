@@ -48,9 +48,6 @@ generate_temporal_plots = FALSE # default to FALSE
 by_city = FALSE
 remove_city_outliers_5stddev = TRUE
 
-# filter out urban landscapes with inordinately high population density (i.e. downtown NYC)
-remove_city_outliers_5stddev = TRUE
-
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS
 # be careful that the (era_end - era_start) is evenly divisible by the n_intervals
@@ -197,6 +194,9 @@ species_names <- my_data$species
 
 pop_densities <- my_data$pop_densities
 avg_income <- my_data$avg_income
+avg_racial_minority <- my_data$avg_minority
+canopy_cover <- my_data$canopy_cover
+impervious_surface <- my_data$impervious_surface
 open_developed <- my_data$developed_open
 herb_shrub <- my_data$herb_shrub_cover
 site_areas <- my_data$site_areas
@@ -327,11 +327,10 @@ if(taxon == "bombus"){
                    "intervals", "species", "sites",
                    "n_level_three", 
                    "level_three_lookup", 
-                   "n_level_four",
-                   "level_four_lookup",
-                   "pop_densities", "site_areas", "avg_income",
-                   "open_developed",
-                   "natural_habitat", "rc_total_records") 
+                   "pop_densities", "site_areas", "avg_income", 
+                   "avg_racial_minority",
+                   "canopy_cover",
+                   "impervious_surface") 
     
     # Parameters monitored
     params <- c("sigma_species_detection",
@@ -341,32 +340,27 @@ if(taxon == "bombus"){
                 "mu_psi_0",
                 "sigma_psi_species",
                 "sigma_psi_site",
-                "sigma_psi_level_three",
-                "sigma_psi_level_four",
                 "mu_psi_income",
-                "mu_psi_natural_habitat",
-                "sigma_psi_natural_habitat",
-                "mu_psi_open_developed",
+                "mu_psi_race",
+                "mu_psi_canopy_cover",
+                "sigma_psi_canopy_cover",
+                "mu_psi_impervious_surface",
                 "psi_site_area",
                 
                 "mu_p_cs_0",
                 "sigma_p_cs_site",
-                "sigma_p_cs_level_three",
                 "p_cs_interval",
                 "p_cs_pop_density",
                 "p_cs_income",
 
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
-                "sigma_p_rc_level_three",
 
                 "psi_species",
-                "psi_natural_habitat",
+                "psi_canopy_cover",
                 
                 "psi_site",
-                "psi_level_four",
-                "psi_level_three",
-                
+
                 "W_species_rep_cs",
                 "W_species_rep_rc"
     )
@@ -393,10 +387,10 @@ if(taxon == "bombus"){
         sigma_psi_level_three = runif(1, 0, 1),
         sigma_psi_level_four = runif(1, 0, 1),
         mu_psi_income = runif(1, -1, 1),
-        mu_psi_natural_habitat = runif(1, -1, 1),
-        sigma_psi_natural_habitat = runif(1, 0, 1),
+        #mu_psi_natural_habitat = runif(1, -1, 1),
+        #sigma_psi_natural_habitat = runif(1, 0, 1),
         psi_site_area = runif(1, -1, 1),
-        mu_psi_open_developed = runif(1, -1, 1),
+        #mu_psi_open_developed = runif(1, -1, 1),
 
         mu_p_cs_0 = runif(1, -1, 0),
         sigma_p_cs_site = runif(1, 0.5, 1),
@@ -790,14 +784,9 @@ if(taxon == "bombus"){
 
 # load appropriate model file from the directory
 if(urban_sites == TRUE){
-  stan_model <- paste0("./occupancy/models/model_", taxon, ".stan")
+  stan_model <- paste0("./occupancy/models/model_", taxon, "_canopy_cover.stan")
 } else {
   stan_model <- paste0("./occupancy/models/model_", taxon, "_simple.stan")
-}
-
-if(use_reparameterized_rand_effects_model == TRUE){
-  level_four_lookup <- level_four_lookup_by_site
-  stan_model <- paste0("./occupancy/models/model_", taxon, "_reparameterized_rand_effects.stan")
 }
 
 # or manually enter a model name
@@ -823,7 +812,7 @@ saveRDS(stan_out, paste0(
   "km_", min_population_size, "minpop_", 
   min_unique_detections, "minUniqueDetections_",
   n_intervals, "ints_", n_visits, "visits_",
-  ".rds"
+  "CC_.rds"
 )
 )
 
@@ -876,16 +865,17 @@ if(taxon == "syrphidae"){
     "rho", 
     "sigma_species_detection[1]",
     "sigma_species_detection[2]", 
+    
     "mu_psi_0",
+    "sigma_psi_species",
     "sigma_psi_site",
     "sigma_psi_level_three",
-    "sigma_psi_level_four",
+    #"sigma_psi_level_four",
     "mu_psi_income",
-    #"sigma_psi_income",
-    "mu_psi_natural_habitat",
-    "sigma_psi_natural_habitat",
-    "mu_psi_open_developed",
-    #"sigma_psi_open_developed",
+    "mu_psi_race",
+    "mu_psi_canopy_cover",
+    "sigma_psi_canopy_cover",
+    "mu_psi_impervious_surface",
     "psi_site_area",
     
     "mu_p_cs_0",
@@ -900,6 +890,9 @@ if(taxon == "syrphidae"){
     #"sigma_p_rc_species",
     "sigma_p_rc_site",
     "sigma_p_rc_level_three"
+  ))
+  print(stan_out, digits = 3, pars = c(
+    "psi_species" 
   ))
 }
 
@@ -1002,13 +995,12 @@ if(taxon == "syrphidae"){
     "sigma_psi_site",
     "sigma_psi_level_three",
     "sigma_psi_level_four",
-    "mu_psi_natural_habitat",
-    "sigma_psi_natural_habitat",
     "mu_psi_income",
-    #"sigma_psi_income",
-    "psi_site_area",
-    "mu_psi_open_developed"
-    #"sigma_psi_open_developed"
+    "mu_psi_race",
+    "mu_psi_canopy_cover",
+    "sigma_psi_canopy_cover",
+    "mu_psi_impervious_surface",
+    "psi_site_area"
   ))
   traceplot(stan_out, pars = c( # detection
     "mu_p_cs_0",
