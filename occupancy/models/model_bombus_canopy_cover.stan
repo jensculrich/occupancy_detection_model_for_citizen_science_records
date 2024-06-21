@@ -51,7 +51,6 @@ data {
   vector[n_sites] avg_income; // (scaled) household income of each site
   vector[n_sites] avg_racial_minority; // (scaled) prop. of racial minority population of each site
   vector[n_sites] canopy_cover; // (scaled) undeveloped open surface cover of each site
-  vector[n_sites] impervious_surface; // (scaled) open developed surface cover of each site
 
 } // end data
 
@@ -82,9 +81,6 @@ parameters {
   vector[n_species] psi_canopy_cover; // vector of species specific slope estimates
   real mu_psi_canopy_cover; // community mean of species specific slopes
   real<lower=0> sigma_psi_canopy_cover; // variance in species slopes
-  
-  // fixed slope for species specific open developed effects on occupancy
-  real mu_psi_impervious_surface; // community mean of species specific slopes
 
   // fixed slope for species specific household income effects on occupancy
   real mu_psi_income; // community mean of species specific slopes
@@ -157,10 +153,10 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals  
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
+            mu_psi_0 +// global intercept
             psi_species[species[i]] + // a species specific intercept
             psi_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_canopy_cover[species[i]]*canopy_cover[j] + // a species-specific effect of natural habitat area
-            mu_psi_impervious_surface*impervious_surface[j] + // a species-specific effect of open developed land
             mu_psi_income*avg_income[j] + // a species-specific effect of household income
             mu_psi_race*avg_racial_minority[j] +
             psi_site_area*site_areas[j] // an effect of spatial area of the site 
@@ -214,7 +210,7 @@ model {
   
   // level-2 spatial grouping
   psi_site_raw ~ std_normal();
-  sigma_psi_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_psi_site ~ normal(0, 0.25); // weakly-informative prior
   
   psi_species_raw ~ std_normal(); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
@@ -223,7 +219,6 @@ model {
   mu_psi_canopy_cover ~ normal(0, 2); // community mean
   sigma_psi_canopy_cover ~ normal(0, 1); // community variance
   
-  mu_psi_impervious_surface ~ normal(0, 2); // community mean
   mu_psi_income ~ normal(0, 2); // community mean
   mu_psi_race ~ normal(0, 2); // community mean
   
@@ -237,7 +232,7 @@ model {
   
   // level-2 spatial grouping
   p_cs_site_raw ~ std_normal();
-  sigma_p_cs_site ~ normal(0, 0.5); // weakly-informative prior
+  sigma_p_cs_site ~ normal(0, 0.25); // weakly-informative prior
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 

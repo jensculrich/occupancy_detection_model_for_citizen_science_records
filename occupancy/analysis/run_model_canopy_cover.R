@@ -47,6 +47,7 @@ generate_temporal_plots = FALSE # default to FALSE
 # or by fine scale ecogeographic region (by_city == FALSE)
 by_city = FALSE
 remove_city_outliers_5stddev = TRUE
+canopy_cover_model = TRUE
 
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS
@@ -90,7 +91,7 @@ generate_temporal_plots = FALSE # default to FALSE
 by_city = FALSE
 # filter out urban landscapes with inordinately high population density (i.e. downtown NYC)
 remove_city_outliers_5stddev = TRUE
-
+canopy_cover_model = TRUE
 
 ## --------------------------------------------------
 # Run the prep_data() function to gather new data (this takes about 5 minutes)
@@ -329,8 +330,7 @@ if(taxon == "bombus"){
                    "level_three_lookup", 
                    "pop_densities", "site_areas", "avg_income", 
                    "avg_racial_minority",
-                   "canopy_cover",
-                   "impervious_surface") 
+                   "canopy_cover") 
     
     # Parameters monitored
     params <- c("sigma_species_detection",
@@ -344,7 +344,6 @@ if(taxon == "bombus"){
                 "mu_psi_race",
                 "mu_psi_canopy_cover",
                 "sigma_psi_canopy_cover",
-                "mu_psi_impervious_surface",
                 "psi_site_area",
                 
                 "mu_p_cs_0",
@@ -366,9 +365,9 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 300
+    n_iterations <- 1000
     n_thin <- 1
-    n_burnin <- 150
+    n_burnin <- 500
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -869,27 +868,23 @@ if(taxon == "syrphidae"){
     "mu_psi_0",
     "sigma_psi_species",
     "sigma_psi_site",
-    "sigma_psi_level_three",
-    #"sigma_psi_level_four",
     "mu_psi_income",
     "mu_psi_race",
     "mu_psi_canopy_cover",
     "sigma_psi_canopy_cover",
-    "mu_psi_impervious_surface",
+    #"mu_psi_impervious_surface",
     "psi_site_area",
     
     "mu_p_cs_0",
     #"sigma_p_cs_species",
     "sigma_p_cs_site",
-    "sigma_p_cs_level_three",
     "p_cs_interval",
     "p_cs_pop_density", 
     "p_cs_income",
     
     "mu_p_rc_0",
     #"sigma_p_rc_species",
-    "sigma_p_rc_site",
-    "sigma_p_rc_level_three"
+    "sigma_p_rc_site"
   ))
   print(stan_out, digits = 3, pars = c(
     "psi_species" 

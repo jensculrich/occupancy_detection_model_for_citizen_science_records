@@ -52,6 +52,7 @@ data {
   vector[n_sites] site_areas; // (scaled) spatial area extent of each site
   vector[n_sites] pop_densities; // (scaled) population density of each site
   vector[n_sites] avg_income; // (scaled) household income of each site
+  vector[n_sites] avg_racial_minority; // (scaled) prop. of racial minority population of each site
   vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
   vector[n_sites] open_developed; // (scaled) open developed surface cover of each site
   
@@ -75,7 +76,7 @@ parameters {
   
   // species-specific intercepts allow some species to occur at higher rates than others, 
   // but with overall estimates for occupancy partially informed by the data pooled across all species.
-  vector[n_species] psi_species; // species specific intercept for occupancy
+  vector[n_species] psi_species_raw; // species specific intercept for occupancy
   real<lower=0> sigma_psi_species; // variance in species intercepts// Level-3 spatial random effect
   
   // spatially nested random effect on occupancy rates
@@ -96,12 +97,12 @@ parameters {
   real<lower=0> gamma0; // baseline effect (variance) (negative variance not possible)
   real gamma1; // effect of being native on the expected value of the random effect
   
-  // random slope for species-specific income effects on occupancy
-  real mu_psi_income; // community mean of species specific slopes
-
-  // random slope for species-specific open developed area effects on occupancy
+  // fixed slope for open developed greenspace effects on occupancy
   real mu_psi_open_developed; // community mean of species specific slopes
-
+  // fixed slope for household income effects on occupancy
+  real mu_psi_income; // community mean of species specific slopes
+  // fixed slope for racial diversity (prop. population minority) effects on occupancy
+  real mu_psi_race; // community mean
   // fixed effect of site area on occupancy
   real psi_site_area;
   
@@ -117,7 +118,7 @@ parameters {
   // level-3 spatial clusters
   vector[n_level_three] p_cs_level_three_raw; // level-three specific intercept for cs detection
   real<lower=0> sigma_p_cs_level_three;  // variance in level-three slopes
-
+  
   real p_cs_interval; // fixed temporal effect on cs detection probability
   real p_cs_pop_density; // fixed effect of population on cs detection probability
   real p_cs_income; // fixed effect of income on cs detection probability
@@ -141,6 +142,10 @@ transformed parameters {
   real logit_psi[n_species, n_sites, n_intervals];  // odds of occurrence
   real logit_p_cs[n_species, n_sites, n_intervals]; // odds of detection by community science
   real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by research collections
+  
+  // species intercepts
+  vector[n_species] psi_species;
+  psi_species = sigma_psi_species * psi_species_raw;
   
   // spatially nested intercepts
   vector[n_sites] psi_site;
@@ -222,10 +227,12 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals  
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
+            mu_psi_0 + // a global intercept
             psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
             psi_site[sites[j]] + // a spatially nested, site-specific intercept
             psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
             mu_psi_income*avg_income[j] + // a species-specific effect of income
+            mu_psi_race*avg_racial_minority[j] + // an effect of ethnic composition
             mu_psi_open_developed*open_developed[j] + // a species-specific effect of income
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
@@ -268,8 +275,18 @@ model {
   sigma_species_detection[2] ~ normal(0, 2);
   (rho + 1) / 2 ~ beta(2, 2);
   
+  // correlated species-specific detection rates
+  // will send the mean (mu), variance and correlation to the covariance matrix
+  species_intercepts_detection ~ multi_normal(mu(mu_p_cs_0, mu_p_rc_0), 
+    custom_cov_matrix(sigma_species_detection, rho));
+  
   // Occupancy (Ecological Process)
-  mu_psi_0 ~ normal(0, 0.25); // global intercept for occupancy rate
+  mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
+  
+    // species intercept effects
+  psi_species ~ std_normal();
+  //psi_species ~ normal(0, sigma_psi_species); 
+  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   
   // level-2 spatial grouping
   psi_site_raw ~ std_normal();
@@ -280,31 +297,24 @@ model {
   // level-4 spatial grouping
   psi_level_four_raw ~ std_normal();
   sigma_psi_level_four ~ normal(0, 0.5); // weakly-informative prior
-  
-  // level-2 phylogenetic grouping
-  psi_species ~ normal(mu_psi_0, sigma_psi_species); 
-  //psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
-  // level-3 phylogenetic grouping
-  //psi_genus ~ normal(mu_psi_0, sigma_psi_genus); 
-  //sigma_psi_genus ~ normal(0, 0.05); // weakly-informative prior
-  
+
   psi_natural_habitat ~ normal(mu_psi_natural_habitat, sigma_psi_natural_habitat);
   // community effect (mu) and variation among species (sigma) is defined as a vector 
   // with intercept delta0 and an effect of nativity (delta1) on community mean
   // and intercept gamma0 and an effect of nativity (gamma1) on variation
-  delta0 ~ normal(0, 1); // community mean
+  delta0 ~ normal(0, 2); // community mean
   delta1 ~ normal(0, 2); // effect of nativity
-  gamma0 ~ normal(0, 1); // community mean
-  gamma1 ~ normal(0, 0.25); // effect of nativity
+  gamma0 ~ normal(0, 1); // community mean variance
+  gamma1 ~ normal(0, 0.25); // effect of nativity on variance
   
-  mu_psi_income ~ normal(0, 2); // effect of income on occupancy
-  mu_psi_open_developed ~ normal(0, 2); // effect of open developed area on occupancy
+  mu_psi_open_developed ~ normal(0, 2); // community mean
+  mu_psi_income ~ normal(0, 2); // community mean
+  mu_psi_race ~ normal(0, 2); // community mean
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
   
   // community science records
   
-  mu_p_cs_0 ~ normal(-2, 0.5); // global intercept for detection
+  mu_p_cs_0 ~ normal(0, 2); // global intercept for detection
   
   // level-2 spatial grouping
   p_cs_site_raw ~ std_normal();

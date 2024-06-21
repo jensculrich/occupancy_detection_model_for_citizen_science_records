@@ -40,7 +40,8 @@ get_spatial_data <- function(
   min_unique_detections, # only include species detected at urban sites more times than this (so we can figure out if the species is rare v hard to detect)
   era_start, # starting year for when to start counting number of detections in urban landscapes (to filter by minUniqueDetections)
   by_city, # organize random effects clusters by metropolitan statistical area rather than ecoregion 3
-  remove_city_outliers_5stddev # remove REALLY dense urban landscapes (i.e., downtown NYC)
+  remove_city_outliers_5stddev, # remove REALLY dense urban landscapes (i.e., downtown NYC)
+  canopy_cover_model
 ){
   
   ## --------------------------------------------------
@@ -66,23 +67,33 @@ get_spatial_data <- function(
   states_trans <- states  %>% 
     st_transform(., crs) # USA_Contiguous_Albers_Equal_Area_Conic
   
-  ## --------------------------------------------------
-  # Ecoregion data for filtering to eastern US
+  if(canopy_cover_model == TRUE){
+    ## --------------------------------------------------
+    # Ecoregion data for filtering to eastern US
+    
+    # read in ecoregion 1 data
+    ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
+    
+    ecoregion1_region8 <- filter(ecoregion1, NA_L1CODE == "8") %>%
+      st_transform(., crs)
+    
+    states_trans <- sf::st_intersection(states_trans, ecoregion1_region8)
+    
+    ## --------------------------------------------------
+    # Overlay the shapefile with a grid of sites of size == 'grid_size' 
+    
+    # create "grid_size" km grid over the area
+    grid <- st_make_grid(ecoregion1_region8, cellsize = c(grid_size, grid_size)) %>% 
+      st_sf(grid_id = 1:length(.))
+  } else {
+    ## --------------------------------------------------
+    # Overlay the shapefile with a grid of sites of size == 'grid_size' 
+    
+    # create "grid_size" km grid over the area
+    grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>% 
+      st_sf(grid_id = 1:length(.))
+  }
   
-  # read in ecoregion 1 data
-  ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
-  
-  ecoregion1_region8 <- filter(ecoregion1, NA_L1CODE == "8") %>%
-    st_transform(., crs)
-  
-  states_trans <- sf::st_intersection(states_trans, ecoregion1_region8)
-  
-  ## --------------------------------------------------
-  # Overlay the shapefile with a grid of sites of size == 'grid_size' 
-  
-  # create "grid_size" km grid over the area
-  grid <- st_make_grid(ecoregion1_region8, cellsize = c(grid_size, grid_size)) %>% 
-    st_sf(grid_id = 1:length(.))
   
   ## --------------------------------------------------
   # Extract mean population density in each grid cell

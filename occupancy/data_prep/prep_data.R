@@ -35,7 +35,8 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
                       infer_detections_at_genus,
                       generate_temporal_plots,
                       by_city,
-                      remove_city_outliers_5stddev
+                      remove_city_outliers_5stddev,
+                      canopy_cover_model
 ) {
   
   # throw a warning if the study timespan is not an evenly divisible stretch of years
@@ -57,7 +58,7 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   my_spatial_data <- get_spatial_data(
     grid_size, min_population_size, taxon, min_site_area,
     urban_sites, non_urban_subsample_n, min_records_per_species, min_unique_detections, era_start, 
-    by_city, remove_city_outliers_5stddev)
+    by_city, remove_city_outliers_5stddev, canopy_cover_model)
   gc()
   
   # retrieve the urban detections

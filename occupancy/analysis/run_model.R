@@ -47,7 +47,7 @@ generate_temporal_plots = FALSE # default to FALSE
 # or by fine scale ecogeographic region (by_city == FALSE)
 by_city = FALSE
 remove_city_outliers_5stddev = TRUE
-
+canopy_cover_model = FALSE
 
 ## --------------------------------------------------
 # input data preparation choices - BOMBUS
@@ -91,7 +91,7 @@ generate_temporal_plots = FALSE # default to FALSE
 by_city = FALSE
 # filter out urban landscapes with inordinately high population density (i.e. downtown NYC)
 remove_city_outliers_5stddev = TRUE
-
+canopy_cover_model = FALSE
 
 ## --------------------------------------------------
 # Run the prep_data() function to gather new data (this takes about 5 minutes)
@@ -121,7 +121,9 @@ my_data <- prep_data(era_start = era_start, # must define start date of the GBIF
                      infer_detections_at_genus,
                      generate_temporal_plots,
                      by_city,
-                     remove_city_outliers_5stddev
+                     remove_city_outliers_5stddev,
+                     canopy_cover_model
+                     
 )
 
 
@@ -195,6 +197,7 @@ species_names <- my_data$species
 
 pop_densities <- my_data$pop_densities
 avg_income <- my_data$avg_income
+avg_racial_minority <- my_data$avg_minority
 open_developed <- my_data$developed_open
 herb_shrub <- my_data$herb_shrub_cover
 site_areas <- my_data$site_areas
@@ -327,9 +330,9 @@ if(taxon == "bombus"){
                    "level_three_lookup", 
                    "n_level_four",
                    "level_four_lookup",
-                   "pop_densities", "site_areas", "avg_income",
-                   "open_developed",
-                   "natural_habitat", "rc_total_records") 
+                   "pop_densities", "site_areas", 
+                   "avg_income", "avg_racial_minority",
+                   "open_developed", "natural_habitat") 
     
     # Parameters monitored
     params <- c("sigma_species_detection",
@@ -342,9 +345,10 @@ if(taxon == "bombus"){
                 "sigma_psi_level_three",
                 "sigma_psi_level_four",
                 "mu_psi_income",
+                "mu_psi_race",
                 "mu_psi_natural_habitat",
-                "sigma_psi_natural_habitat",
                 "mu_psi_open_developed",
+                "sigma_psi_natural_habitat",
                 "psi_site_area",
                 
                 "mu_p_cs_0",
@@ -353,26 +357,24 @@ if(taxon == "bombus"){
                 "p_cs_interval",
                 "p_cs_pop_density",
                 "p_cs_income",
-
+                
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
-                "sigma_p_rc_level_three",
-
+                "sigma_p_cs_level_three",
+                
                 "psi_species",
                 "psi_natural_habitat",
                 
                 "psi_site",
-                "psi_level_four",
-                "psi_level_three",
                 
                 "W_species_rep_cs",
                 "W_species_rep_rc"
     )
     
     # MCMC settings
-    n_iterations <- 300
+    n_iterations <- 4000
     n_thin <- 1
-    n_burnin <- 150
+    n_burnin <- 2000
     n_chains <- 4
     #n_cores <- parallel::detectCores()
     n_cores <- 4
@@ -395,13 +397,15 @@ if(taxon == "bombus"){
         sigma_psi_natural_habitat = runif(1, 0, 1),
         psi_site_area = runif(1, -1, 1),
         mu_psi_open_developed = runif(1, -1, 1),
-
+        mu_psi_income = runif(1, -1, 1),
+        mu_psi_race = runif(1, -1, 1),
+        
         mu_p_cs_0 = runif(1, -1, 0),
         sigma_p_cs_site = runif(1, 0.5, 1),
         sigma_p_cs_level_three = runif(1, 0, 0.5),
         p_cs_interval = runif(1, 0, 1),
         p_cs_pop_density = runif(1, -1, 1),
-
+        
         mu_p_rc_0 = runif(1, -0.5, 0.5),
         sigma_p_rc_site = runif(1, 0, 0.5),
         sigma_p_rc_level_three = runif(1, 0, 0.5)
@@ -597,20 +601,21 @@ if(taxon == "bombus"){
                    "ranges", 
                    "n_species", "n_sites", "n_intervals", "n_visits", 
                    "intervals", "species", "sites",
-                   "n_genera", "genus_lookup",
                    "n_level_three", 
                    "level_three_lookup", 
                    "n_level_four",
                    "level_four_lookup",
                    "pop_densities", "site_areas", 
                    "nativity",
-                   "natural_habitat",
-                   "avg_income",
-                   "open_developed"
+                   "avg_income", "avg_racial_minority",
+                   "open_developed", "natural_habitat"
                    ) 
     
     # Parameters monitored
-    params <- c(
+    params <- c("sigma_species_detection",
+                "species_intercepts_detection",
+                "rho",
+                
                 "mu_psi_0",
                 "sigma_psi_species",
                 "sigma_psi_site",
@@ -622,41 +627,37 @@ if(taxon == "bombus"){
                 "gamma1",
                 "psi_site_area",
                 "mu_psi_income",
+                "mu_psi_race",
                 "mu_psi_open_developed",
                 
                 "mu_p_cs_0",
-                "sigma_p_cs_species",
                 "sigma_p_cs_site",
                 "sigma_p_cs_level_three",
-                #"sigma_p_cs_level_four",
                 "p_cs_interval",
-                "p_cs_pop_density", 
+                "p_cs_pop_density",
+                "p_cs_income",
                 
                 "psi_species",
                 "psi_natural_habitat",
                 
                 "psi_site",
-                "psi_level_three", # track city/fine-ecoregion effects
-                #"psi_level_four", # track broad eco effects
                 
-                #"T_rep_cs",
-                #"T_obs_cs",
-                "P_species_cs",
+                "W_species_rep_cs",
+                "W_species_rep_rc",
                 
                 "mu_psi_natural_habitat_native",
                 "mu_psi_natural_habitat_nonnative",
                 "mu_psi_natural_habitat_all_species"
     )
     
-    
     # MCMC settings
-    n_iterations <- 2000
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 500
-    n_chains <- 8
-    n_cores <- 8
+    n_burnin <- 150
+    n_chains <- 4
+    n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.97
+    delta = 0.9
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -682,9 +683,13 @@ if(taxon == "bombus"){
             sigma_p_cs_species = runif(1, 0, 1),
             sigma_p_cs_site = runif(1, 1, 1.25),
             sigma_p_cs_level_three = runif(1, 0.75, 1),
-            sigma_p_cs_level_four = runif(1, 0.75, 1),
+            #sigma_p_cs_level_four = runif(1, 0.75, 1),
             p_cs_interval = runif(1, 0.5, 0.6),
-            p_cs_pop_density = runif(1, 0.4, 0.6)
+            p_cs_pop_density = runif(1, 0.4, 0.6),
+            
+            mu_p_rc_0 = runif(1, -0.5, 0.5),
+            sigma_p_rc_site = runif(1, 0, 0.5),
+            sigma_p_rc_level_three = runif(1, 0, 0.5)
            
       )
     )
@@ -876,28 +881,29 @@ if(taxon == "syrphidae"){
     "sigma_species_detection[2]", 
     "mu_psi_0",
     "sigma_psi_site",
-    "sigma_psi_level_three",
-    "sigma_psi_level_four",
-    "mu_psi_income",
+    #"sigma_psi_level_three",
+    #"sigma_psi_level_four",
     #"sigma_psi_income",
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
     "mu_psi_open_developed",
+    "mu_psi_income",
+    "mu_psi_race",
     #"sigma_psi_open_developed",
     "psi_site_area",
     
     "mu_p_cs_0",
     #"sigma_p_cs_species",
     "sigma_p_cs_site",
-    "sigma_p_cs_level_three",
+    #"sigma_p_cs_level_three",
     "p_cs_interval",
     "p_cs_pop_density", 
     "p_cs_income",
     
     "mu_p_rc_0",
     #"sigma_p_rc_species",
-    "sigma_p_rc_site",
-    "sigma_p_rc_level_three"
+    "sigma_p_rc_site"
+    #"sigma_p_rc_level_three"
   ))
 }
 

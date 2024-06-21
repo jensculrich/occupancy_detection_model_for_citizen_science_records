@@ -43,7 +43,7 @@ start = 1 # which species to start at (hard to see them all at once)
 # start at 1, 37, and 73 is pretty good for visualization
 n = 32 # how many species to plot (36 is a good number to look at the species in 3 slices)
 
-stan_fit_first_W <- 663 # this changes depending on how many params you tracked
+stan_fit_first_W <- 610 # this changes depending on how many params you tracked
 
 df_estimates <- data.frame(X = numeric(), 
                            Y = numeric(), 
@@ -128,7 +128,7 @@ start = 1 # which species to start at (hard to see them all at once)
 # start at 1, 37, and 73 is pretty good for visualization
 n = 32 # how many species to plot (36 is a good number to look at the species in 3 slices)
 
-stan_fit_first_W <- 695 # this changes depending on how many params you tracked
+stan_fit_first_W <- 642 # this changes depending on how many params you tracked
 
 df_estimates <- data.frame(X = numeric(), 
                            Y = numeric(), 
