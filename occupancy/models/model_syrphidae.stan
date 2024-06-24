@@ -272,7 +272,7 @@ model {
   
   // correlated species effects
   sigma_species_detection[1] ~ normal(0, 2);
-  sigma_species_detection[2] ~ normal(0, 2);
+  sigma_species_detection[2] ~ normal(0, 0.5);
   (rho + 1) / 2 ~ beta(2, 2);
   
   // correlated species-specific detection rates
@@ -284,7 +284,7 @@ model {
   mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
   
     // species intercept effects
-  psi_species ~ std_normal();
+  psi_species_raw ~ std_normal();
   //psi_species ~ normal(0, sigma_psi_species); 
   sigma_psi_species ~ normal(0, 1); // weakly-informative prior
   
@@ -303,7 +303,7 @@ model {
   // with intercept delta0 and an effect of nativity (delta1) on community mean
   // and intercept gamma0 and an effect of nativity (gamma1) on variation
   delta0 ~ normal(0, 2); // community mean
-  delta1 ~ normal(0, 2); // effect of nativity
+  delta1 ~ normal(0, 1); // effect of nativity
   gamma0 ~ normal(0, 1); // community mean variance
   gamma1 ~ normal(0, 0.25); // effect of nativity on variance
   

@@ -379,6 +379,7 @@ if(taxon == "bombus"){
     #n_cores <- parallel::detectCores()
     n_cores <- 4
     delta = 0.95
+    max_treedepth = 10
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -637,6 +638,10 @@ if(taxon == "bombus"){
                 "p_cs_pop_density",
                 "p_cs_income",
                 
+                "mu_p_rc_0",
+                "sigma_p_rc_site",
+                "sigma_p_rc_level_three",
+                
                 "psi_species",
                 "psi_natural_habitat",
                 
@@ -657,7 +662,8 @@ if(taxon == "bombus"){
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
-    delta = 0.9
+    delta = 0.95
+    max_treedepth = 12
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -814,7 +820,7 @@ stan_out <- stan(stan_model,
                  pars = params,
                  chains = n_chains, iter = n_iterations, 
                  warmup = n_burnin, thin = n_thin,
-                 control=list(adapt_delta=delta),
+                 control=list(adapt_delta=delta, max_treedepth=max_treedepth),
                  seed = 3,
                  open_progress = FALSE,
                  cores = n_cores)
@@ -849,6 +855,10 @@ stan_out <- readRDS("./occupancy/model_outputs/bombus/by_city/bombus_10km_1200mi
 # for urban sites
 if(taxon == "syrphidae"){
   print(stan_out, digits = 3, pars = c(
+    "rho", 
+    "sigma_species_detection[1]",
+    "sigma_species_detection[2]", 
+    
     "mu_psi_0",
     "sigma_psi_species",
     "sigma_psi_site",
@@ -860,6 +870,7 @@ if(taxon == "syrphidae"){
     "gamma1",
     "psi_site_area",
     "mu_psi_income",
+    "mu_psi_race",
     "mu_psi_open_developed",
     #"sigma_psi_open_developed",
     "mu_psi_natural_habitat_native",
@@ -867,12 +878,17 @@ if(taxon == "syrphidae"){
     "mu_psi_natural_habitat_all_species",
     
     "mu_p_cs_0",
-    "sigma_p_cs_species",
+    #"sigma_p_cs_species",
     "sigma_p_cs_site",
     "sigma_p_cs_level_three",
     #"sigma_p_cs_level_four",
     "p_cs_interval",
-    "p_cs_pop_density"
+    "p_cs_pop_density",
+    "p_cs_income",
+    
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three"
   ))
 } else {
   print(stan_out, digits = 3, pars = c(
@@ -983,16 +999,20 @@ if(taxon == "syrphidae"){
     "gamma1",
     "psi_site_area",
     "mu_psi_income",
+    "mu_psi_race",
     "mu_psi_open_developed"
   ))
   traceplot(stan_out, pars = c(
     "mu_p_cs_0",
     "p_cs_interval",
     "p_cs_pop_density",
-    "sigma_p_cs_species",
+    #"sigma_p_cs_species",
     "sigma_p_cs_site",
-    "sigma_p_cs_level_three"#,
-    #"sigma_p_cs_level_four"
+    "sigma_p_cs_level_three",
+    #"sigma_p_cs_level_four",
+    "mu_p_rc_0",
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three"
   ))
   traceplot(stan_out, pars=
               c("mu_psi_natural_habitat_native",
