@@ -256,8 +256,8 @@ get_spatial_data <- function(
   race_data <- race_data %>%
     rename("census_tract" = "GEO_ID") %>%
     dplyr::select(census_tract, DP1_0078P) %>%
-    slice(55:nrow(race_data)) %>%
-    mutate(DP1_0078P = as.numeric(DP1_0078P)) %>%
+    slice(55:nrow(race_data)) %>% # first rows are states
+    mutate(DP1_0078P = as.numeric(DP1_0078P)) %>% # DP1_0078 == Percentage of the population id'd as white, no other race
     filter(!is.na(DP1_0078P))
   
   race_data <- race_data %>%
@@ -285,7 +285,7 @@ get_spatial_data <- function(
     # ignore the NA's which indicate block group areas where no one / very few people live
     # in urban landscapes these are typically airports, military zones, or low density farmland blocks 
     mutate(avg_income = mean(relative_AMR8E001, na.rm = TRUE)) %>%
-    mutate(minority = (1 - DP1_0078P)) %>%
+    mutate(minority = (100 - DP1_0078P)) %>%
     mutate(avg_minority = mean(minority, na.rm = TRUE)) %>%
     slice(1) %>%
     ungroup() %>%
@@ -301,6 +301,14 @@ get_spatial_data <- function(
            scaled_avg_minority = center_scale(avg_minority))
   
   gc()
+  
+  # view the grid on the polygons
+  ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_minority), lwd = 0.05) +
+  coord_sf(datum = NA)  +
+  labs(x = "") +
+  labs(y = "") 
   
   ## --------------------------------------------------
   # Extract environmental variables from each remaining site

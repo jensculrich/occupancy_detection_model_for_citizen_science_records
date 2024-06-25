@@ -122,7 +122,8 @@ parameters {
   real p_cs_interval; // fixed temporal effect on cs detection probability
   real p_cs_pop_density; // fixed effect of population on cs detection probability
   real p_cs_income; // fixed effect of income on cs detection probability
- 
+  real p_cs_race; // fixed effect of race on cs detection probability
+
   // research collections records observation process
   real mu_p_rc_0; // global detection intercept for research collections records
   
@@ -250,7 +251,8 @@ transformed parameters {
             p_cs_site[sites[j]] + // a spatially specific intercept
             p_cs_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_cs_pop_density*pop_densities[j] + // an overall effect of pop density on detection
-            p_cs_income*avg_income[j] // an overall effect of income on detection
+            p_cs_income*avg_racial_minority[j] + // an overall effect of income on detection
+            p_cs_race*avg_minority[j]
            ; // end p_cs[i,j,k]
 
           logit_p_rc[i,j,k] = // the inverse of the log odds of detection is equal to..
@@ -272,7 +274,7 @@ model {
   
   // correlated species effects
   sigma_species_detection[1] ~ normal(0, 2);
-  sigma_species_detection[2] ~ normal(0, 0.5);
+  sigma_species_detection[2] ~ normal(0, 1);
   (rho + 1) / 2 ~ beta(2, 2);
   
   // correlated species-specific detection rates
@@ -325,12 +327,12 @@ model {
   
   // a temporal effect on detection probability
   p_cs_interval ~ normal(0, 2); 
-  
   // a population effect on detection probability
   p_cs_pop_density ~ normal(0, 2);
-  
   // an income effect on detection probability
   p_cs_income ~ normal(0, 2);
+  // an income effect on detection probability
+  p_cs_race ~ normal(0, 2);
   
   // museum records
   
@@ -366,6 +368,7 @@ model {
              // lp_observed:
              target += log_inv_logit(logit_psi[i,j,k]) +
                       binomial_logit_lpmf(sum(V_cs[i,j,k,1:n_visits]) | n_visits, logit_p_cs[i,j,k]); 
+                      binomial_logit_lpmf(sum(V_rc[i,j,k,1:n_visits]) | sum(V_rc_NA[i,j,k,1:n_visits]), logit_p_rc[i,j,k]);
 
           // else the species was never detected at the site*interval
           // lp_unobserved sums the probability density of:
@@ -379,7 +382,8 @@ model {
             target += 
                     // present but never detected
                     log_sum_exp(log_inv_logit(logit_psi[i,j,k]) +
-                    binomial_logit_lpmf(0 | n_visits, logit_p_cs[i,j,k]),
+                    binomial_logit_lpmf(0 | n_visits, logit_p_cs[i,j,k]) +
+                    binomial_logit_lpmf(0 | sum(V_rc_NA[i,j,k,1:n_visits]), logit_p_rc[i,j,k]),
                     // not present
                     log1m_inv_logit(logit_psi[i,j,k])); 
             

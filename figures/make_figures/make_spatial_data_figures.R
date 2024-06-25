@@ -64,18 +64,18 @@ grid <- st_make_grid(states_trans, cellsize = c(grid_size, grid_size)) %>%
   st_sf(grid_id = 1:length(.))
 
 # create labels for each grid_id
-grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
+#grid_lab <- st_centroid(grid) %>% cbind(st_coordinates(.))
 
 # view the grid on the polygons
-ggplot() +
-  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
+#ggplot() +
+  #geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  #geom_sf(data = grid, fill = 'transparent', lwd = 0.3) +
   # geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
-  coord_sf(datum = NA)  +
-  labs(x = "") +
-  labs(y = "") +
-  theme(legend.position="none") + 
-  ggtitle("")
+  #coord_sf(datum = NA)  +
+  #labs(x = "") +
+  #labs(y = "") +
+  #theme(legend.position="none") + 
+  #ggtitle("")
 
 
 ## --------------------------------------------------
@@ -116,6 +116,7 @@ grid_pop_dens <- cbind(grid, r.vals) %>%
 grid_pop_dens <- grid_pop_dens %>%
   filter(pop_density_per_km2 > min_population_size) 
 
+rm(grid)
 gc()
 
 ## --------------------------------------------------
@@ -140,6 +141,26 @@ CBSA_lookup <- as.numeric(as.factor(CBSA_names))
 n_CBSA <- unique(CBSA_lookup) %>%
   length()
 
+CBSA_temp <- CBSA %>% 
+  filter(LSAD == "M1") %>%
+  filter(!str_detect(NAME, "AK")) %>%
+  filter(!str_detect(NAME, "HI")) %>%
+  filter(!str_detect(NAME, "PR"))
+         
+prj1 <- st_transform(CBSA_temp, crs) 
+
+# view the grid on the polygons
+ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = prj1, fill = 'grey', alpha = 0.3, lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, fill = 'transparent', lwd = 0.3) +
+  # geom_text(data = grid_lab, aes(x = X, y = Y, label = grid_id), size = 2) +
+  coord_sf(datum = NA)  +
+  labs(x = "") +
+  labs(y = "") +
+  theme(legend.position="none") + 
+  ggtitle("")
+
 ## --------------------------------------------------
 # Try extracting median household income from each block
 
@@ -148,30 +169,83 @@ n_CBSA <- unique(CBSA_lookup) %>%
 # B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
 #https://data2.nhgis.org/main
 # Typically, Block Groups have a population of 600 to 3,000 people.
+# census block-group income data
+# 2020 income data 
+# B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
+#https://data2.nhgis.org/main
+# Typically, Block Groups have a population of 600 to 3,000 people.
+# spatial format identifying where block groups are located
 income=st_read("./data/spatial_data/socioeconomic_data/US_blck_grp_2020.shp")
 gc()
+# table format data indicating the income in block groups
 income_data <- read.csv("./data/spatial_data/socioeconomic_data/nhgis0001_ds249_20205_blck_grp.csv")
 
 # calculate median household income RELATIVE to 
 # median household income for the state, 
-# i.e., $80,000 might be really high for WV but relatively low for CA.
+# i.e., $80,000 might translate to high purchasing power in Indiana but not necessarily in California
 income_data <- income_data %>%
   group_by(STATE) %>%
   mutate(mean_state_AMR8E001 = mean(AMR8E001, na.rm=TRUE)) %>%
   ungroup() %>%
   mutate(relative_AMR8E001 = AMR8E001 / mean_state_AMR8E001) %>%
-  dplyr::select(GISJOIN, relative_AMR8E001)
+  dplyr::select(GISJOIN, GEOID, relative_AMR8E001)
 
+income_data <- income_data %>%
+  mutate(census_tract = str_sub(GEOID, 6, -2)) 
+
+# table format data indicating the income in block groups
+race_data <- read.csv("./data/spatial_data/DECENNIALDP2020.DP1_2024-06-19T183658/DECENNIALDP2020.DP1-Data.csv")
+
+race_data <- race_data %>%
+  rename("census_tract" = "GEO_ID") %>%
+  dplyr::select(census_tract, DP1_0078P) %>%
+  slice(55:nrow(race_data)) %>%
+  mutate(DP1_0078P = 100 - as.numeric(DP1_0078P)) %>%
+  filter(!is.na(DP1_0078P))
+
+race_data <- race_data %>%
+  mutate(census_tract = str_sub(census_tract, 8))
+
+income_data <- left_join(income_data, race_data, by = c("census_tract"))
+
+# join table data with spatial data
 income <- left_join(income, income_data, by="GISJOIN")
-rm(income_data)
+
 gc()
 
 # transform state shapefile to crs
 income_trans <- st_transform(income, crs) # albers equal area
+income_trans <- income_trans %>%
+  dplyr::select(GEOID.y, census_tract, relative_AMR8E001, DP1_0078P, STATEFP, COUNTYFP)
+
+# join income data with spatial file holding population density data
+grid_pop_dens <- st_join(grid_pop_dens, income_trans)
+
+# we will take the average household income across all block groups 
+# that intersect each grid cell
+grid_pop_dens <- grid_pop_dens %>%
+  group_by(grid_id) %>%
+  # ignore the NA's which indicate block group areas where no one / very few people live
+  # in urban landscapes these are typically airports, military zones, or low density farmland blocks 
+  mutate(avg_income = mean(relative_AMR8E001, na.rm = TRUE)) %>%
+  mutate(minority = (100 - DP1_0078P)) %>%
+  mutate(avg_minority = mean(minority, na.rm = TRUE)) %>%
+  slice(1) %>%
+  ungroup() %>%
+  dplyr::select(grid_id, pop_density_per_km2, 
+                avg_income, avg_minority) %>%
+  filter(!is.na(avg_income),
+         !is.na(avg_minority)) %>%
+  # scale the variable
+  mutate(
+         scaled_avg_income = center_scale(avg_income),
+         scaled_avg_minority = center_scale(avg_minority))
+
 
 # Sacramento county, california
 filtered <- income_trans %>%
-  filter(STATEFP == "06" & COUNTYFP == "067")
+  filter(STATEFP == "06" & COUNTYFP == "067") %>%
+  mutate(racial_minorities = 100 - DP1_0078P)
 
 
 # Plot income by census block
@@ -187,6 +261,20 @@ income1 <- income1 +
   geom_sf(data = grid_pop_dens, fill = NA, color = "violetred4") +
   coord_sf(xlim = c(-2219577 , -2137015 ), ylim = c(1966995 , 2040501 ), expand = FALSE)
 
+# Plot racial minority percentage by census block
+income1 <- ggplot() + geom_sf(data = filtered, aes(fill = DP1_0078P)) +
+  scale_fill_gradient2(high = ("forestgreen"), 
+                       name="% of racial minorities\nin the population",
+                       limits=c(0,100)) +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") +
+  ggtitle("Proportion of racial minorities in Sacramento County, California\n(by census block group) ")
+extent(filtered)
+income1 <- income1 +
+  geom_sf(data = grid_pop_dens, fill = NA, color = "violetred4") +
+  coord_sf(xlim = c(-2219577 , -2137015 ), ylim = c(1966995 , 2040501 ), expand = FALSE)
+
+
 # Cook county, Illinois
 filtered2 <- income_trans %>%
   filter(STATEFP == "17" & COUNTYFP == "031")
@@ -199,6 +287,19 @@ income2 <- ggplot() + geom_sf(data = filtered2, aes(fill = relative_AMR8E001)) +
   labs(x = "Longitude") +
   labs(y = "Latitude") +
   ggtitle("Median household income in Cook County, Illinois,\nrelative to median household income in Illinois \n(by census block group) ")
+extent(filtered2)
+income2 <- income2 +
+  geom_sf(data = grid_pop_dens, fill = NA, color = "violetred4") +
+  coord_sf(xlim = c(635130.2  ,701503.4  ), ylim = c(2080966  , 2157258 ), expand = FALSE)
+
+# Plot racial composition by census block
+income2 <- ggplot() + geom_sf(data = filtered2, aes(fill = DP1_0078P)) +
+  scale_fill_gradient2(high = ("forestgreen"), 
+                       name="% of racial minorities\nin the population",
+                       limits=c(0,100)) +
+  labs(x = "Longitude") +
+  labs(y = "Latitude") +
+  ggtitle("Proportion of racial minorities in Cook County, Illinois,\n(by census block group) ")
 extent(filtered2)
 income2 <- income2 +
   geom_sf(data = grid_pop_dens, fill = NA, color = "violetred4") +
@@ -667,6 +768,66 @@ ggdraw(main_map) +
     width = 0.55, 
     height = 0.55)
 
+##
+# scaled racial composition
+main_map <- ggplot() +
+  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_minority), lwd = 0.3) +
+  scale_fill_gradient2(name = expression("scaled minority composition"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(expand = FALSE) +
+  theme_void() +
+  theme(
+    # legend.justification defines the edge of the legend that the legend.position coordinates refer to
+    #legend.box.margin = margin(50,50,50,50),
+    legend.margin = margin(0, 12, 12, 12),
+    legend.justification = c("right", "bottom"),
+    legend.spacing.x = unit(0.5, "cm"),
+    legend.spacing.y = unit(0.5, "cm"),
+    legend.position = c(1, 0.01),
+    legend.title = element_text(size = 16),
+    legend.text = element_text(size = 14),
+    legend.background = element_rect(
+      fill="white",
+      size=1, linetype="solid", 
+      colour ="black")
+  ) 
+
+# get lims
+#layer_scales(main_population_map)$x$get_limits()
+#layer_scales(main_population_map)$y$get_limits()
+
+main_map <- main_map +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+ggdraw(main_map) +
+  draw_plot(
+    {
+      main_map + 
+        coord_sf(
+          xlim = c(-2150000 , -1350000), 
+          ylim = c(1000000, 1700000),
+          expand = FALSE) +
+        theme(legend.position = "none",
+              plot.background=element_rect(fill="white", color="white"))
+    },
+    # The distance along a (0,1) x-axis to draw the left edge of the plot
+    x = -0.075, 
+    # The distance along a (0,1) y-axis to draw the bottom edge of the plot
+    y = 0.01,
+    # The width and height of the plot expressed as proportion of the entire ggdraw object
+    width = 0.55, 
+    height = 0.55)
+
+
 
 ##
 # scaled natural habitat area
@@ -790,7 +951,7 @@ inset1 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("scaled natural habitat area"),
+  scale_fill_gradient2(name = expression("natural greenspace (scaled)"),
                        low="firebrick3", high="dodgerblue3") +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
@@ -817,7 +978,7 @@ inset2 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("scaled relative income"),
+  scale_fill_gradient2(name = expression("household income (scaled)"),
                        low="firebrick3", high="dodgerblue3") +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
@@ -844,7 +1005,34 @@ inset3 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("scaled developed greenspace"),
+  scale_fill_gradient2(name = expression("developed greenspace (scaled)"),
+                       low="firebrick3", high="dodgerblue3") +
+  coord_sf(
+    xlim = c(-2150000 , -1350000), 
+    ylim = c(1000000, 1700000),
+    expand = FALSE
+  ) +
+  geom_rect(aes(
+    xmin = -2150000,
+    ymin = 1000000,
+    xmax = -1350000,
+    ymax = 1700000),
+    fill = NA, 
+    colour = "black",
+    size = 1
+  )
+
+inset4 <- main_map +
+  geom_sf(data = grid_pop_dens, 
+          aes(fill = scaled_avg_minority), 
+          lwd = 0.3,
+          #fill = "grey20",
+          alpha = 0.8
+  ) +
+  geom_sf(data = prj_city_df, size = 8, 
+          shape = 1, fill = "black", alpha = 0.9) +
+  geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
+  scale_fill_gradient2(name = expression("% minorities (scaled)"),
                        low="firebrick3", high="dodgerblue3") +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
@@ -873,13 +1061,13 @@ main_map <- main_map +
     size = 1
   )
 
-plot_grid(inset1, NULL, inset2, 
+plot_grid(inset1, NULL, inset3, 
           #labels = c('b)', "", 'c)'),
           #label_size = 20,
           nrow=1,
           rel_widths = c(1,0.05,1))
 
-plot_grid(inset1, NULL, inset3, 
+plot_grid(inset2, NULL, inset4, 
           #labels = c('b)', "", 'c)'),
           #label_size = 20,
           nrow=1,

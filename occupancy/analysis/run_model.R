@@ -357,6 +357,7 @@ if(taxon == "bombus"){
                 "p_cs_interval",
                 "p_cs_pop_density",
                 "p_cs_income",
+                "p_cs_race",
                 
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
@@ -637,6 +638,7 @@ if(taxon == "bombus"){
                 "p_cs_interval",
                 "p_cs_pop_density",
                 "p_cs_income",
+                "p_cs_race",
                 
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
@@ -810,7 +812,7 @@ if(use_reparameterized_rand_effects_model == TRUE){
 }
 
 # or manually enter a model name
-#stan_model <- paste0("./occupancy/models/model_", taxon, "_no_open_developed.stan")
+stan_model <- paste0("./occupancy/models/model_", taxon, "_fully_integrated.stan")
 
 ## Call Stan from R
 set.seed(1)
