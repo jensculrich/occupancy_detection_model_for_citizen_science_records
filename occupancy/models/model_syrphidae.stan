@@ -251,8 +251,8 @@ transformed parameters {
             p_cs_site[sites[j]] + // a spatially specific intercept
             p_cs_interval*(intervals[k]^2) + // an overall effect of time on detection
             p_cs_pop_density*pop_densities[j] + // an overall effect of pop density on detection
-            p_cs_income*avg_racial_minority[j] + // an overall effect of income on detection
-            p_cs_race*avg_minority[j]
+            p_cs_income*avg_income[j] + // an overall effect of income on detection
+            p_cs_race*avg_racial_minority[j]
            ; // end p_cs[i,j,k]
 
           logit_p_rc[i,j,k] = // the inverse of the log odds of detection is equal to..
@@ -274,7 +274,7 @@ model {
   
   // correlated species effects
   sigma_species_detection[1] ~ normal(0, 2);
-  sigma_species_detection[2] ~ normal(0, 1);
+  sigma_species_detection[2] ~ normal(0, 2);
   (rho + 1) / 2 ~ beta(2, 2);
   
   // correlated species-specific detection rates
@@ -288,7 +288,7 @@ model {
     // species intercept effects
   psi_species_raw ~ std_normal();
   //psi_species ~ normal(0, sigma_psi_species); 
-  sigma_psi_species ~ normal(0, 1); // weakly-informative prior
+  sigma_psi_species ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 spatial grouping
   psi_site_raw ~ std_normal();
@@ -316,7 +316,7 @@ model {
   
   // community science records
   
-  mu_p_cs_0 ~ normal(0, 2); // global intercept for detection
+  mu_p_cs_0 ~ normal(0, 1); // global intercept for detection
   
   // level-2 spatial grouping
   p_cs_site_raw ~ std_normal();
@@ -367,7 +367,7 @@ model {
             
              // lp_observed:
              target += log_inv_logit(logit_psi[i,j,k]) +
-                      binomial_logit_lpmf(sum(V_cs[i,j,k,1:n_visits]) | n_visits, logit_p_cs[i,j,k]); 
+                      binomial_logit_lpmf(sum(V_cs[i,j,k,1:n_visits]) | n_visits, logit_p_cs[i,j,k]) + 
                       binomial_logit_lpmf(sum(V_rc[i,j,k,1:n_visits]) | sum(V_rc_NA[i,j,k,1:n_visits]), logit_p_rc[i,j,k]);
 
           // else the species was never detected at the site*interval

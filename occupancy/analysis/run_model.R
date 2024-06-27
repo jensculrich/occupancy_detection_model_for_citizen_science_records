@@ -665,7 +665,7 @@ if(taxon == "bombus"){
     n_cores <- 4
     #n_cores <- parallel::detectCores()
     delta = 0.95
-    max_treedepth = 12
+    max_treedepth = 10
     
     ## Initial values
     # given the number of parameters, the chains need some decent initial values
@@ -812,7 +812,7 @@ if(use_reparameterized_rand_effects_model == TRUE){
 }
 
 # or manually enter a model name
-stan_model <- paste0("./occupancy/models/model_", taxon, "_fully_integrated.stan")
+# stan_model <- paste0("./occupancy/models/model_", taxon, "_fully_integrated.stan")
 
 ## Call Stan from R
 set.seed(1)
@@ -848,9 +848,9 @@ stan_out <- readRDS(paste0(
 )
 
 # read in a model ouput manually
-#stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits_.rds")
 #stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
-stan_out <- readRDS("./occupancy/model_outputs/bombus/by_city/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.RDS")
+#stan_out <- readRDS("./occupancy/model_outputs/bombus/by_city/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.RDS")
 
 # print main effects
 # print results
@@ -887,6 +887,7 @@ if(taxon == "syrphidae"){
     "p_cs_interval",
     "p_cs_pop_density",
     "p_cs_income",
+    "p_cs_race",
     
     "mu_p_rc_0",
     "sigma_p_rc_site",
@@ -977,7 +978,7 @@ print(stan_out, digits = 3, pars = c(
 
 # print some specific parameter if desired
 print(stan_out, digits = 3, pars=
-        c("psi_site"))
+        c("W_species_rep_rc"))
 
 View(as.data.frame(rstan::summary(stan_out)))
 
