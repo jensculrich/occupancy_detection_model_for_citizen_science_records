@@ -19,8 +19,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 2 # species must have more detections at more site/years than this (so 2 == 3 or more unique detections)
 # within the time span defined above
-grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 600 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -61,8 +61,8 @@ n_visits = 3 # must define the number of repeat obs years within each interval
 min_records_per_species = 5 # filters species with less than this many records (total between both datasets)..
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
-grid_size = 25000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 600 # min pop density in the grid cell (per km^2)
+grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
+min_population_size = 1000 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -361,7 +361,7 @@ if(taxon == "bombus"){
                 
                 "mu_p_rc_0",
                 "sigma_p_rc_site",
-                "sigma_p_cs_level_three",
+                "sigma_p_rc_level_three",
                 
                 "psi_species",
                 "psi_natural_habitat",
@@ -658,9 +658,9 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 300
+    n_iterations <- 4000
     n_thin <- 1
-    n_burnin <- 150
+    n_burnin <- 2000
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -921,8 +921,8 @@ if(taxon == "syrphidae"){
     
     "mu_p_rc_0",
     #"sigma_p_rc_species",
-    "sigma_p_rc_site"
-    #"sigma_p_rc_level_three"
+    "sigma_p_rc_site",
+    "sigma_p_rc_level_three"
   ))
 }
 
@@ -995,7 +995,7 @@ if(taxon == "syrphidae"){
     "sigma_psi_species",
     "sigma_psi_site",
     "sigma_psi_level_three",
-    #"sigma_psi_level_four",
+    "sigma_psi_level_four",
     "delta0",
     "delta1",
     "gamma0",
@@ -1006,6 +1006,8 @@ if(taxon == "syrphidae"){
     "mu_psi_open_developed"
   ))
   traceplot(stan_out, pars = c(
+    "rho",
+    "sigma_species_detection",
     "mu_p_cs_0",
     "p_cs_interval",
     "p_cs_pop_density",
@@ -1111,11 +1113,11 @@ pairs(stan_out, pars = c(
   
   "mu_p_cs_0",
   #"sigma_p_citsci_species",
-  "sigma_p_cs_site"
+  "sigma_p_cs_site",
   #"p_cs_interval",
   #"p_citsci_pop_density", 
   
-  #"mu_p_rc_0"
+  "mu_p_rc_0"
   #"sigma_p_rc_site",
   #"sigma_p_rc_level_three"
   #"sigma_p_museum_species",
