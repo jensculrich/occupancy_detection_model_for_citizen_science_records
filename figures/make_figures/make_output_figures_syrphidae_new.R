@@ -6,7 +6,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits_.rds")
 species_names <- readRDS("./figures/species_names/syrphidae_names_10km_urban.RDS")
 nativity <- readRDS("./figures/species_names/syrphidae_nativity_10km_urban.RDS")
 
@@ -70,9 +70,9 @@ estimate <- c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,1], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[18:158,1]),
+  rev(fit_summary$summary[309:449,1]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[159:299,1])#,
+  rev(fit_summary$summary[450:590,1])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -83,9 +83,9 @@ lower <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,4], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[18:158,4]),
+  rev(fit_summary$summary[309:449,4]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[159:299,4])#,
+  rev(fit_summary$summary[450:590,4])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -96,9 +96,9 @@ upper <-  c(
   # param 1 (psi_species_rangewide)
   #temp[14:154,8], 
   # param 1 (psi_species)
-  rev(fit_summary$summary[18:158,8]),
+  rev(fit_summary$summary[309:449,8]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[159:299,8])#,
+  rev(fit_summary$summary[450:590,8])#,
   # param 3 (Freeman Tukey P cit sci)
   #fit_summary$summary[253:367,1], 
   # param 4 (Freeman Tukey P museum)
@@ -439,7 +439,7 @@ p1 <- ggplot(top_and_bottom, aes(x, y, width=1, height=1)) +
         #legend.text=element_text(size=14),
         #legend.title=element_text(size=16),
         axis.text.x = element_text(size = 16, angle = 45, hjust=1),
-        axis.text.y = element_text(size = 11),
+        axis.text.y = element_text(size = 11, face="italic"),
         axis.title.x = element_text(size = 12),
         axis.title.y = element_text(size = 12),
         plot.title = element_text(size = 12),
@@ -460,10 +460,10 @@ rows <- temp %>%
 p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   geom_tile(aes(fill = estimate)) +
   theme_bw() +
-  scale_x_discrete(name="", breaks = c(1),
+  scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
                      #bquote(psi[species])
-                     bquote(psi["nat. habitat"]~"[species]")
+                     bquote(psi[italic("nat. green."~"[species]")])
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])
                    )) +
@@ -485,7 +485,7 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
         #legend.text=element_text(size=14),
         #legend.title=element_text(size=16),
         axis.text.x = element_text(size = 16, angle = 45, hjust=1),
-        axis.text.y = element_text(size = 12),
+        axis.text.y = element_text(size = 12, face = "italic"),
         axis.title.x = element_text(size = 12),
         axis.title.y = element_text(size = 12),
         plot.title = element_text(size = 12),
@@ -549,9 +549,9 @@ list_of_draws <- as.data.frame(stan_out)
 
 # 95% conf int
 plot(NA, xlim=c(-3,3), ylim=c(0,1))
-curve(ilogit(fit_summary$summary[945,1]*x), add=TRUE, col = "blue", lwd = 3)
-curve(ilogit(fit_summary$summary[945,4]*x), add=TRUE)
-curve(ilogit(fit_summary$summary[945,8]*x), add=TRUE)
+curve(ilogit(fit_summary$summary[1335,1]*x), add=TRUE, col = "blue", lwd = 3)
+curve(ilogit(fit_summary$summary[1335,4]*x), add=TRUE, col = "black", lwd = 3, lty="dashed")
+curve(ilogit(fit_summary$summary[1335,8]*x), add=TRUE, col = "black", lwd = 3, lty="dashed")
 
 ## --------------------------------------------------
 ## Natural habitat
@@ -562,44 +562,74 @@ params <- matrix(nrow = n_lines, ncol = 1)
 
 for(i in 1:n_lines){
   row <- sample(1:nrow(list_of_draws), 1)
-  params[i,1] <- list_of_draws[row,945]
+  params[i,1] <- list_of_draws[row,1335]
 }
 
-plot(NA, xlim=c(-3,3), ylim=c(0,1),
-     xlab = "Natural habitat area (scaled)",
-     ylab = "Pr(Occurrence (native hoverlfy species))")
+library(scales)
+percs <- runif(100)
+yticks_val <- pretty_breaks(n=5)(percs)
+
+plot(NA, xlim=c(-2,2), ylim=c(0,1),
+     xlab = "Natural greenspace area (scaled)",
+     ylab = "Pr(Occurrence (native hoverlfy species))", yaxt="n")
+axis(2, at=yticks_val, lab=percent(yticks_val))
 
 for(i in 1:n_lines){
   curve(ilogit(
-    fit_summary$summary[1,1] + # intercept
-      fit_summary$summary[9,1] + # site area 
-      fit_summary$summary[10,1] + # mean income effect  
+    fit_summary$summary[286,1] + # intercept
+      fit_summary$summary[295,1] + # site area 
+      fit_summary$summary[298,1] + # mean dev open
+      fit_summary$summary[296,1] + # mean income effect  
+      fit_summary$summary[297,1] + # mean racial composition effect  
       params[i,1]*x), 
     add=TRUE, col = "lightgrey", lwd = 1)
 }
 
 
 curve(ilogit(
-  fit_summary$summary[1,1] + # intercept
-    # should add non-centered random effects
-    fit_summary$summary[9,1] + # site area 
-    fit_summary$summary[10,1] + # mean income effect 
-    fit_summary$summary[945,1]*x), 
+  fit_summary$summary[286,1] + # intercept
+    fit_summary$summary[295,1] + # site area 
+    fit_summary$summary[298,1] + # mean dev open
+    fit_summary$summary[296,1] + # mean income effect  
+    fit_summary$summary[297,1] + # mean racial composition effect  
+    fit_summary$summary[1335,1]*x), 
   add=TRUE, col = "blue", lwd = 3)
 
 low <- ilogit(
-    fit_summary$summary[1,1] + # intercept
-    # should add non-centered random effects
-    fit_summary$summary[9,1] + # site area 
-    fit_summary$summary[10,1] + # mean income effect 
-    (fit_summary$summary[945,1]*-2))
+  fit_summary$summary[286,1] + # intercept
+    fit_summary$summary[295,1] + # site area 
+    fit_summary$summary[298,1] + # mean dev open
+    fit_summary$summary[296,1] + # mean income effect  
+    fit_summary$summary[297,1] + # mean racial composition effect  
+    (fit_summary$summary[1335,1]*-2))
 
 high <- ilogit(
-  fit_summary$summary[1,1] + # intercept
-    # should add non-centered random effects
-    fit_summary$summary[9,1] + # site area 
-    fit_summary$summary[10,1] + # mean income effect 
-    (fit_summary$summary[945,1]*2))
+  fit_summary$summary[286,1] + # intercept
+    fit_summary$summary[295,1] + # site area 
+    fit_summary$summary[298,1] + # mean dev open
+    fit_summary$summary[296,1] + # mean income effect  
+    fit_summary$summary[297,1] + # mean racial composition effect 
+    (fit_summary$summary[1335,1]*2))
+
+for(i in 1:n_lines){
+  curve(ilogit(
+    fit_summary$summary[286,1] + # intercept
+      params[i,1]*x), 
+    add=TRUE, col = "lightgrey", lwd = 1)
+}
+
+curve(ilogit(
+  fit_summary$summary[286,1] + # intercept
+    fit_summary$summary[1335,1]*x), 
+  add=TRUE, col = "blue", lwd = 3)
+
+low <- ilogit(
+  fit_summary$summary[286,1] + # intercept  
+    (fit_summary$summary[1335,1]*-2))
+
+high <- ilogit(
+  fit_summary$summary[286,1] + # intercept
+    (fit_summary$summary[1335,1]*2))
 
 ## --------------------------------------------------
 ## income
