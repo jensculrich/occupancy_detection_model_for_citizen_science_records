@@ -224,7 +224,7 @@ for(i in 1:5){
     theme_bw() +
     scale_x_discrete(name="", breaks = c(2),
                      labels=c(#bquote(psi[species - range]),
-                       bquote(psi["nat. habitat"]~"[species]")
+                       bquote(psi["nat. green."]~"[species]")
                        #bquote(psi[species["nat. habitat"]])
                        #bquote(FTP[citsci]),
                        #bquote(FTP[museum])
@@ -364,6 +364,8 @@ for(i in 1:5){
   
 
   plot_grid(p1.1, p1.3, p3, p2, nrow = 1, align = "h", axis = "bt", rel_widths = c(1, 0.5, 0.3, 0.3))
+  
+  plot_grid(p1.2, p3, nrow = 1, align = "h", axis = "bt", rel_widths = c(1, 0.5, 0.3, 0.3))
   
 }
 

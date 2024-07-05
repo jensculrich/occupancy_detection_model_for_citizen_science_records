@@ -20,7 +20,7 @@ min_records_per_species = 5 # filters species with less than this many records (
 min_unique_detections = 2 # species must have more detections at more site/years than this (so 2 == 3 or more unique detections)
 # within the time span defined above
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1200 # min pop density in the grid cell (per km^2)
+min_population_size = 1400 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -62,7 +62,7 @@ min_records_per_species = 5 # filters species with less than this many records (
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1000 # min pop density in the grid cell (per km^2)
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event
@@ -658,9 +658,9 @@ if(taxon == "bombus"){
     )
     
     # MCMC settings
-    n_iterations <- 4000
+    n_iterations <- 300
     n_thin <- 1
-    n_burnin <- 2000
+    n_burnin <- 150
     n_chains <- 4
     n_cores <- 4
     #n_cores <- parallel::detectCores()
@@ -1034,6 +1034,7 @@ if(taxon == "syrphidae"){
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
     "mu_psi_income",
+    "mu_psi_race",
     #"sigma_psi_income",
     "psi_site_area",
     "mu_psi_open_developed"
@@ -1049,7 +1050,8 @@ if(taxon == "syrphidae"){
     "mu_p_rc_0",
     #"sigma_p_rc_species",
     "sigma_p_rc_site",
-    "sigma_p_rc_level_three"
+    "rho",
+    "sigma_species_detection"
   ))
   traceplot(stan_out, pars = c( # species detection
     "rho",

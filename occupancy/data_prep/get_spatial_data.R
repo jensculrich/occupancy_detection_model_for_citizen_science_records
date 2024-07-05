@@ -149,6 +149,18 @@ get_spatial_data <- function(
   grid_pop_dens <- sf::st_intersection(grid_pop_dens, states_trans)  
   
   ## --------------------------------------------------
+  # get latitude and longitude of each grid cell
+  
+  site_latlong <- st_centroid(st_transform(grid_pop_dens)) %>%
+    st_transform(., 4326) %>%
+    dplyr::select(-grid_id, -pop_density_per_km2) %>%
+    dplyr::mutate(longitude = sf::st_coordinates(.)[,1],
+                  latitude = sf::st_coordinates(.)[,2]) %>%
+    as.data.frame()
+  
+  grid_pop_dens <- cbind(grid_pop_dens, site_latlong[,2:3]) 
+    
+  ## --------------------------------------------------
   # Extract canopy cover from each remaining site
   
   
@@ -289,7 +301,7 @@ get_spatial_data <- function(
     mutate(avg_minority = mean(minority, na.rm = TRUE)) %>%
     slice(1) %>%
     ungroup() %>%
-    dplyr::select(grid_id, pop_density_per_km2, 
+    dplyr::select(grid_id, pop_density_per_km2, longitude, latitude,
                   mean_canopy_cover, mean_imp_surface,
                   avg_income, avg_minority) %>%
     filter(!is.na(avg_income),
@@ -303,12 +315,12 @@ get_spatial_data <- function(
   gc()
   
   # view the grid on the polygons
-  ggplot() +
-  geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
-  geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_minority), lwd = 0.05) +
-  coord_sf(datum = NA)  +
-  labs(x = "") +
-  labs(y = "") 
+  #ggplot() +
+  #geom_sf(data = states_trans, fill = 'white', lwd = 0.05) +
+  #geom_sf(data = grid_pop_dens, aes(fill = scaled_avg_minority), lwd = 0.05) +
+  #coord_sf(datum = NA)  +
+  #labs(x = "") +
+  #labs(y = "") 
   
   ## --------------------------------------------------
   # Extract environmental variables from each remaining site
@@ -777,7 +789,13 @@ get_spatial_data <- function(
 
   #} # end else
   
-
+  #output <- as.data.frame(grid_pop_dens) 
+  #output <- output[,-32]
+  #output <- cbind(output, CBSA_names)
+  #write.csv(as.data.frame(output), "./data/spatial_data/site_data.csv")
+  
+  #write.csv(as.data.frame(cbind(ecoregion_one_names, level_three_names)), "./data/spatial_data/eco3.csv")
+  
   ## --------------------------------------------------
   # Return stuff
   return(list(
