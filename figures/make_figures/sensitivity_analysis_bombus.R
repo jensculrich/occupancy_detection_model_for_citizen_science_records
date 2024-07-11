@@ -9,7 +9,7 @@ library(tidyverse)
 ## --------------------------------------------------
 ## Read in model run results
 
-ten_km <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+ten_km <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 fifteen_km <- readRDS("./occupancy/model_outputs/bombus/bombus_15km_1000minpop_1minUniqueDetections_4ints_3visits_.rds")
 twenty_km <- readRDS("./occupancy/model_outputs/bombus/bombus_20km_800minpop_1minUniqueDetections_4ints_3visits_.rds")
 twentyfive_km <- readRDS("./occupancy/model_outputs/bombus/bombus_25km_600minpop_1minUniqueDetections_4ints_3visits_.rds")
@@ -35,7 +35,7 @@ View(cbind(1:nrow(fit_summary_25$summary), fit_summary_25$summary)) # View to se
 ## Make figure table 
 
 # parameter means
-params = 3 # mu_psi_0, mu_psi_herb_shrub_forest, mu_psi_income
+params = 3 # mu_psi_0, mu_psi_herb_shrub_forest, psi race
 n_grains = 4 # 10, 15, 20, and 25km scales
 
 x <- (rep(1:params, each=n_grains)) # parameter reference
@@ -48,11 +48,11 @@ estimate <-  c(
   fit_summary_15$summary[70,1],
   fit_summary_20$summary[70,1],
   fit_summary_25$summary[70,1],
-  # param 2 (psi income)
-  fit_summary_10$summary[73,1],
-  fit_summary_15$summary[75,1],
-  fit_summary_20$summary[75,1],
-  fit_summary_25$summary[75,1],
+  # param 2 (psi race)
+  fit_summary_10$summary[74,1],
+  fit_summary_15$summary[76,1],
+  fit_summary_20$summary[76,1],
+  fit_summary_25$summary[76,1],
   # param 3 (psi natural)
   fit_summary_10$summary[75,1],
   fit_summary_15$summary[77,1],
@@ -66,11 +66,11 @@ lower_95 <- c(
   fit_summary_15$summary[70,4],
   fit_summary_20$summary[70,4],
   fit_summary_25$summary[70,4],
-  # param 2 (psi income)
-  fit_summary_10$summary[73,4],
-  fit_summary_15$summary[75,4],
-  fit_summary_20$summary[75,4],
-  fit_summary_25$summary[75,4],
+  # param 2 (psi race)
+  fit_summary_10$summary[74,4],
+  fit_summary_15$summary[76,4],
+  fit_summary_20$summary[76,4],
+  fit_summary_25$summary[76,4],
   # param 3 (psi natural)
   fit_summary_10$summary[75,4],
   fit_summary_15$summary[77,4],
@@ -84,11 +84,11 @@ upper_95 <- c(
   fit_summary_15$summary[70,8],
   fit_summary_20$summary[70,8],
   fit_summary_25$summary[70,8],
-  # param 2 (psi income)
-  fit_summary_10$summary[73,8],
-  fit_summary_15$summary[75,8],
-  fit_summary_20$summary[75,8],
-  fit_summary_25$summary[75,8],
+  # param 2 (psi race)
+  fit_summary_10$summary[74,8],
+  fit_summary_15$summary[76,8],
+  fit_summary_20$summary[76,8],
+  fit_summary_25$summary[76,8],
   # param 3 (psi natural)
   fit_summary_10$summary[75,8],
   fit_summary_15$summary[77,8],
@@ -102,11 +102,11 @@ lower_50 <- c(
   fit_summary_15$summary[70,5],
   fit_summary_20$summary[70,5],
   fit_summary_25$summary[70,5],
-  # param 2 (psi income)
-  fit_summary_10$summary[73,5],
-  fit_summary_15$summary[75,5],
-  fit_summary_20$summary[75,5],
-  fit_summary_25$summary[75,5],
+  # param 2 (psi race)
+  fit_summary_10$summary[74,5],
+  fit_summary_15$summary[76,5],
+  fit_summary_20$summary[76,5],
+  fit_summary_25$summary[76,5],
   # param 3 (psi natural)
   fit_summary_10$summary[75,5],
   fit_summary_15$summary[77,5],
@@ -121,10 +121,10 @@ upper_50 <- c(
   fit_summary_20$summary[70,7],
   fit_summary_25$summary[70,7],
   # param 2 (psi income)
-  fit_summary_10$summary[73,7],
-  fit_summary_15$summary[75,7],
-  fit_summary_20$summary[75,7],
-  fit_summary_25$summary[75,7],
+  fit_summary_10$summary[74,7],
+  fit_summary_15$summary[76,7],
+  fit_summary_20$summary[76,7],
+  fit_summary_25$summary[76,7],
   # param 3 (psi natural)
   fit_summary_10$summary[75,7],
   fit_summary_15$summary[77,7],
@@ -149,8 +149,8 @@ df <- as.data.frame(cbind(x, y, estimate,
   theme_bw() +
   scale_x_discrete(name="", breaks = c(1, 2, 3),
                    labels=c(bquote(psi[0]),
-                            bquote(mu[psi["income"]]),
-                            bquote(mu[psi["nat. habitat"]])
+                            bquote(psi["race"]),
+                            bquote(mu[psi["nat. green."]])
                             #bquote(FTP[citsci]),
                             #bquote(FTP[museum])
                    )) +
@@ -191,7 +191,7 @@ df <- as.data.frame(cbind(x, y, estimate,
 ## --------------------------------------------------
 ## Read in model run results
 
-three <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+three <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 two <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_6ints_2visits_.rds")
 four <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_3ints_4visits_.rds")
 
@@ -207,7 +207,7 @@ View(cbind(1:nrow(fit_summary_four$summary), fit_summary_four$summary)) # View t
 ## Make figure table 
 
 # parameter means
-params = 3 # mu_psi_0, mu_psi_herb_shrub_forest, mu_psi_income
+params = 3 # mu_psi_0, mu_psi_herb_shrub_forest, psi race
 n_grains = 3 # 3 4 or 6 intervals (divided by 4, 3, or 2 years)
 
 x <- (rep(1:params, each=n_grains)) # parameter reference
@@ -219,14 +219,14 @@ estimate <- c(
   fit_summary_two$summary[68,1],
   fit_summary_three$summary[68,1],
   fit_summary_four$summary[68,1],
+  # param 3 (psi race)
+  fit_summary_two$summary[74,1],
+  fit_summary_three$summary[74,1],
+  fit_summary_four$summary[74,1],
   # param 2 (psi natural)
   fit_summary_two$summary[75,1],
   fit_summary_three$summary[75,1],
-  fit_summary_four$summary[75,1],
-  # param 3 (psi income)
-  fit_summary_two$summary[73,1],
-  fit_summary_three$summary[73,1],
-  fit_summary_four$summary[73,1]
+  fit_summary_four$summary[75,1]
 )
 
 lower_95 <- c(
@@ -234,14 +234,14 @@ lower_95 <- c(
   fit_summary_two$summary[68,4],
   fit_summary_three$summary[68,4],
   fit_summary_four$summary[68,4],
+  # param 3 (psi race)
+  fit_summary_two$summary[74,4],
+  fit_summary_three$summary[74,4],
+  fit_summary_four$summary[74,4],
   # param 2 (psi natural)
   fit_summary_two$summary[75,4],
   fit_summary_three$summary[75,4],
-  fit_summary_four$summary[75,4],
-  # param 3 (psi income)
-  fit_summary_two$summary[73,4],
-  fit_summary_three$summary[73,4],
-  fit_summary_four$summary[73,4]
+  fit_summary_four$summary[75,4]
 ) 
 
 upper_95 <- c(
@@ -249,14 +249,14 @@ upper_95 <- c(
   fit_summary_two$summary[68,8],
   fit_summary_three$summary[68,8],
   fit_summary_four$summary[68,8],
+  # param 3 (psi race)
+  fit_summary_two$summary[74,8],
+  fit_summary_three$summary[74,8],
+  fit_summary_four$summary[74,8],
   # param 2 (psi natural)
   fit_summary_two$summary[75,8],
   fit_summary_three$summary[75,8],
-  fit_summary_four$summary[75,8],
-  # param 3 (psi income)
-  fit_summary_two$summary[73,8],
-  fit_summary_three$summary[73,8],
-  fit_summary_four$summary[73,8]
+  fit_summary_four$summary[75,8]
 ) 
 
 lower_50 <- c(
@@ -264,14 +264,14 @@ lower_50 <- c(
   fit_summary_two$summary[68,5],
   fit_summary_three$summary[68,5],
   fit_summary_four$summary[68,5],
+  # param 3 (psi race)
+  fit_summary_two$summary[74,5],
+  fit_summary_three$summary[74,5],
+  fit_summary_four$summary[74,5],
   # param 2 (psi natural)
   fit_summary_two$summary[75,5],
   fit_summary_three$summary[75,5],
-  fit_summary_four$summary[75,5],
-  # param 3 (psi income)
-  fit_summary_two$summary[73,5],
-  fit_summary_three$summary[73,5],
-  fit_summary_four$summary[73,5]
+  fit_summary_four$summary[75,5]
 ) 
 
 upper_50 <- c(
@@ -279,14 +279,14 @@ upper_50 <- c(
   fit_summary_two$summary[68,7],
   fit_summary_three$summary[68,7],
   fit_summary_four$summary[68,7],
+  # param 3 (psi race)
+  fit_summary_two$summary[74,7],
+  fit_summary_three$summary[74,7],
+  fit_summary_four$summary[74,7],
   # param 2 (psi natural)
   fit_summary_two$summary[75,7],
   fit_summary_three$summary[75,7],
-  fit_summary_four$summary[75,7],
-  # param 3 (psi income)
-  fit_summary_two$summary[73,7],
-  fit_summary_three$summary[73,7],
-  fit_summary_four$summary[73,7]
+  fit_summary_four$summary[75,7]
 ) 
 
 df <- as.data.frame(cbind(x, y, estimate, 
@@ -306,7 +306,7 @@ df <- as.data.frame(cbind(x, y, estimate,
     theme_bw() +
     scale_x_discrete(name="", breaks = c(1, 2, 3),
                      labels=c(bquote(psi[0]),
-                              bquote(mu[psi["income"]]),
+                              bquote(psi["race"]),
                               bquote(mu[psi["nat. habitat"]])
                               #bquote(FTP[citsci]),
                               #bquote(FTP[museum])
@@ -352,7 +352,7 @@ df <- as.data.frame(cbind(x, y, estimate,
 ## Read in model run results
 
 low <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1000minpop_1minUniqueDetections_4ints_3visits_.rds")
-medium <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+medium <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 high <- readRDS("./occupancy/model_outputs/bombus/bombus_10km_1400minpop_1minUniqueDetections_4ints_3visits_.rds")
 
 fit_summary_medium <- rstan::summary(medium)
@@ -380,15 +380,15 @@ estimate <- c(
   fit_summary_medium$summary[68,1],
   fit_summary_high$summary[68,1],
   
+  # param 3 (psi race)
+  fit_summary_low$summary[76,1],
+  fit_summary_medium$summary[74,1],
+  fit_summary_high$summary[74,1],
+  
   # param 3 (psi natural)
   fit_summary_low$summary[77,1],
   fit_summary_medium$summary[75,1],
-  fit_summary_high$summary[75,1],
-  
-  # param 3 (psi income)
-  fit_summary_low$summary[75,1],
-  fit_summary_medium$summary[73,1],
-  fit_summary_high$summary[73,1]
+  fit_summary_high$summary[75,1]
 )
 
 lower_95 <- c(
@@ -397,15 +397,15 @@ lower_95 <- c(
   fit_summary_medium$summary[68,4],
   fit_summary_high$summary[68,4],
   
+  # param 3 (psi race)
+  fit_summary_low$summary[76,4],
+  fit_summary_medium$summary[74,4],
+  fit_summary_high$summary[74,4],
+  
   # param 3 (psi natural)
   fit_summary_low$summary[77,4],
   fit_summary_medium$summary[75,4],
-  fit_summary_high$summary[75,4],
-  
-  # param 3 (psi income)
-  fit_summary_low$summary[75,4],
-  fit_summary_medium$summary[73,4],
-  fit_summary_high$summary[73,4]
+  fit_summary_high$summary[75,4]
 ) 
 
 upper_95 <- c(
@@ -414,15 +414,15 @@ upper_95 <- c(
   fit_summary_medium$summary[68,8],
   fit_summary_high$summary[68,8],
   
+  # param 3 (psi race)
+  fit_summary_low$summary[76,8],
+  fit_summary_medium$summary[74,8],
+  fit_summary_high$summary[74,8],
+  
   # param 3 (psi natural)
   fit_summary_low$summary[77,8],
   fit_summary_medium$summary[75,8],
-  fit_summary_high$summary[75,8],
-  
-  # param 3 (psi income)
-  fit_summary_low$summary[75,8],
-  fit_summary_medium$summary[73,8],
-  fit_summary_high$summary[73,8]
+  fit_summary_high$summary[75,8]
 ) 
 
 lower_50 <- c(
@@ -431,15 +431,15 @@ lower_50 <- c(
   fit_summary_medium$summary[68,5],
   fit_summary_high$summary[68,5],
   
+  # param 3 (psi race)
+  fit_summary_low$summary[76,5],
+  fit_summary_medium$summary[74,5],
+  fit_summary_high$summary[74,5],
+  
   # param 3 (psi natural)
   fit_summary_low$summary[77,5],
   fit_summary_medium$summary[75,5],
-  fit_summary_high$summary[75,5],
-  
-  # param 3 (psi income)
-  fit_summary_low$summary[75,5],
-  fit_summary_medium$summary[73,5],
-  fit_summary_high$summary[73,5]
+  fit_summary_high$summary[75,5]
 ) 
 
 upper_50 <- c(
@@ -448,15 +448,15 @@ upper_50 <- c(
   fit_summary_medium$summary[68,7],
   fit_summary_high$summary[68,7],
   
+  # param 3 (psi race)
+  fit_summary_low$summary[76,7],
+  fit_summary_medium$summary[74,7],
+  fit_summary_high$summary[74,7],
+  
   # param 3 (psi natural)
   fit_summary_low$summary[77,7],
   fit_summary_medium$summary[75,7],
-  fit_summary_high$summary[75,7],
-  
-  # param 3 (psi income)
-  fit_summary_low$summary[75,7],
-  fit_summary_medium$summary[73,7],
-  fit_summary_high$summary[73,7]
+  fit_summary_high$summary[75,7]
 ) 
 
 df <- as.data.frame(cbind(x, y, estimate, 
@@ -476,8 +476,8 @@ df <- as.data.frame(cbind(x, y, estimate,
     theme_bw() +
     scale_x_discrete(name="", breaks = c(1, 2, 3),
                      labels=c(bquote(psi[0]),
-                              bquote(mu[psi["nat. habitat"]]),
-                              bquote(mu[psi[income]])
+                              bquote(psi[race]),
+                              bquote(mu[psi["nat. green."]])
                               
                      )) +
     scale_y_discrete(name="Minimum population density threshold \n(people per sq. km)", breaks = rep(1:n_grains),
