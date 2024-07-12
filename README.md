@@ -15,8 +15,7 @@ This repository holds three public subdirectories: ./occupancy/, ./data/ and ./f
 
 Contains simulation files (./simulation/), data prep(./data_prep/), models (./models/), model implementation (./analysis/) and model outputs (./model_outputs/).
 
-The models used for the main analyses (held in the models subdirectory) are labelled "model_syrphidae.stan" and "model_bombus.stan". I also used a simplified model to estimate range wide occurrence rate ("model_taxon_simple.stan") to conduct a post hoc correlation analysis with species-specific effects of range wide occurrence (a proxy for habitat generality) and species-specific association with natural habitat area in urban landscapes. The folder also holds a reparameterized random effects model (non-centered random effects; "model_taxon_reparameterized_rand_effects.stan"). I did not not use this reparametrization for the final analyses.
-
+The models used for the main analyses (held in the models subdirectory) are labelled "model_syrphidae.stan" and "model_bombus.stan".  
 
 #### How to run a model:
 
@@ -55,9 +54,13 @@ See land cover classification descriptions [here](https://www.mrlc.gov/data/lege
 
 #### Household_income (./socioeconomic_data/)
 Contains a shapefile and table data for:
-2020 income data, B19013. Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
+2020 income data, B19013 == Median Household Income in the Past 12 Months (in 2020 Inflation-Adjusted Dollars)
 [source](https://data2.nhgis.org/main)
 
+#### Racial composition (./DECENNIALDP2020.DP1_2024-06-19&183658/)
+Contains a shapefile and table data for:
+2020 race and other factors, DP1_0078P == Percentage of people identifying as "white, no other race"
+[source](https://data.census.gov/table/DECENNIALDP2020.DP1)
 
 #### Population Density (./population_density/)
 Contains a raster with population density at 1 km resolution from the year 2015.

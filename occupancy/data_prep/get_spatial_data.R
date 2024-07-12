@@ -262,7 +262,7 @@ get_spatial_data <- function(
   income_data <- income_data %>%
     mutate(census_tract = str_sub(GEOID, 6, -2)) 
   
-  # table format data indicating the income in block groups
+  # table format data indicating the race in tract groups
   race_data <- read.csv("./data/spatial_data/DECENNIALDP2020.DP1_2024-06-19T183658/DECENNIALDP2020.DP1-Data.csv")
   
   race_data <- race_data %>%

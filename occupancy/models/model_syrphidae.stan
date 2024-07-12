@@ -1,6 +1,4 @@
 // multi-species occupancy model for GBIF occurrence data
-// will include income as a predictor, but will also include a simplified random effects
-// structure to see if this helps with non-convergence that occurred when using the original model
 // jcu, started nov 21, 2022.
 
 functions {
@@ -18,7 +16,7 @@ functions {
   // mean values for multivariate normal distribution (center species on global intercepts)
   vector mu(real mu_p_cs_0, real mu_p_rc_0){
     vector[2] global_intercepts;
-    global_intercepts[1] = mu_p_cs_0;
+    global_intercepts[1] = mu_p_cs_0; 
     global_intercepts[2] = mu_p_rc_0;
     return global_intercepts;
   }
@@ -27,34 +25,32 @@ functions {
 
 data {
   
-  int<lower=1> n_species;  // observed species
+  int<lower=1> n_species; // number of species
   int<lower=1> species[n_species]; // vector of species identities
   
   int<lower=1> n_sites;  // (number of) sites within region (level-2 clusters)
   int<lower=1, upper=n_sites> sites[n_sites];  // vector of sites identities (level-2 clusters)
-  int<lower=1> n_level_three;  // (number of) fine-scale (3) ecoregion areas (level-3 clusters)
-  int<lower=1> n_level_four;  // (number of) broad-scale (1) ecoregion areas (level-4 clusters)
+  int<lower=1> n_level_three;  // (number of) fine-scale ecoregion areas (level-3 clusters)
+  int<lower=1> n_level_four;  // (number of) broad-scale ecoregion areas (level-4 clusters)
   int<lower=1> level_three_lookup[n_sites]; // level-3 cluster look up vector for level-3 cluster
   int<lower=1> level_four_lookup[n_level_three]; // level-4 cluster look up vector for level-4 cluster
 
-  int<lower=1> n_intervals;  // intervals during which sites are visited
-  
-  int intervals[n_intervals]; // vector of intervals (used as covariate data for 
-                                // species specific effect of occupancy interval (time) on detection)
+  int<lower=1> n_intervals;  // number of intervals during which sites are sampled
+  int intervals[n_intervals]; // vector of intervals
   int<lower=1> n_visits; // visits within intervals
   
-  int<lower=0> V_cs[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
-  int<lower=0> V_rc[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k
+  int<lower=0> V_cs[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k (by community science process)
+  int<lower=0> V_rc[n_species, n_sites, n_intervals, n_visits];  // visits l when species i was detected at site j on interval k (by NHC process)
   
   int<lower=0> ranges[n_species, n_sites, n_intervals, n_visits];  // NA indicator where 1 == site is in range, 0 == not in range
-  int<lower=0> V_rc_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data
+  int<lower=0> V_rc_NA[n_species, n_sites, n_intervals, n_visits];  // indicator where 1 == sampled, 0 == missing data (for NHC process)
   
-  vector[n_sites] site_areas; // (scaled) spatial area extent of each site
-  vector[n_sites] pop_densities; // (scaled) population density of each site
-  vector[n_sites] avg_income; // (scaled) household income of each site
-  vector[n_sites] avg_racial_minority; // (scaled) prop. of racial minority population of each site
-  vector[n_sites] natural_habitat; // (scaled) undeveloped open surface cover of each site
-  vector[n_sites] open_developed; // (scaled) open developed surface cover of each site
+  vector[n_sites] site_areas; // (scaled) spatial area extent
+  vector[n_sites] pop_densities; // (scaled) population density
+  vector[n_sites] avg_income; // (scaled) household income 
+  vector[n_sites] avg_racial_minority; // (scaled) prop. of racial minority population
+  vector[n_sites] natural_habitat; // (scaled) natural greenspace area
+  vector[n_sites] open_developed; // (scaled) developed greenspace area
   
   vector[n_species] nativity; // nativity vector, 0 == non-native, 1 == native
   
@@ -63,86 +59,79 @@ data {
 
 parameters {
   
-  // Covararying Parameters
-  real<lower=-1,upper=1> rho;  // correlation of (community science and research collections detection)
-  vector<lower=0>[2] sigma_species_detection; // variance in species-specific detection rates 
-    // (sigma_species_detection[1] == community science and sigma_species_detection[2] == research collections detection)
-  vector[2] species_intercepts_detection[n_species];// species-level detection intercepts
-    // (species_intercepts_detection[1] == community science and species_intercepts_detection[2] == research collections detection)
-
-  // OCCUPANCY
+  // OCCUPANCY //
   
-  real mu_psi_0; // global intercept for occupancy
+    real mu_psi_0; // global intercept for occupancy
+    
+    // species-specific random intercepts for occupancy
+    vector[n_species] psi_species_raw; // species specific intercept for occupancy
+    real<lower=0> sigma_psi_species; // variance in species intercepts// Level-3 spatial random effect
+    
+    // nested site-specific random intercepts for occupancy
+    vector[n_sites] psi_site_raw; // site specific intercept for occupancy
+    real<lower=0> sigma_psi_site; // variance in site intercepts
+    vector[n_level_three] psi_level_three_raw; // level-three intercept for occupancy
+    real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
+    vector[n_level_four] psi_level_four_raw; // level-four specific intercept for occupancy
+    real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
+    
+    // species specific random effects of natural greenspace on occupancy (with nativity predictors)
+    vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
+    real delta0; // baseline effect (mean)
+    real delta1; // effect of being native on the expected value of the random effect
+    real<lower=0> gamma0; // baseline effect (variance) (negative variance not possible)
+    real gamma1; // effect of being native on the expected value of the random effect
+    
+    // fixed effects for other occupancy predictors
+    real mu_psi_open_developed; // effect of developed greenspace area
+    real mu_psi_income; // effect of income
+    real mu_psi_race; // effect of prop. of racial minorities
+    real psi_site_area; // effect of site area
   
-  // species-specific intercepts allow some species to occur at higher rates than others, 
-  // but with overall estimates for occupancy partially informed by the data pooled across all species.
-  vector[n_species] psi_species_raw; // species specific intercept for occupancy
-  real<lower=0> sigma_psi_species; // variance in species intercepts// Level-3 spatial random effect
+  // DETECTION //
   
-  // spatially nested random effect on occupancy rates
-  // Level-2 spatial random effect
-  vector[n_sites] psi_site_raw; // site specific intercept for occupancy
-  real<lower=0> sigma_psi_site; // variance in site intercepts
-  // Level-3 spatial random effect
-  vector[n_level_three] psi_level_three_raw; // level-three intercept for occupancy
-  real<lower=0> sigma_psi_level_three; // variance in level-three intercepts
-  // Level-4 spatial random effect
-  vector[n_level_four] psi_level_four_raw; // level-four specific intercept for PL outcome
-  real<lower=0> sigma_psi_level_four; // variance in level-four intercepts
+    // Covararying species-specific detection intercepts
+    real<lower=-1,upper=1> rho;  // correlation of (community science and NHC detection)
+    vector<lower=0>[2] sigma_species_detection; // variance in species-specific detection rates 
+      // (sigma_species_detection[1] == community science and sigma_species_detection[2] == research collections detection)
+    vector[2] species_intercepts_detection[n_species];// species-level detection intercepts
+      // (species_intercepts_detection[1] == community science and species_intercepts_detection[2] == research collections detection)
+    
+    // COMMUNITY SCIENCE
+    
+      real mu_p_cs_0; // global detection intercept for community science records
+      
+      // nested site-specific random intercepts for occupancy
+      vector[n_sites] p_cs_site_raw; // site intercepts
+      real<lower=0> sigma_p_cs_site; // variance in site intercepts
+      vector[n_level_three] p_cs_level_three_raw; // level-three intercepts 
+      real<lower=0> sigma_p_cs_level_three;  // variance in level-three intercepts
+      
+      real p_cs_interval; // fixed effect of time interval on cs detection probability
+      real p_cs_pop_density; // fixed effect of population density on cs detection probability
+      real p_cs_income; // fixed effect of income on cs detection probability
+      real p_cs_race; // fixed effect of prop. of racial minorities on cs detection probability
   
-  // random slope for species specific natural habitat effects on occupancy
-  vector[n_species] psi_natural_habitat; // vector of species specific slope estimates
-  real delta0; // baseline effect (mean)
-  real delta1; // effect of being native on the expected value of the random effect
-  real<lower=0> gamma0; // baseline effect (variance) (negative variance not possible)
-  real gamma1; // effect of being native on the expected value of the random effect
-  
-  // fixed slope for open developed greenspace effects on occupancy
-  real mu_psi_open_developed; // community mean of species specific slopes
-  // fixed slope for household income effects on occupancy
-  real mu_psi_income; // community mean of species specific slopes
-  // fixed slope for racial diversity (prop. population minority) effects on occupancy
-  real mu_psi_race; // community mean
-  // fixed effect of site area on occupancy
-  real psi_site_area;
-  
-  // DETECTION
-  
-  // community science observation process
-  real mu_p_cs_0; // global detection intercept for community science records
-  
-  // random slope for site specific temporal effects on occupancy
-  // level-2 spatial clusters
-  vector[n_sites] p_cs_site_raw; // vector of spatially specific slope estimates
-  real<lower=0> sigma_p_cs_site; // variance in site slopes
-  // level-3 spatial clusters
-  vector[n_level_three] p_cs_level_three_raw; // level-three specific intercept for cs detection
-  real<lower=0> sigma_p_cs_level_three;  // variance in level-three slopes
-  
-  real p_cs_interval; // fixed temporal effect on cs detection probability
-  real p_cs_pop_density; // fixed effect of population on cs detection probability
-  real p_cs_income; // fixed effect of income on cs detection probability
-  real p_cs_race; // fixed effect of race on cs detection probability
-
-  // research collections records observation process
-  real mu_p_rc_0; // global detection intercept for research collections records
-  
-  // random slope for site specific temporal effects on occupancy
-  // level-2 spatial clusters
-  vector[n_sites] p_rc_site_raw; // vector of spatially specific slope estimates
-  real<lower=0> sigma_p_rc_site; // variance in site slopes
-  // level-3 spatial clusters
-  vector[n_level_three] p_rc_level_three_raw; // level-three specific intercept for rc detection
-  real<lower=0> sigma_p_rc_level_three; // variance in level-three slopes
+    // NATURAL HISTORY COLLECTIONS
+    
+      real mu_p_rc_0; // global detection intercept for research collections records
+    
+      vector[n_sites] p_rc_site_raw; // site intercepts
+      real<lower=0> sigma_p_rc_site; // variance in site intercepts
+      vector[n_level_three] p_rc_level_three_raw; // level-three intercepts 
+      real<lower=0> sigma_p_rc_level_three; // variance in level-three intercepts
   
 } // end parameters
 
 
 transformed parameters {
   
+  // logit scaled expected values
   real logit_psi[n_species, n_sites, n_intervals];  // odds of occurrence
   real logit_p_cs[n_species, n_sites, n_intervals]; // odds of detection by community science
   real logit_p_rc[n_species, n_sites, n_intervals]; // odds of detection by research collections
+  
+  // non centered parameterizations of random intercepts //
   
   // species intercepts
   vector[n_species] psi_species;
@@ -162,6 +151,8 @@ transformed parameters {
   vector[n_species] mu_psi_natural_habitat; // expected value for species specific slopes
   vector[n_species] sigma_psi_natural_habitat; // expected value for variance among species slopes
 
+  // using for() loops to nest the random intercepts for sites
+  
   //
   // compute the varying community science detection intercept at the ecoregion1 level
   // Level-4 (n_level_four level-4 random intercepts)
@@ -205,6 +196,7 @@ transformed parameters {
       sigma_p_rc_site * p_rc_site_raw[i];
   }
   
+  //
   // hard prior to disallow intercept plus nativity adjustment from being negative
   real<lower=0> gamma0_plus_gamma1;
   gamma0_plus_gamma1 = gamma0 + gamma1;
@@ -229,12 +221,12 @@ transformed parameters {
           
           logit_psi[i,j,k] = // the inverse of the log odds of occurrence is equal to..
             mu_psi_0 + // a global intercept
-            psi_species[species[i]] + // a phylogenetically nested, species-specific intercept
+            psi_species[species[i]] + // a species-specific intercept
             psi_site[sites[j]] + // a spatially nested, site-specific intercept
-            psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural habitat area
+            psi_natural_habitat[species[i]]*natural_habitat[j] + // a species-specific effect of natural greenspace area
+            mu_psi_open_developed*open_developed[j] + // a species-specific effect of developed greenspace area
             mu_psi_income*avg_income[j] + // a species-specific effect of income
             mu_psi_race*avg_racial_minority[j] + // an effect of ethnic composition
-            mu_psi_open_developed*open_developed[j] + // a species-specific effect of income
             psi_site_area*site_areas[j] // an effect of spatial area of the site on occurrence
             ; // end psi[i,j,k]
             
@@ -247,17 +239,17 @@ transformed parameters {
       for(k in 1:n_intervals){ // loop across all intervals
         
           logit_p_cs[i,j,k] = // the inverse of the log odds of detection is equal to..
-            species_intercepts_detection[species[i],1] + // a species specific intercept // includes global intercept
-            p_cs_site[sites[j]] + // a spatially specific intercept
-            p_cs_interval*(intervals[k]^2) + // an overall effect of time on detection
-            p_cs_pop_density*pop_densities[j] + // an overall effect of pop density on detection
-            p_cs_income*avg_income[j] + // an overall effect of income on detection
-            p_cs_race*avg_racial_minority[j]
+            species_intercepts_detection[species[i],1] + // a correlated species-specific intercept // includes global intercept
+            p_cs_site[sites[j]] + // a spatially nested, site-specific intercept
+            p_cs_interval*(intervals[k]^2) + // an effect of time on detection
+            p_cs_pop_density*pop_densities[j] + // an effect of pop density on detection
+            p_cs_income*avg_income[j] + // an effect of income on detection
+            p_cs_race*avg_racial_minority[j] // an effect of prop. of racial minorities on detection
            ; // end p_cs[i,j,k]
 
           logit_p_rc[i,j,k] = // the inverse of the log odds of detection is equal to..
             species_intercepts_detection[species[i],2] + // a species specific intercept // includes global intercept
-            p_rc_site[sites[j]] // a spatially specific intercept 
+            p_rc_site[sites[j]] // a spatially nested, site-specific intercept
            ; // end p_rc[i,j,k]
           
       } // end loop across all intervals
@@ -272,7 +264,7 @@ model {
   
   // PRIORS
   
-  // correlated species effects
+  // correlated species effects for detection
   sigma_species_detection[1] ~ normal(0, 2);
   sigma_species_detection[2] ~ normal(0, 2);
   (rho + 1) / 2 ~ beta(2, 2);
@@ -285,9 +277,7 @@ model {
   // Occupancy (Ecological Process)
   mu_psi_0 ~ normal(0, 1); // global intercept for occupancy rate
   
-    // species intercept effects
-  psi_species_raw ~ std_normal();
-  //psi_species ~ normal(0, sigma_psi_species); 
+  psi_species_raw ~ std_normal(); // species intercept effects
   sigma_psi_species ~ normal(0, 0.5); // weakly-informative prior
   
   // level-2 spatial grouping
@@ -309,10 +299,12 @@ model {
   gamma0 ~ normal(0, 1); // community mean variance
   gamma1 ~ normal(0, 0.25); // effect of nativity on variance
   
-  mu_psi_open_developed ~ normal(0, 2); // community mean
-  mu_psi_income ~ normal(0, 2); // community mean
-  mu_psi_race ~ normal(0, 2); // community mean
+  mu_psi_open_developed ~ normal(0, 2); // effect of developed greenspace area
+  mu_psi_income ~ normal(0, 2); // effect of income
+  mu_psi_race ~ normal(0, 2); // effect of prop. of racial minorities
   psi_site_area ~ normal(0, 2); // effect of site area on occupancy
+  
+  // Detection (Observation Process)
   
   // community science records
   
@@ -325,14 +317,10 @@ model {
   p_cs_level_three_raw ~ std_normal();
   sigma_p_cs_level_three ~ normal(0, 0.5); // weakly-informative prior
   
-  // a temporal effect on detection probability
-  p_cs_interval ~ normal(0, 2); 
-  // a population effect on detection probability
-  p_cs_pop_density ~ normal(0, 2);
-  // an income effect on detection probability
-  p_cs_income ~ normal(0, 2);
-  // an income effect on detection probability
-  p_cs_race ~ normal(0, 2);
+  p_cs_interval ~ normal(0, 2); // effect if time inteval on detection probability
+  p_cs_pop_density ~ normal(0, 2); // effect of popualtion density on detection probability
+  p_cs_income ~ normal(0, 2); // effect of income on detection probability
+  p_cs_race ~ normal(0, 2); // effect of prop. racial minorities on detection probability
   
   // museum records
   
@@ -358,11 +346,7 @@ model {
           // by community science efforts OR research collection records
           // then the species occurs there. lp_observed calculates
           // the probability density that species occurs given psi, plus the 
-          // probability density that we did/did not observe it on each visit l in 1:nvisit.
-          // Even though we don't estimate research collection parameters here (fully integrated model),
-          // we still use rc detections to anchor and guide the likelihood function.
-          // that is, if we see the species using the research collections but not the comm sci, 
-          // we still know that the species is present but that our comm sci detection process is missing it.
+          // probability density that we did/did not observe it on all years within the interval.
           if(sum(V_cs[i, j, k, 1:n_visits]) > 0 || sum(V_rc[i, j, k, 1:n_visits]) > 0) {
             
              // lp_observed:
@@ -401,7 +385,7 @@ generated quantities{
   
   // Effect of nat habitat area for all, native and non-native species is a derived parameter
   // we estimate the expected value for all species, native, or non-native species using our linear predictor.
-  // By doing this in each step of the MCMC we can get a distribution of outcomes 
+  // By doing this in each step of the HMC we can get a distribution of outcomes 
   // (propagating our uncertainty in delta0 and delta1 to an uncertainty in the group level effects)
   
   real mu_psi_natural_habitat_native;
@@ -412,21 +396,23 @@ generated quantities{
   
   real mu_psi_natural_habitat_all_species;
   mu_psi_natural_habitat_all_species = mean(mu_psi_natural_habitat);
-
-  // occurrence of species at each site in each year
+  
+  //
+  // posterior predictive check (number of detections, binned by species) //
+  //
+  
+  // simulate occurrence of species at each site in each year
   int z_simmed[n_species, n_sites, n_intervals]; // simulate occurrence
 
   for(i in 1:n_species){
    for(j in 1:n_sites){
      for(k in 1:n_intervals){
           z_simmed[i,j,k] = bernoulli_logit_rng(logit_psi[i,j,k]); 
-      }    
-    }
-  }
+     } // end loop across intervals
+    } // end loop across sites
+  } // end loop across species 
   
-  //
-  // posterior predictive check (number of detections, binned by species)
-  //
+  // now simulate some detections and see how it compares to the observed number of detections
   int<lower=0> W_species_rep_cs[n_species]; // sum of simulated detections
   int<lower=0> W_species_rep_rc[n_species]; // sum of simulated detections
 
@@ -434,7 +420,7 @@ generated quantities{
   for(i in 1:n_species){
     W_species_rep_cs[i] = 0;
     W_species_rep_rc[i] = 0;
-  }
+  } // end loop across species
       
   // generating posterior predictive distribution
   // Predict Z at sites
@@ -452,9 +438,9 @@ generated quantities{
             W_species_rep_rc[i] = W_species_rep_rc[i] + 
               (z_simmed[i,j,k] *  binomial_rng(sum(V_rc_NA[i,j,k,]), inv_logit(logit_p_rc[i,j,k])));
            
-          } // end if{}
+          } // end if()
            
-      } // end loop across years
+      } // end loop across intervals
     } // end loop across sites
   } // end loop across species
   
