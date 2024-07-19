@@ -43,6 +43,8 @@ Simulate a community of pollinators inferring the same ecological process and ob
 
 Includes both spatial data and occurrence records data. Due to file sizes the data are not shared publicly in this repository, but one can follow any of the source links provided below to access the publicly available data.
 
+### Supplemental Data for Publication (./supplemental_data)
+"Appendix_S2.xlsx" contains a list of sites and their covariate values. The metadata for this is included on the second page of the sheet.
 
 ### Site-level Environmental/Spatial Data (./spatial_data/): 
 Site-level environmental data are publicly available. These data files are too large to store on a github repository and must be downloaded directly from source. The linked sources may provide data from different years/resolutions or other formats. Please follow the query information for each data element to ensure that the correct data is downloaded. To reprocess the data and refit the models the data will need to be placed in the paths listed in the ./occupancy/data_prep/ files.
