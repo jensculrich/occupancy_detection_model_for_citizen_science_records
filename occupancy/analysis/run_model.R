@@ -62,7 +62,7 @@ min_records_per_species = 5 # filters species with less than this many records (
 min_unique_detections = 1 # filters species not detected at unique sites in unique years at/below this value
 # within the time span defined above (is only from urban sites, should redefine to be from anywhere)
 grid_size = 10000 # in metres so, e.g., 25000 = 25km x 25 km 
-min_population_size = 1400 # min pop density in the grid cell (per km^2)
+min_population_size = 1200 # min pop density in the grid cell (per km^2)
 
 min_species_for_community_sampling_event = 2 # community sampling inferred if..
 # species depositied in single institution from a site in a single year is >= min_species_for_community_sampling_event

@@ -626,6 +626,33 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
   # end pipe
   
   ## --------------------------------------------------
+  # estimate proportion of site/years with <2 species
+  
+  species_per_siteyear_museum <- df_museum %>%
+    group_by(grid_id, occ_year) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(mean_obs_species = mean(n)) %>%
+    mutate(greater_than_one = ifelse(n == 1, 0, 1)) %>%
+    mutate(prop_greater_than_one = mean(greater_than_one))
+  
+  mean_obs_species_museum <- as.numeric(species_per_siteyear_museum[1,7])
+  prop_greater_than_one_museum <- as.numeric(species_per_siteyear_museum[1,9])
+  
+  species_per_siteyear_citsci <- df_citsci %>%
+    group_by(grid_id, occ_year) %>%
+    add_tally() %>%
+    slice(1) %>%
+    ungroup() %>%
+    mutate(mean_obs_species = mean(n)) %>%
+    mutate(greater_than_one = ifelse(n == 1, 0, 1)) %>%
+    mutate(prop_greater_than_one = mean(greater_than_one))
+  
+  mean_obs_species_citsci <- as.numeric(species_per_siteyear_citsci[1,7])
+  prop_greater_than_one_citsci <- as.numeric(species_per_siteyear_citsci[1,9])
+  
+  ## --------------------------------------------------
   # research collection community samples
   
   # group by institution for syrphidae, by observers for bumble bees
@@ -1197,7 +1224,12 @@ prep_data <- function(era_start, era_end, n_intervals, n_visits,
     total_records_since_study_full = total_records_since_2000_full,
     citsci_records_full = citsci_records_full,
     museum_records_full = museum_records_full,
-    species_counts_full = species_counts_full
+    species_counts_full = species_counts_full,
+    
+    mean_obs_species_museum = mean_obs_species_museum,
+    prop_greater_than_one_museum = prop_greater_than_one_museum,
+    mean_obs_species_citsci = mean_obs_species_citsci,
+    prop_greater_than_one_citsci = prop_greater_than_one_citsci
     
   ))
   
