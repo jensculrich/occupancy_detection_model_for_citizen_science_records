@@ -1,3 +1,7 @@
+# This file used to generate figure S8: plot of correlations between environmental predictors
+# used in the main analysis along with other predictors that we chose to hold out.
+
+
 # make sure we have everything needed to make a corr matrix w signifcance testing
 library(Hmisc)
 library(corrplot)
