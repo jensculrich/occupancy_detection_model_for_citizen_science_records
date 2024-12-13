@@ -264,7 +264,7 @@ for(i in 1:n_species){
 ## --------------------------------------------------
 ## Draw ecological parameter plot
 
-(s2 <- ggplot(df_estimates_eco) +
+(s2 <- ggplot(df_estimates_eco, aes(x=X_eco)) +
    theme_bw() +
    # scale_color_viridis(discrete=TRUE) +
    scale_x_discrete(name="", breaks = c(1, 2, 3, 4, 5, 6),
@@ -272,13 +272,12 @@ for(i in 1:n_species){
                              bquote(psi[italic("race")]),
                              bquote(psi[italic("income")]),
                              bquote(psi[italic("dev. green.")]),
-                      bquote(psi[italic("nat. green."~"[non-native]")]),
-                      bquote(psi[italic("nat. green."~"[native]")])
+                             bquote(psi[italic("nat. green."~"[non-native]")]),
+                             bquote(psi[italic("nat. green."~"[native]")])
                     )) +
    scale_y_continuous(str_wrap("Posterior model estimate (logit-scaled)", width = 30),
                       limits = c(-1.5, 1.75)) +
    guides(color = guide_legend(title = "")) +
-   geom_hline(yintercept = 0, lty = "dashed") +
    theme(legend.text=element_text(size=10),
          axis.text.x = element_text(size = 18),
          axis.text.y = element_text(size = 24, angle=45, vjust=-0.5),
@@ -287,6 +286,7 @@ for(i in 1:n_species){
          panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
          panel.background = element_blank(), axis.line = element_line(colour = "black")) +
    coord_flip()
+   
 )
 
 df_estimates_eco_species <- cbind(df_estimates_eco, species_estimates)
@@ -310,7 +310,9 @@ s2 <- s2 +
   geom_errorbar(aes(x=X_eco, ymin=lower_50_eco, ymax=upper_50_eco),
                 color="black",width=0,size=3,alpha=0.8) +
   geom_point(aes(x=X_eco, y=Y_eco),
-             size = 5, alpha = 0.8) 
+             size = 5, alpha = 0.8) +
+  
+  geom_hline(yintercept = 0,lty = "dashed")
 
 s2
 
@@ -325,7 +327,7 @@ plot_grid(s, s2,
 ## --------------------------------------------------
 ## Read in model run results
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 
 fit_summary <- rstan::summary(stan_out)
@@ -599,6 +601,8 @@ plot_grid(q, q2,
           rel_widths = c(1,1))
 
 
+cowplot::plot_grid(s, s2, q, q2)
+
 
 #gridExtra::grid.arrange(q, p, ncol=2)
 
@@ -610,7 +614,7 @@ plot_grid(q, q2,
 # "psi_species[12]",
 # "psi_species[23]"
 
-stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 species_names <- readRDS("./figures/species_names/bombus_names_10km_urban.RDS")
 n_species <- length(species_names)
 
@@ -641,9 +645,9 @@ estimate <-  c(
   # param 1 (psi_species_rangewide)
   #fit_summary2$summary[87:103,1], fit_summary2$summary[105:119,1],
   # param 1 (psi_species_urban)
-  rev(fit_summary$summary[88:119,1]),
+  rev(fit_summary$summary[89:120,1]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[120:151,1])
+  rev(fit_summary$summary[121:152,1])
   # param 3 (psi natural)
   #rev(fit_summary$summary[152:183,1])
 )
@@ -652,9 +656,9 @@ lower <- c(
   # param 1 (psi_species_rangewide)
   #fit_summary2$summary[87:103,4], fit_summary2$summary[105:119,4],
   # param 1 (psi_species_urban)
-  rev(fit_summary$summary[88:119,4]),
+  rev(fit_summary$summary[89:120,4]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[120:151,4])
+  rev(fit_summary$summary[121:152,4])
   # param 3 (psi natural)
   #rev(fit_summary$summary[152:183,4])
 )
@@ -663,9 +667,9 @@ upper <- c(
   # param 1 (psi_species_rangewide)
   #fit_summary2$summary[87:103,8], fit_summary2$summary[105:119,8],
   # param 1 (psi_species_urban)
-  rev(fit_summary$summary[88:119,8]),
+  rev(fit_summary$summary[89:120,8]),
   # param 2 (psi natural)
-  rev(fit_summary$summary[120:151,8])
+  rev(fit_summary$summary[121:152,8])
   # param 3 (psi natural)
   #rev(fit_summary$summary[152:183,8])
 ) 
@@ -958,6 +962,7 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_blank())
 
+bumblebees <- p1.2
 
 # make a column for the intercepts
 temp2 <- ordered_df %>% filter(x == 1)

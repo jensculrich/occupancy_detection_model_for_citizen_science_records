@@ -125,7 +125,7 @@ gc()
 # Metropolitan statistical areas
 # https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist
 # updated 2018, based on 2010 census data
-CBSA <- sf::read_sf("./data/spatial_data/tl_2019_us_cbsa/tl_2019_us_cbsa.shp")
+CBSA <- sf::read_sf("./data/spatial_data/cbsa_metro_areas/tl_2019_us_cbsa.shp")
 
 ## level 3 cluster (ecoregion3)
 crs_CBSA <- sf::st_crs(raster::crs(CBSA))
@@ -194,7 +194,7 @@ income_data <- income_data %>%
   mutate(census_tract = str_sub(GEOID, 6, -2)) 
 
 # table format data indicating the income in block groups
-race_data <- read.csv("./data/spatial_data/DECENNIALDP2020.DP1_2024-06-19T183658/DECENNIALDP2020.DP1-Data.csv")
+race_data <- read.csv("./data/spatial_data/racial_composition/DECENNIALDP2020.DP1-Data.csv")
 
 race_data <- race_data %>%
   rename("census_tract" = "GEO_ID") %>%
@@ -311,18 +311,7 @@ income2 <- income2 +
 # and to limit unreliable statistics." Looking at those NA areas, they are mostly areas of
 # natural habitat, farmland, unused open land, and airports
 
-grid_pop_dens <- st_join(grid_pop_dens, income_trans)
-
-grid_pop_dens <- grid_pop_dens %>%
-  group_by(grid_id) %>%
-  mutate(avg_income = mean(relative_AMR8E001, na.rm = TRUE)) %>%
-  slice(1) %>%
-  ungroup() %>%
-  dplyr::select(grid_id, pop_density_per_km2, avg_income) %>%
-  filter(!is.na(avg_income)) %>%
-  mutate(scaled_avg_income = center_scale(avg_income))
-
-rm(income, income_trans)
+rm(income, income_trans, race_data)
 gc()
 
 ## --------------------------------------------------
@@ -951,8 +940,15 @@ inset1 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("natural greenspace (scaled)"),
-                       low="firebrick3", high="dodgerblue3") +
+  scale_fill_gradient2(name = expression("\nnatural greenspace\n(scaled)"),
+                       low="firebrick3", high="dodgerblue3",
+                       limits=c(-2.5, 4),
+                       breaks=c(-2,0,2,4)) +
+  theme(legend.position = "bottom", #c(0.025,0.05), 
+        legend.direction = "horizontal",
+        legend.title=element_text(size=18), 
+        legend.text=element_text(size=16),
+        legend.background = element_rect(color = NA)) +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
     ylim = c(1000000, 1700000),
@@ -978,8 +974,15 @@ inset2 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("household income (scaled)"),
-                       low="firebrick3", high="dodgerblue3") +
+  scale_fill_gradient2(name = expression("household income\n(scaled)"),
+                       low="firebrick3", high="dodgerblue3",
+                         limits=c(-2.5, 4),
+                         breaks=c(-2,0,2,4)) +
+  theme(legend.position = "bottom", #c(0.025,0.05), 
+        legend.direction = "horizontal",
+        legend.title=element_text(size=18), 
+        legend.text=element_text(size=16),
+        legend.background = element_rect(color = NA)) +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
     ylim = c(1000000, 1700000),
@@ -1005,8 +1008,15 @@ inset3 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("developed greenspace (scaled)"),
-                       low="firebrick3", high="dodgerblue3") +
+  scale_fill_gradient2(name = expression("developed greenspace\n(scaled)"),
+                       low="firebrick3", high="dodgerblue3",
+                         limits=c(-2.5, 4),
+                         breaks=c(-2,0,2,4)) +
+  theme(legend.position = "bottom", #c(0.025,0.05), 
+        legend.direction = "horizontal",
+        legend.title=element_text(size=18), 
+        legend.text=element_text(size=16),
+        legend.background = element_rect(color = NA)) +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
     ylim = c(1000000, 1700000),
@@ -1032,8 +1042,15 @@ inset4 <- main_map +
   geom_sf(data = prj_city_df, size = 8, 
           shape = 1, fill = "black", alpha = 0.9) +
   geom_sf_label(data = prj_city_df_labels, aes(label = cities), size = 7) +
-  scale_fill_gradient2(name = expression("% minorities (scaled)"),
-                       low="firebrick3", high="dodgerblue3") +
+  scale_fill_gradient2(name = expression("% minorities\n(scaled)"),
+                       low="firebrick3", high="dodgerblue3",
+                       limits=c(-2.5, 4),
+                       breaks=c(-2,0,2,4)) +
+  theme(legend.position = "bottom", #c(0.025,0.05), 
+        legend.direction = "horizontal",
+        legend.title=element_text(size=18), 
+        legend.text=element_text(size=16),
+        legend.background = element_rect(color = NA)) +
   coord_sf(
     xlim = c(-2150000 , -1350000), 
     ylim = c(1000000, 1700000),
@@ -1061,19 +1078,34 @@ main_map <- main_map +
     size = 1
   )
 
-plot_grid(inset1, NULL, inset3, 
-          #labels = c('b)', "", 'c)'),
+a <- plot_grid(inset1, NULL, inset3, 
+          #labels = c('b)',"", 'c)'),
           #label_size = 20,
           nrow=1,
           rel_widths = c(1,0.05,1))
 
-plot_grid(inset2, NULL, inset4, 
-          #labels = c('b)', "", 'c)'),
+b <- plot_grid(inset2, NULL, inset4, 
+          #labels = c('d)',"",'e)'),
           #label_size = 20,
           nrow=1,
           rel_widths = c(1,0.05,1))
 
 main_map
+
+# for the ctual figure
+
+insets_all <- plot_grid(#inset1, inset3, 
+                        #inset2, inset4,
+                        a, NULL, b,
+                        nrow=3,
+                        rel_heights = c(1, 0.02, 1)
+                        )
+
+full_plot <- plot_grid(main_map, NULL, insets_all,
+                       labels = c('a)',"", ""),
+                       label_size = 20,
+                       rel_heights = c(0.4, 0.02, 0.6),
+                       nrow = 3)
 
 # get lims
 #layer_scales(main_population_map)$x$get_limits()

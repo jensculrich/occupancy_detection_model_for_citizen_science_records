@@ -848,15 +848,15 @@ stan_out <- readRDS(paste0(
 )
 
 # read in a model ouput manually
-#stan_out <- readRDS("./occupancy/model_outputs/syrphidae/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits_.rds")
-#stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.rds")
+#stan_out <- readRDS("./occupancy/model_outputs/large_files/syrphidae_10km_1200minpop_2minUniqueDetections_3ints_3visits_.rds")
+#stan_out <- readRDS("./occupancy/model_outputs/large_files/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits_.rds")
 #stan_out <- readRDS("./occupancy/model_outputs/bombus/by_city/bombus_10km_1200minpop_1minUniqueDetections_4ints_3visits.RDS")
 
 # print main effects
 # print results
 # for urban sites
 if(taxon == "syrphidae"){
-  print(stan_out, digits = 3, pars = c(
+  print(stan_out, digits = 2, pars = c(
     "rho", 
     "sigma_species_detection[1]",
     "sigma_species_detection[2]", 
@@ -865,7 +865,7 @@ if(taxon == "syrphidae"){
     "sigma_psi_species",
     "sigma_psi_site",
     "sigma_psi_level_three",
-    #"sigma_psi_level_four",
+    "sigma_psi_level_four",
     "delta0",
     "delta1",
     "gamma0",
@@ -894,14 +894,15 @@ if(taxon == "syrphidae"){
     "sigma_p_rc_level_three"
   ))
 } else {
-  print(stan_out, digits = 3, pars = c(
+  print(stan_out, digits = 2, pars = c(
     "rho", 
     "sigma_species_detection[1]",
     "sigma_species_detection[2]", 
     "mu_psi_0",
+    "sigma_psi_species",
     "sigma_psi_site",
-    #"sigma_psi_level_three",
-    #"sigma_psi_level_four",
+    "sigma_psi_level_three",
+    "sigma_psi_level_four",
     #"sigma_psi_income",
     "mu_psi_natural_habitat",
     "sigma_psi_natural_habitat",
@@ -914,10 +915,11 @@ if(taxon == "syrphidae"){
     "mu_p_cs_0",
     #"sigma_p_cs_species",
     "sigma_p_cs_site",
-    #"sigma_p_cs_level_three",
+    "sigma_p_cs_level_three",
     "p_cs_interval",
     "p_cs_pop_density", 
     "p_cs_income",
+    "p_cs_race",
     
     "mu_p_rc_0",
     #"sigma_p_rc_species",

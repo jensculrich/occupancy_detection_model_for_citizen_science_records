@@ -157,8 +157,8 @@ ggplot() +
   coord_sf(datum = NA)  +
   labs(x = "") +
   labs(y = "") +
-  theme(legend.position="none") + 
-  ggtitle("15km x 15km grid cells")
+  theme(legend.position="none")# + 
+  #ggtitle("15km x 15km grid cells")
 
 
 ## --------------------------------------------------
@@ -204,7 +204,7 @@ grid_pop_dens <- grid_pop_dens %>%
 # Metropolitan statistical areas
 # https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist
 # updated 2018, based on 2010 census data
-CBSA <- sf::read_sf("./data/spatial_data/tl_2019_us_cbsa/tl_2019_us_cbsa.shp")
+CBSA <- sf::read_sf("./data/spatial_data/cbsa_metro_areas/tl_2019_us_cbsa.shp")
 
 ## level 3 cluster (ecoregion3)
 crs_CBSA <- sf::st_crs(raster::crs(CBSA))

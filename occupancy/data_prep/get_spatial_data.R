@@ -72,7 +72,7 @@ get_spatial_data <- function(
     # Ecoregion data for filtering to eastern US
     
     # read in ecoregion 1 data
-    ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
+    ecoregion1 <- sf::read_sf("./data/spatial_data/ecoregion_level_one/NA_CEC_ECO_Level1.shp")
     
     ecoregion1_region8 <- filter(ecoregion1, NA_L1CODE == "8") %>%
       st_transform(., crs)
@@ -263,7 +263,7 @@ get_spatial_data <- function(
     mutate(census_tract = str_sub(GEOID, 6, -2)) 
   
   # table format data indicating the race in tract groups
-  race_data <- read.csv("./data/spatial_data/DECENNIALDP2020.DP1_2024-06-19T183658/DECENNIALDP2020.DP1-Data.csv")
+  race_data <- read.csv("./data/spatial_data/racial_composition/DECENNIALDP2020.DP1-Data.csv")
   
   race_data <- race_data %>%
     rename("census_tract" = "GEO_ID") %>%
@@ -510,7 +510,7 @@ get_spatial_data <- function(
     # Metropolitan statistical areas (CBSA's)
     # https://catalog.data.gov/dataset/tiger-line-shapefile-2019-nation-u-s-current-metropolitan-statistical-area-micropolitan-statist
     # updated 2018, based on 2010 census data
-    level_three_cluster <- sf::read_sf("./data/spatial_data/tl_2019_us_cbsa/tl_2019_us_cbsa.shp")
+    level_three_cluster <- sf::read_sf("./data/spatial_data/cbsa_metro_areas/tl_2019_us_cbsa.shp")
     
     ## level 3 cluster (city)
     crs_level_three <- sf::st_crs(raster::crs(level_three_cluster))
@@ -530,7 +530,7 @@ get_spatial_data <- function(
     
   } else{ # else cluster by ecoregion 3 
     
-    level_three_cluster <- sf::read_sf("./data/spatial_data/NA_CEC_Eco_Level3/NA_CEC_Eco_Level3.shp")
+    level_three_cluster <- sf::read_sf("./data/spatial_data/ecoregion_level_three/NA_CEC_Eco_Level3.shp")
     
     ## level 3 cluster (ecoregion 3 fine scale ecoregion)
     crs_level_three <- sf::st_crs(raster::crs(level_three_cluster))
@@ -556,7 +556,7 @@ get_spatial_data <- function(
   # Ecoregion data for site clustering
   
   # read in ecoregion 1 data
-  ecoregion1 <- sf::read_sf("./data/spatial_data/na_cec_eco_l1/NA_CEC_ECO_Level1.shp")
+  ecoregion1 <- sf::read_sf("./data/spatial_data/ecoregion_level_one/NA_CEC_ECO_Level1.shp")
   
   ## level 4 cluster (ecoregion1)
   crs_ecoregion1 <- sf::st_crs(raster::crs(ecoregion1))

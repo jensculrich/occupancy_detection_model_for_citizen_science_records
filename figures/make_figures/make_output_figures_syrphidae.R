@@ -469,7 +469,7 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
   scale_x_discrete(name="", breaks = c(2),
                    labels=c(#bquote(psi[species - range]),
                      #bquote(psi[species])
-                     bquote(psi[italic("nat. green."~"[species]")])
+                     #bquote(psi[italic("nat. green."~"[species]")])
                      #bquote(FTP[citsci]),
                      #bquote(FTP[museum])
                    )) +
@@ -499,6 +499,8 @@ p1.2 <- ggplot(temp, aes(x, row_id, width=1, height=1)) +
         plot.margin = unit(c(0,0,0,0), "cm"),
         panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
         panel.background = element_blank(), axis.line = element_blank())
+
+hoverflies <- p1.2
 
 # row order needs to match row order of slope column
 temp2 <- top_and_bottom %>% filter(x == 1)
@@ -542,7 +544,11 @@ p1.1 <- ggplot(temp2, aes(x, row_id, width=1, height=1)) +
         panel.background = element_blank(), axis.line = element_blank())
 
 
+## --------------------------------------------------
+## cowplot the bumble bees and hoverflies
 
+cowplot::plot_grid(bumblebees, hoverflies, ncol = 2,
+                   rel_widths = c(0.45, 0.55))
 
 ## --------------------------------------------------
 ## Prediction versus covariate
